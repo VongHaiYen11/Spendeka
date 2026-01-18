@@ -1,16 +1,23 @@
-import { StyleSheet } from 'react-native';
-import { Text, View, SafeView } from '@/components/Themed';
-import { Text as RNText } from 'react-native';
+import { SafeView } from '@/components/Themed';
+import { useState } from 'react';
+import AccountInfo from './components/accountInfo';
+import HeaderSummary from './components/header';
 
-export default function Summary() { 
+type RangeType = 'day' | 'week' | 'month' | 'year' | 'all';
+
+export default function Summary() {
+  const [range, setRange] = useState<RangeType>('day');
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   return (
     <SafeView>
-      <Text>
-        Welcome to Nativewind!
-      </Text>
-      <RNText className="text-red-500 text-lg">
-        This is a normal React Native Text
-      </RNText>
+      <HeaderSummary
+        range={range}
+        setRange={setRange}
+        currentDate={currentDate}
+        setCurrentDate={setCurrentDate}
+      />
+      <AccountInfo period={range} savedAmount={0} spentAmount={0} />
     </SafeView>
   );
 }

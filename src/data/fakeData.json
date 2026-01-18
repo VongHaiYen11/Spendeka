@@ -1,0 +1,58 @@
+{
+    "users": [
+      {
+        "id": "user1",
+        "name": "Hoa",
+        "email": "hoa@example.com"
+      }
+    ],
+    "transactions": [
+      {
+        "id": "t1",
+        "userId": "user1",
+        "date": "2026-01-18T09:30:00",
+        "amount": 50000,
+        "category": "Food",
+        "note": "Breakfast"
+      },
+      {
+        "id": "t2",
+        "userId": "user1",
+        "date": "2026-01-18T12:15:00",
+        "amount": 120000,
+        "category": "Transport",
+        "note": "Grab to office"
+      },
+      {
+        "id": "t3",
+        "userId": "user1",
+        "date": "2026-01-17T18:00:00",
+        "amount": 75000,
+        "category": "Food",
+        "note": "Dinner"
+      },
+      {
+        "id": "t4",
+        "userId": "user1",
+        "date": "2026-01-15T20:00:00",
+        "amount": 200000,
+        "category": "Shopping",
+        "note": "Clothes"
+      },
+      {
+        "id": "t5",
+        "userId": "user1",
+        "date": "2026-01-01T10:00:00",
+        "amount": 150000,
+        "category": "Rent",
+        "note": "January rent"
+      }
+    ],
+    "categories": [
+      { "id": "Food", "name": "Food" },
+      { "id": "Transport", "name": "Transport" },
+      { "id": "Shopping", "name": "Shopping" },
+      { "id": "Rent", "name": "Rent" }
+    ]
+  }
+  
