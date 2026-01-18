@@ -3,10 +3,10 @@ import { Text, View, SafeView } from '@/components/Themed';
 
 export default function CameraScreen() {
   return (
-    <View style={styles.container}>
+    <SafeView style={styles.container}>
       <Text style={styles.title}>Camera</Text>
       <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-    </View>
+    </SafeView>
   );
 }
 

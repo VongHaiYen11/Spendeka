@@ -1,9 +1,10 @@
 import { StyleSheet } from 'react-native';
 import { Text, View, SafeView } from '@/components/Themed';
-import Summary from '@/screens/summary';
 
-export default function SummaryScreen() {
+export default function Summary() { 
   return (
-    <Summary />
+    <SafeView>
+      <Text>Summary</Text>
+    </SafeView>
   );
 }
