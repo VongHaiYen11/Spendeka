@@ -1,3 +1,4 @@
+import DateRangePickerModal from '@/screens/summary/components/DateRangePickerModal';
 import { Text } from '@/components/Themed';
 import { RangeType, getDateRange } from '@/utils/getDateRange';
 import {
@@ -7,7 +8,7 @@ import {
     subDays,
 } from 'date-fns';
 import { useState } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
 interface HeaderProps {
   range: RangeType;
@@ -16,24 +17,14 @@ interface HeaderProps {
   setCurrentDate: (d: Date) => void;
 }
 
-const rangeLabelMap: Record<RangeType, string> = {
-  day: 'Day',
-  week: 'This Week',
-  month: 'This Month',
-  year: 'This Year',
-  all: 'All Time',
-};
-
 export default function HeaderSummary({
   range,
   setRange,
   currentDate,
   setCurrentDate,
 }: HeaderProps) {
-  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const { start, end } = getDateRange(range, currentDate);
-
-  const options: RangeType[] = ['day', 'week', 'month', 'year', 'all'];
 
   const onPrev = () => {
     if (range === 'all') return;
@@ -114,7 +105,7 @@ export default function HeaderSummary({
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => setDropdownVisible(!dropdownVisible)}
+          onPress={() => setModalVisible(true)}
           className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
         >
           <Text className="text-gray-800 dark:text-gray-200 text-center">
@@ -132,27 +123,16 @@ export default function HeaderSummary({
         </TouchableOpacity>
       </View>
 
-      {dropdownVisible && (
-        <View className="absolute top-full mt-4 w-36 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg z-50 self-center shadow-sm">
-          <ScrollView className="w-full">
-            {options.map((r) => (
-              <TouchableOpacity
-                key={r}
-                onPress={() => {
-                  setRange(r);
-                  setCurrentDate(new Date());
-                  setDropdownVisible(false);
-                }}
-                className="w-full px-4 py-2 items-center"
-              >
-                <Text className="text-gray-800 dark:text-gray-200 text-center">
-                  {rangeLabelMap[r]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+      <DateRangePickerModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onApply={(newRange, newDate) => {
+          setRange(newRange);
+          setCurrentDate(newDate);
+        }}
+        currentRange={range}
+        currentDate={currentDate}
+      />
     </View>
   );
 }
