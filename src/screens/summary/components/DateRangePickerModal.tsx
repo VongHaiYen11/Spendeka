@@ -209,6 +209,23 @@ export default function DateRangePickerModal({
                 current={selectedDate.toISOString().split('T')[0]}
                 onDayPress={handleDateSelect}
                 markedDates={markedDates}
+                theme={{
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  calendarBackground: isDark ? '#1f2937' : '#ffffff',
+              
+                  textSectionTitleColor: isDark ? '#9ca3af' : '#6b7280',
+                  dayTextColor: isDark ? '#e5e7eb' : '#111827',
+                  todayTextColor: '#3b82f6',
+                  selectedDayTextColor: '#ffffff',
+              
+                  monthTextColor: isDark ? '#ffffff' : '#111827',
+                  arrowColor: isDark ? '#ffffff' : '#111827',
+              
+                  textDisabledColor: isDark ? '#4b5563' : '#d1d5db',
+              
+                  dotColor: '#3b82f6',
+                  selectedDotColor: '#ffffff',
+                }}
                 markingType={selectedRange === 'week' ? 'period' : undefined}
                 renderHeader={(date) => {
                   const d = new Date(date);
