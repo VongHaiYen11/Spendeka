@@ -1,11 +1,11 @@
-import DateRangePickerModal from '@/screens/summary/components/DateRangePickerModal';
 import { Text } from '@/components/Themed';
+import DateRangePickerModal from '@/screens/summary/components/DateRangePickerModal';
 import { RangeType, getDateRange } from '@/utils/getDateRange';
 import {
-    addDays,
-    differenceInCalendarDays,
-    format,
-    subDays,
+  addDays,
+  differenceInCalendarDays,
+  format,
+  subDays,
 } from 'date-fns';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';

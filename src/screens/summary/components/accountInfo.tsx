@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { formatDollar } from '@/utils/formatCurrency';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { Text, View } from 'react-native';
 
 /* =======================
    Types

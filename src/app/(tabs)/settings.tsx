@@ -1,5 +1,5 @@
+import { SafeView, Text, View } from '@/components/Themed';
 import { StyleSheet } from 'react-native';
-import { Text, View, SafeView } from '@/components/Themed';
 
 export default function SettingsScreen() {
   return (

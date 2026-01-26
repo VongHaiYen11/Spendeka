@@ -1,58 +1,38 @@
 {
-    "users": [
-      {
-        "id": "user1",
-        "name": "Hoa",
-        "email": "hoa@example.com"
-      }
-    ],
-    "transactions": [
-      {
-        "id": "t1",
-        "userId": "user1",
-        "date": "2026-01-18T09:30:00",
-        "amount": 50000,
-        "category": "Food",
-        "note": "Breakfast"
-      },
-      {
-        "id": "t2",
-        "userId": "user1",
-        "date": "2026-01-18T12:15:00",
-        "amount": 120000,
-        "category": "Transport",
-        "note": "Grab to office"
-      },
-      {
-        "id": "t3",
-        "userId": "user1",
-        "date": "2026-01-17T18:00:00",
-        "amount": 75000,
-        "category": "Food",
-        "note": "Dinner"
-      },
-      {
-        "id": "t4",
-        "userId": "user1",
-        "date": "2026-01-15T20:00:00",
-        "amount": 200000,
-        "category": "Shopping",
-        "note": "Clothes"
-      },
-      {
-        "id": "t5",
-        "userId": "user1",
-        "date": "2026-01-01T10:00:00",
-        "amount": 150000,
-        "category": "Rent",
-        "note": "January rent"
-      }
-    ],
-    "categories": [
-      { "id": "Food", "name": "Food" },
-      { "id": "Transport", "name": "Transport" },
-      { "id": "Shopping", "name": "Shopping" },
-      { "id": "Rent", "name": "Rent" }
-    ]
-  }
-  
+  "users": [
+    { "id": "user1", "name": "Hoa", "email": "hoa@example.com" }
+  ],
+  "transactions": [
+    { "id": "t1", "userId": "user1", "date": "2018-01-15T10:00:00", "amount": -50.00, "category": "Food", "note": "Lunch" },
+    { "id": "t2", "userId": "user1", "date": "2018-01-16T12:00:00", "amount": 200.00, "category": "Salary", "note": "January salary" },
+    { "id": "t3", "userId": "user1", "date": "2019-03-10T09:00:00", "amount": -70.00, "category": "Shopping", "note": "Groceries" },
+    { "id": "t4", "userId": "user1", "date": "2019-03-11T18:00:00", "amount": 300.00, "category": "Freelance", "note": "Project payment" },
+    { "id": "t5", "userId": "user1", "date": "2020-05-05T14:00:00", "amount": -100.00, "category": "Transport", "note": "Monthly pass" },
+    { "id": "t6", "userId": "user1", "date": "2020-05-06T09:00:00", "amount": 500.00, "category": "Salary", "note": "Monthly salary" },
+    { "id": "t7", "userId": "user1", "date": "2021-07-10T11:00:00", "amount": -200.00, "category": "Shopping", "note": "Electronics" },
+    { "id": "t8", "userId": "user1", "date": "2021-07-12T10:00:00", "amount": 800.00, "category": "Freelance", "note": "Contract work" },
+    { "id": "t9", "userId": "user1", "date": "2022-02-14T13:00:00", "amount": -150.00, "category": "Food", "note": "Valentine dinner" },
+    { "id": "t10", "userId": "user1", "date": "2022-02-15T08:00:00", "amount": 600.00, "category": "Salary", "note": "February salary" },
+    { "id": "t11", "userId": "user1", "date": "2023-04-01T09:00:00", "amount": -80.00, "category": "Transport", "note": "Taxi" },
+    { "id": "t12", "userId": "user1", "date": "2023-04-02T10:00:00", "amount": 400.00, "category": "Freelance", "note": "Design project" },
+    { "id": "t13", "userId": "user1", "date": "2024-06-10T12:00:00", "amount": -120.00, "category": "Shopping", "note": "Clothes" },
+    { "id": "t14", "userId": "user1", "date": "2024-06-11T11:00:00", "amount": 700.00, "category": "Salary", "note": "Monthly salary" },
+    { "id": "t15", "userId": "user1", "date": "2025-08-05T15:00:00", "amount": -200.00, "category": "Food", "note": "Dinner" },
+    { "id": "t16", "userId": "user1", "date": "2025-08-06T09:00:00", "amount": 1000.00, "category": "Freelance", "note": "Website project" },
+    { "id": "t17", "userId": "user1", "date": "2026-01-03T08:00:00", "amount": -90.00, "category": "Transport", "note": "Taxi" },
+    { "id": "t18", "userId": "user1", "date": "2026-01-03T13:00:00", "amount": 1200.00, "category": "Salary", "note": "January salary" },
+    { "id": "t19", "userId": "user1", "date": "2026-01-10T09:00:00", "amount": -60.00, "category": "Food", "note": "Lunch" },
+    { "id": "t20", "userId": "user1", "date": "2026-01-10T14:00:00", "amount": 800.00, "category": "Bonus", "note": "Performance bonus" },
+    { "id": "t21", "userId": "user1", "date": "2026-01-15T09:00:00", "amount": -130.00, "category": "Shopping", "note": "Clothes" },
+    { "id": "t22", "userId": "user1", "date": "2026-01-15T15:00:00", "amount": 900.00, "category": "Freelance", "note": "Electronics project" }
+  ],
+  "categories": [
+    { "id": "Food", "name": "Food", "color": "#FFA8A8" },
+    { "id": "Transport", "name": "Transport", "color": "#A8D8FF" },
+    { "id": "Shopping", "name": "Shopping", "color": "#FFD8A8" },
+    { "id": "Rent", "name": "Rent", "color": "#D8A8FF" },
+    { "id": "Salary", "name": "Salary", "color": "#A8FFB0" },
+    { "id": "Bonus", "name": "Bonus", "color": "#FFEFA8" },
+    { "id": "Freelance", "name": "Freelance", "color": "#A8FFF2" }
+  ]
+}

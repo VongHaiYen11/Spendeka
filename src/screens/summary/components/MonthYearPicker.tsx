@@ -81,7 +81,7 @@ export default function MonthYearPicker({
   const yearScrollRef = useRef<ScrollView | null>(null);
   const [containerHeight, setContainerHeight] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Memoize years array to avoid recalculation
   const years = useMemo(() => {
