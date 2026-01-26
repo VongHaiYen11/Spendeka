@@ -340,9 +340,9 @@ const ChartCategories: React.FC<ChartCategoriesProps> = ({
         </View>
       </View>
       
-      <View style={styles.chartContainer}>
-        <View style={styles.chartArea}>
-          {hasData ? (
+      {hasData ? (
+        <View style={styles.chartContainer}>
+          <View style={styles.chartArea}>
             <View style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}>
               <PieChart
                 data={chartData}
@@ -355,13 +355,13 @@ const ChartCategories: React.FC<ChartCategoriesProps> = ({
                 center={[0,0]}
               />
             </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>{emptyMessage}</RNText>
-            </View>
-          )}
+          </View>
         </View>
-      </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>No data</RNText>
+        </View>
+      )}
     </View>
   );
 };
@@ -412,6 +412,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 16,
+    paddingVertical: 20,
   },
   emptyText: {
     fontSize: 16,

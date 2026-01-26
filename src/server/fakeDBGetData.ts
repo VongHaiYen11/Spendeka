@@ -174,8 +174,8 @@ export function getSpentByCategory(
   }, {});
 }
 
-// Get category color from database
-export function getCategoryColor(categoryId: string): string {
+// Get category icon from database
+export function getCategoryIcon(categoryId: string): string {
   const category = (data as any).categories?.find((c: any) => c.id === categoryId);
-  return category?.color || '#CCCCCC'; // Default gray if not found
+  return category?.icon || '📝'; // Default icon if not found
 }

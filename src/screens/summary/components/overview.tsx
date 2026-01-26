@@ -409,25 +409,23 @@ const Overview: React.FC<OverviewProps> = ({
         </View>
       </View>
         
-    <View style={styles.chartContainer}>
-        <View style={[
-            styles.chartArea
-        ]}>
-        {hasData ? (
-          <View style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}>
-            {isLineChart ? (
-              <ChartKitLineChart {...lineChartProps} />
-            ) : (
-              <ChartKitBarChart {...barChartProps} />
-            )}
+      {hasData ? (
+        <View style={styles.chartContainer}>
+          <View style={styles.chartArea}>
+            <View style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}>
+              {isLineChart ? (
+                <ChartKitLineChart {...lineChartProps} />
+              ) : (
+                <ChartKitBarChart {...barChartProps} />
+              )}
+            </View>
           </View>
-        ) : (
-          <View style={[styles.emptyState]}>
-            <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>No data</RNText>
-          </View>
-        )}
-      </View> 
-    </View>
+        </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>No data</RNText>
+        </View>
+      )}
 
     </View>
   );
@@ -486,6 +484,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 16,
+    paddingVertical: 20,
   },
   emptyText: {
     fontSize: 16,

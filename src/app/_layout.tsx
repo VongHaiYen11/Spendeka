@@ -52,6 +52,7 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="history" options={{ headerShown: false, presentation: 'card' }} />
       </Stack>
     </ThemeProvider>
   );

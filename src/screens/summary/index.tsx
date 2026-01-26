@@ -14,6 +14,7 @@ import AccountInfo from './components/accountInfo';
 import ChartCategories from './components/chartCategories';
 import HeaderSummary from './components/header';
 import BarChart from './components/overview';
+import TransactionList from './components/transactionList';
 
 type RangeType = 'day' | 'week' | 'month' | 'year' | 'all';
 
@@ -75,6 +76,11 @@ export default function Summary() {
           range={range}
         />
         <ChartCategories
+          startDate={startDate}
+          endDate={endDate}
+          range={range}
+        />
+        <TransactionList
           startDate={startDate}
           endDate={endDate}
           range={range}

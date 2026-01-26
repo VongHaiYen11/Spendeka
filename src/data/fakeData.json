@@ -27,12 +27,12 @@
     { "id": "t22", "userId": "user1", "date": "2026-01-15T15:00:00", "amount": 900.00, "category": "Freelance", "note": "Electronics project" }
   ],
   "categories": [
-    { "id": "Food", "name": "Food", "color": "#FFA8A8" },
-    { "id": "Transport", "name": "Transport", "color": "#A8D8FF" },
-    { "id": "Shopping", "name": "Shopping", "color": "#FFD8A8" },
-    { "id": "Rent", "name": "Rent", "color": "#D8A8FF" },
-    { "id": "Salary", "name": "Salary", "color": "#A8FFB0" },
-    { "id": "Bonus", "name": "Bonus", "color": "#FFEFA8" },
-    { "id": "Freelance", "name": "Freelance", "color": "#A8FFF2" }
+    { "id": "Food", "name": "Food", "icon": "🍽️" },
+    { "id": "Transport", "name": "Transport", "icon": "🚗" },
+    { "id": "Shopping", "name": "Shopping", "icon": "🛒" },
+    { "id": "Rent", "name": "Rent", "icon": "🏠" },
+    { "id": "Salary", "name": "Salary", "icon": "💰" },
+    { "id": "Bonus", "name": "Bonus", "icon": "🎁" },
+    { "id": "Freelance", "name": "Freelance", "icon": "💼" }
   ]
 }
