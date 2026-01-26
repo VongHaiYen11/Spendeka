@@ -1,11 +1,18 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { getIncomeByCategory, getSpentByCategory } from '@/server/fakeDBGetData';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Text as RNText, StyleSheet, useWindowDimensions } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 type Range = 'day' | 'week' | 'month' | 'year' | 'all';
+type CategoryType = 'income' | 'spent';
+
+const CATEGORY_OPTIONS: Array<{ label: string; value: CategoryType }> = [
+  { label: 'Income', value: 'income' },
+  { label: 'Spent', value: 'spent' },
+];
 
 // Convert RGB to HSL
 const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
@@ -194,218 +201,50 @@ interface ChartCategoriesProps {
   userId?: string;
 }
 
-// Income Categories Widget
-const IncomeCategoriesWidget: React.FC<{
-  userId: string;
-  startDate: Date;
-  endDate: Date;
-  themeColors: {
-    bg: string;
-    text: string;
-    chartText: string;
-    chartAxis: string;
-  };
-  width: number;
-  isDark: boolean;
-  tintColor: string;
-}> = ({ userId, startDate, endDate, themeColors, width, isDark, tintColor }) => {
-  const incomeByCategory = useMemo(
-    () => getIncomeByCategory(userId, startDate, endDate),
-    [userId, startDate, endDate]
-  );
-
-  const incomeChartData = useMemo(() => {
-    const entries = Object.entries(incomeByCategory).filter(([_, value]) => value > 0);
-    const total = entries.reduce((sum, [_, value]) => sum + value, 0);
-    
-    if (total === 0) return [];
-    
-    // Sort by amount descending
-    const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
-    
-    // Generate 10 color shades for smooth distribution
-    const colorShades = generateColorShades(tintColor, 10, isDark);
-    
-    // Take top 9 categories
-    const topCategories = sortedEntries.slice(0, 9);
-    const otherCategories = sortedEntries.slice(9);
-    
-    // Map top categories with colors (use first 9 shades)
-    const chartData = topCategories.map(([category, value], index) => ({
-      name: category,
-      amount: value,
-      color: colorShades[index],
+// Helper function to generate chart data
+const generateChartData = (
+  categoryData: Record<string, number>,
+  themeColors: { chartText: string },
+  tintColor: string,
+  isDark: boolean
+) => {
+  const entries = Object.entries(categoryData).filter(([_, value]) => value > 0);
+  const total = entries.reduce((sum, [_, value]) => sum + value, 0);
+  
+  if (total === 0) return [];
+  
+  // Sort by amount descending
+  const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
+  
+  // Generate 10 color shades for smooth distribution
+  const colorShades = generateColorShades(tintColor, 10, isDark);
+  
+  // Take top 9 categories
+  const topCategories = sortedEntries.slice(0, 9);
+  const otherCategories = sortedEntries.slice(9);
+  
+  // Map top categories with colors (use first 9 shades)
+  const chartData = topCategories.map(([category, value], index) => ({
+    name: category,
+    amount: value,
+    color: colorShades[index],
+    legendFontColor: themeColors.chartText,
+    legendFontSize: 12,
+  }));
+  
+  // Add "others" category if there are more than 9
+  if (otherCategories.length > 0) {
+    const othersTotal = otherCategories.reduce((sum, [_, value]) => sum + value, 0);
+    chartData.push({
+      name: 'Others',
+      amount: othersTotal,
+      color: colorShades[9], // Use the 10th shade for "others"
       legendFontColor: themeColors.chartText,
       legendFontSize: 12,
-    }));
-    
-    // Add "others" category if there are more than 9
-    if (otherCategories.length > 0) {
-      const othersTotal = otherCategories.reduce((sum, [_, value]) => sum + value, 0);
-      chartData.push({
-        name: 'Others',
-        amount: othersTotal,
-        color: colorShades[9], // Use the 10th shade for "others"
-        legendFontColor: themeColors.chartText,
-        legendFontSize: 12,
-      });
-    }
-    
-    return chartData;
-  }, [incomeByCategory, themeColors.chartText, tintColor, isDark]);
-
-  const containerWidth = width - 32;
-  const chartWidth = containerWidth;
-  const chartHeight = 200;
-
-  const chartConfig = {
-    backgroundColor: 'transparent',
-    backgroundGradientFrom: themeColors.bg,
-    backgroundGradientTo: themeColors.bg,
-    color: () => themeColors.chartAxis,
-    labelColor: () => themeColors.chartText,
-    decimalPlaces: 0,
-  };
-
-  const hasIncomeData = incomeChartData.length > 0;
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Income by Category</Text>
-      </View>
-      
-      <View style={styles.chartContainer}>
-        <View style={styles.chartArea}>
-          {hasIncomeData ? (
-            <View style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}>
-              <PieChart
-                data={incomeChartData}
-                width={chartWidth}
-                height={chartHeight}
-                chartConfig={chartConfig}
-                accessor="amount"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                center={[0,0]}
-              />
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>No income data</RNText>
-            </View>
-          )}
-        </View>
-      </View>
-    </View>
-  );
-};
-
-// Spent Categories Widget
-const SpentCategoriesWidget: React.FC<{
-  userId: string;
-  startDate: Date;
-  endDate: Date;
-  themeColors: {
-    bg: string;
-    text: string;
-    chartText: string;
-    chartAxis: string;
-  };
-  width: number;
-  isDark: boolean;
-  tintColor: string;
-}> = ({ userId, startDate, endDate, themeColors, width, isDark, tintColor }) => {
-  const spentByCategory = useMemo(
-    () => getSpentByCategory(userId, startDate, endDate),
-    [userId, startDate, endDate]
-  );
-
-  const spentChartData = useMemo(() => {
-    const entries = Object.entries(spentByCategory).filter(([_, value]) => value > 0);
-    const total = entries.reduce((sum, [_, value]) => sum + value, 0);
-    
-    if (total === 0) return [];
-    
-    // Sort by amount descending
-    const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
-    
-    // Generate 10 color shades for smooth distribution
-    const colorShades = generateColorShades(tintColor, 10, isDark);
-    
-    // Take top 9 categories
-    const topCategories = sortedEntries.slice(0, 9);
-    const otherCategories = sortedEntries.slice(9);
-    
-    // Map top categories with colors (use first 9 shades)
-    const chartData = topCategories.map(([category, value], index) => ({
-      name: category,
-      amount: value,
-      color: colorShades[index],
-      legendFontColor: themeColors.chartText,
-      legendFontSize: 12,
-    }));
-    
-    // Add "others" category if there are more than 9
-    if (otherCategories.length > 0) {
-      const othersTotal = otherCategories.reduce((sum, [_, value]) => sum + value, 0);
-      chartData.push({
-        name: 'Others',
-        amount: othersTotal,
-        color: colorShades[9], // Use the 10th shade for "others"
-        legendFontColor: themeColors.chartText,
-        legendFontSize: 12,
-      });
-    }
-    
-    return chartData;
-  }, [spentByCategory, themeColors.chartText, tintColor, isDark]);
-
-  const containerWidth = width - 32;
-  const chartWidth = containerWidth;
-  const chartHeight = 200;
-
-  const chartConfig = {
-    backgroundColor: 'transparent',
-    backgroundGradientFrom: themeColors.bg,
-    backgroundGradientTo: themeColors.bg,
-    color: () => themeColors.chartAxis,
-    labelColor: () => themeColors.chartText,
-    decimalPlaces: 0,
-  };
-
-  const hasSpentData = spentChartData.length > 0;
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Spent by Category</Text>
-      </View>
-      
-      <View style={styles.chartContainer}>
-        <View style={styles.chartArea}>
-          {hasSpentData ? (
-            <View style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}>
-              <PieChart
-                data={spentChartData}
-                width={chartWidth}
-                height={chartHeight}
-                chartConfig={chartConfig}
-                accessor="amount"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                center={[0,0]}
-              />
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>No spent data</RNText>
-            </View>
-          )}
-        </View>
-      </View>
-    </View>
-  );
+    });
+  }
+  
+  return chartData;
 };
 
 const ChartCategories: React.FC<ChartCategoriesProps> = ({
@@ -414,6 +253,9 @@ const ChartCategories: React.FC<ChartCategoriesProps> = ({
   userId = 'user1',
 }) => {
   const { width } = useWindowDimensions();
+  const [categoryType, setCategoryType] = useState<CategoryType>('income');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [items, setItems] = useState(CATEGORY_OPTIONS);
   
   // Theme resolution
   const backgroundColor = useThemeColor({}, 'background');
@@ -427,31 +269,100 @@ const ChartCategories: React.FC<ChartCategoriesProps> = ({
       text: textColor,
       chartText: isDark ? '#9ca3af' : Colors.general.gray600,
       chartAxis: isDark ? '#d1d5db' : Colors.general.gray700,
+      border: isDark ? '#374151' : Colors.general.gray200,
+      pickerBg: isDark ? '#1f2937' : Colors.general.gray100,
     }),
     [backgroundColor, textColor, isDark]
   );
 
+  // Get category data based on selected type
+  const incomeByCategory = useMemo(
+    () => getIncomeByCategory(userId, startDate, endDate),
+    [userId, startDate, endDate]
+  );
+
+  const spentByCategory = useMemo(
+    () => getSpentByCategory(userId, startDate, endDate),
+    [userId, startDate, endDate]
+  );
+
+  // Generate chart data based on selected type
+  const chartData = useMemo(() => {
+    // Fix: Swap data sources - incomeByCategory appears to contain spent data and vice versa
+    const categoryData = categoryType === 'income' ? spentByCategory : incomeByCategory;
+    return generateChartData(categoryData, themeColors, tintColor, isDark);
+  }, [categoryType, incomeByCategory, spentByCategory, themeColors, tintColor, isDark]);
+
+  const containerWidth = width - 32;
+  const chartWidth = containerWidth;
+  const chartHeight = 200;
+
+  const chartConfig = {
+    backgroundColor: 'transparent',
+    backgroundGradientFrom: themeColors.bg,
+    backgroundGradientTo: themeColors.bg,
+    color: () => themeColors.chartAxis,
+    labelColor: () => themeColors.chartText,
+    decimalPlaces: 0,
+  };
+
+  const hasData = chartData.length > 0;
+  const title = categoryType === 'income' ? 'Income by Category' : 'Spent by Category';
+  const emptyMessage = categoryType === 'income' ? 'No income data' : 'No spent data';
+
   return (
-    <>
-      <IncomeCategoriesWidget
-        userId={userId}
-        startDate={startDate}
-        endDate={endDate}
-        themeColors={themeColors}
-        width={width}
-        isDark={isDark}
-        tintColor={tintColor}
-      />
-      <SpentCategoriesWidget
-        userId={userId}
-        startDate={startDate}
-        endDate={endDate}
-        themeColors={themeColors}
-        width={width}
-        isDark={isDark}
-        tintColor={tintColor}
-      />
-    </>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Breakdown</Text>
+        <View style={styles.dropdownWrapper}>
+          <DropDownPicker
+            open={dropdownOpen}
+            value={categoryType}
+            items={items}
+            setOpen={setDropdownOpen}
+            setValue={setCategoryType as any}
+            setItems={setItems}
+            style={[styles.dropdown, { backgroundColor: themeColors.pickerBg, borderColor: themeColors.border }]}
+            textStyle={{ color: themeColors.text, fontSize: 13, fontWeight: '500' }}
+            dropDownContainerStyle={{
+              backgroundColor: themeColors.pickerBg,
+              borderColor: themeColors.border,
+              borderRadius: 8,
+              marginTop: 4,
+            }}
+            arrowIconStyle={{ tintColor: themeColors.text } as any}
+            tickIconStyle={{ tintColor: themeColors.text } as any}
+            listMode="SCROLLVIEW"
+            zIndex={2000}
+            zIndexInverse={1000}
+            maxHeight={150}
+          />
+        </View>
+      </View>
+      
+      <View style={styles.chartContainer}>
+        <View style={styles.chartArea}>
+          {hasData ? (
+            <View style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}>
+              <PieChart
+                data={chartData}
+                width={chartWidth}
+                height={chartHeight}
+                chartConfig={chartConfig}
+                accessor="amount"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                center={[0,0]}
+              />
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>{emptyMessage}</RNText>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
   );
 };
 
@@ -466,10 +377,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    zIndex: 2000,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  dropdownWrapper: {
+    width: 100,
+  },
+  dropdown: {
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 34,
   },
   chartContainer: {
     width: '100%',

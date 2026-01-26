@@ -382,7 +382,7 @@ const Overview: React.FC<OverviewProps> = ({
       styles.container
     ]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Overview</Text>
+        <Text style={styles.title}>Trends</Text>
         <View style={styles.dropdownWrapper}>
           <DropDownPicker
             open={dropdownOpen}
