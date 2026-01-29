@@ -1,15 +1,21 @@
 import { SafeView, Text, View } from '@/components/Themed';
 import { PRIMARY_COLOR } from '@/constants/Colors';
 import { Expense } from '@/models/Expense';
-import { ExpensePreviewScreen, ExpenseCalendarView } from '@/screens/camera';
-import { getExpenses } from '@/services/ExpenseService';
+import {
+  ExpensePreviewScreen,
+  ExpenseCalendarView,
+  ExpenseDetailScreen,
+} from '@/screens/camera';
+import { getExpenses, deleteExpense } from '@/services/ExpenseService';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Camera, CameraView, FlashMode } from 'expo-camera';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  BackHandler,
   Dimensions,
   StatusBar,
   StyleSheet,
@@ -30,9 +36,51 @@ export default function CameraScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('camera');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
   const cameraRef = useRef<CameraView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Always default to the camera tab when this screen gains focus from navigation
+  useFocusEffect(
+    useCallback(() => {
+      setActiveTab('camera');
+    }, [])
+  );
+
+  // Handle hardware back / back gesture to navigate within camera/expense/detail states
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (selectedExpense) {
+          // From detail -> back to expenses
+          setSelectedExpense(null);
+          return true;
+        }
+
+        if (capturedImage) {
+          // From preview -> back to camera
+          setCapturedImage(null);
+          return true;
+        }
+
+        if (activeTab === 'history') {
+          // From expenses tab -> back to camera tab
+          setActiveTab('camera');
+          return true;
+        }
+
+        // Let navigator handle (go back to home / previous screen)
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => {
+        subscription.remove();
+      };
+    }, [selectedExpense, capturedImage, activeTab])
+  );
 
   useEffect(() => {
     (async () => {
@@ -103,6 +151,30 @@ export default function CameraScreen() {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
+  const handleCloseExpenseDetail = () => {
+    setSelectedExpense(null);
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+    Alert.alert('Delete expense', 'Are you sure you want to delete this expense?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteExpense(expenseId);
+            setSelectedExpense(null);
+            await loadExpenses();
+          } catch (error) {
+            Alert.alert('Error', 'Could not delete expense');
+            console.error('Delete error:', error);
+          }
+        },
+      },
+    ]);
+  };
+
   // Loading permission
   if (hasPermission === null) {
     return (
@@ -121,6 +193,18 @@ export default function CameraScreen() {
         <Text style={styles.loadingText}>No camera access</Text>
         <Text style={styles.subText}>Please grant permission in settings</Text>
       </SafeView>
+    );
+  }
+
+  // Viewing existing expense detail
+  if (selectedExpense) {
+    return (
+      <ExpenseDetailScreen
+        expenses={expenses}
+        initialExpenseId={selectedExpense.id}
+        onClose={handleCloseExpenseDetail}
+        onDelete={handleDeleteExpense}
+      />
     );
   }
 
@@ -218,7 +302,7 @@ export default function CameraScreen() {
         </RNView>
       ) : (
         <RNView style={styles.historyPage}>
-          <ExpenseCalendarView expenses={expenses} />
+          <ExpenseCalendarView expenses={expenses} onSelectExpense={setSelectedExpense} />
         </RNView>
       )}
     </View>

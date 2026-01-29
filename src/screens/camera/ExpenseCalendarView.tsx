@@ -1,211 +1,381 @@
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { PRIMARY_COLOR } from '@/constants/Colors';
 import { Expense, formatAmount } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Dimensions,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View as RNView,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const DAY_SIZE = (width - 48) / 7; // 7 days per week, with padding
+const IMAGE_THUMB_SIZE = (width - 40 - 2 * 10) / 3; // paddingHorizontal 20*2 + gap 10*2
 
-interface DayData {
-  date: number;
+interface DayGroup {
+  date: Date;
   totalAmount: number;
-  latestImageUrl: string | null;
-  hasExpense: boolean;
-}
-
-interface MonthData {
-  year: number;
-  month: number;
-  monthName: string;
-  days: (DayData | null)[];
-  totalAmount: number;
+  expenses: Expense[];
 }
 
 interface ExpenseCalendarViewProps {
   expenses: Expense[];
+  onSelectExpense: (expense: Expense) => void;
 }
 
-export default function ExpenseCalendarView({ expenses }: ExpenseCalendarViewProps) {
-  // Group expenses by month and day for calendar view
-  const monthsData = useMemo(() => {
+export default function ExpenseCalendarView({
+  expenses,
+  onSelectExpense,
+}: ExpenseCalendarViewProps) {
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all'); // 0-11
+  const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
+  const [activeFilterField, setActiveFilterField] = useState<'year' | 'month' | 'day' | null>(null);
+
+  const yearOptions = useMemo(() => {
+    const years = new Set<number>();
+    expenses.forEach((expense) => {
+      const date = new Date(expense.createdAt);
+      years.add(date.getFullYear());
+    });
+    return Array.from(years).sort((a, b) => b - a); // newest year first
+  }, [expenses]);
+
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  const dayGroups: DayGroup[] = useMemo(() => {
     if (expenses.length === 0) return [];
 
-    // Group by month
-    const monthMap = new Map<string, Expense[]>();
-    expenses.forEach((expense) => {
+    const filteredExpenses =
+      selectedYear === 'all' && selectedMonth === 'all' && selectedDay === 'all'
+        ? expenses
+        : expenses.filter((expense) => {
+            const date = new Date(expense.createdAt);
+            const year = date.getFullYear();
+            const month = date.getMonth();
+          const day = date.getDate();
+
+          if (selectedYear !== 'all' && year !== selectedYear) return false;
+          if (selectedMonth !== 'all' && month !== selectedMonth) return false;
+          if (selectedDay !== 'all' && day !== selectedDay) return false;
+          return true;
+          });
+
+    if (filteredExpenses.length === 0) return [];
+
+    const dayMap = new Map<string, { date: Date; expenses: Expense[] }>();
+
+    filteredExpenses.forEach((expense) => {
       const date = new Date(expense.createdAt);
       const year = date.getFullYear();
       const month = date.getMonth();
-      const key = `${year}-${month}`;
+      const day = date.getDate();
+      const key = `${year}-${month}-${day}`;
 
-      if (!monthMap.has(key)) {
-        monthMap.set(key, []);
+      if (!dayMap.has(key)) {
+        dayMap.set(key, { date, expenses: [] });
       }
-      monthMap.get(key)!.push(expense);
+      dayMap.get(key)!.expenses.push(expense);
     });
 
-    // Convert to array and sort (oldest first, so newest appears at bottom)
-    const months: MonthData[] = Array.from(monthMap.entries())
-      .map(([key, monthExpenses]) => {
-        const [year, month] = key.split('-').map(Number);
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const startDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const daysInMonth = lastDay.getDate();
+    const groups: DayGroup[] = Array.from(dayMap.values()).map(({ date, expenses: dayExpenses }) => {
+      const totalAmount = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-        // Group expenses by day
-        const dayMap = new Map<number, Expense[]>();
-        monthExpenses.forEach((expense) => {
-          const day = new Date(expense.createdAt).getDate();
-          if (!dayMap.has(day)) {
-            dayMap.set(day, []);
-          }
-          dayMap.get(day)!.push(expense);
-        });
+      // Sort expenses so newest of the day comes first
+      const sortedExpenses = [...dayExpenses].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      );
 
-        // Create days array
-        const days: (DayData | null)[] = [];
+      return {
+        date,
+        totalAmount,
+        expenses: sortedExpenses,
+      };
+    });
 
-        // Add empty cells for days before the first day of the month
-        for (let i = 0; i < startDayOfWeek; i++) {
-          days.push(null);
-        }
+    // Newest day first
+    groups.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-        // Add days with data
-        for (let day = 1; day <= daysInMonth; day++) {
-          const dayExpenses = dayMap.get(day) || [];
-          const totalAmount = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
-          const latestExpense = dayExpenses.sort(
-            (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-          )[0];
+    return groups;
+  }, [expenses, selectedYear, selectedMonth, selectedDay]);
 
-          days.push({
-            date: day,
-            totalAmount,
-            latestImageUrl: latestExpense?.imageUrl || null,
-            hasExpense: dayExpenses.length > 0,
-          });
-        }
-
-        // Calculate month total
-        const totalAmount = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-        // Month name in Vietnamese
-        const monthNames = [
-          'tháng 1',
-          'tháng 2',
-          'tháng 3',
-          'tháng 4',
-          'tháng 5',
-          'tháng 6',
-          'tháng 7',
-          'tháng 8',
-          'tháng 9',
-          'tháng 10',
-          'tháng 11',
-          'tháng 12',
-        ];
-
-        return {
-          year,
-          month,
-          monthName: `${monthNames[month]} ${year}`,
-          days,
-          totalAmount,
-        };
-      })
-      .sort((a, b) => {
-        // Sort by year and month (oldest first, so newest appears at bottom)
-        if (a.year !== b.year) return a.year - b.year;
-        return a.month - b.month;
-      });
-
-    return months;
-  }, [expenses]);
-
-  const getDayOfWeekLabels = () => {
-    return ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
+  const formatDateLabel = (date: Date) => {
+    const day = date.getDate();
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
   };
+
+  const hasExpenses = expenses.length > 0;
+  const hasDayGroups = dayGroups.length > 0;
+  const isAllTime = selectedYear === 'all' && selectedMonth === 'all' && selectedDay === 'all';
+  const hasFilter = !isAllTime;
+
+  const filterLabelText = (() => {
+    if (isAllTime) return 'Filter: All time';
+
+    const parts: string[] = [];
+
+    if (selectedDay !== 'all') {
+      parts.push(String(selectedDay));
+    }
+
+    if (selectedMonth !== 'all') {
+      parts.push(monthNames[selectedMonth]);
+    }
+
+    if (selectedYear !== 'all') {
+      parts.push(String(selectedYear));
+    }
+
+    if (parts.length === 0) {
+      return 'Filter: Custom';
+    }
+
+    return `Filter: ${parts.join(' ')}`;
+  })();
 
   return (
     <RNView style={styles.container}>
+      {/* Filter Bar */}
+      {hasExpenses && (
+        <RNView style={styles.filterBar}>
+          <RNView style={styles.filterHeaderRow}>
+            <Text style={styles.filterLabel}>{filterLabelText}</Text>
+            <TouchableOpacity
+              style={[styles.resetButton, isAllTime && styles.resetButtonDisabled]}
+              onPress={() => {
+                setSelectedYear('all');
+                setSelectedMonth('all');
+                setSelectedDay('all');
+              }}
+              disabled={isAllTime}
+            >
+              <Ionicons name="refresh" size={14} color={isAllTime ? '#666' : '#ccc'} />
+              <Text style={[styles.resetButtonText, isAllTime && styles.resetButtonTextDisabled]}>
+                Reset
+              </Text>
+            </TouchableOpacity>
+          </RNView>
+
+          <RNView style={styles.filterRow}>
+            {/* Year selector */}
+            <TouchableOpacity
+              style={styles.filterField}
+              onPress={() => setActiveFilterField('year')}
+            >
+              <Text style={styles.filterFieldLabel}>Year</Text>
+              <RNView style={styles.filterFieldValueRow}>
+                <Text style={styles.filterFieldValueText}>
+                  {selectedYear === 'all' ? 'All' : selectedYear}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color="#aaa" />
+              </RNView>
+            </TouchableOpacity>
+
+            {/* Month selector */}
+            <TouchableOpacity
+              style={styles.filterField}
+              onPress={() => setActiveFilterField('month')}
+            >
+              <Text style={styles.filterFieldLabel}>Month</Text>
+              <RNView style={styles.filterFieldValueRow}>
+                <Text style={styles.filterFieldValueText}>
+                  {selectedMonth === 'all' ? 'All' : monthNames[selectedMonth]}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color="#aaa" />
+              </RNView>
+            </TouchableOpacity>
+
+            {/* Day selector */}
+            <TouchableOpacity
+              style={styles.filterField}
+              onPress={() => setActiveFilterField('day')}
+            >
+              <Text style={styles.filterFieldLabel}>Day</Text>
+              <RNView style={styles.filterFieldValueRow}>
+                <Text style={styles.filterFieldValueText}>
+                  {selectedDay === 'all' ? 'All' : selectedDay}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color="#aaa" />
+              </RNView>
+            </TouchableOpacity>
+          </RNView>
+        </RNView>
+      )}
+
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={styles.listScrollView}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       >
-        {monthsData.length === 0 ? (
+        {!hasExpenses ? (
           <RNView style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={64} color="#444" />
             <Text style={styles.emptyText}>No expenses yet</Text>
             <Text style={styles.emptySubText}>Take a photo to add an expense!</Text>
           </RNView>
+        ) : !hasDayGroups ? (
+          <RNView style={styles.emptyState}>
+            <Ionicons name="search-outline" size={64} color="#444" />
+            <Text style={styles.emptyText}>No expenses in this month</Text>
+            <Text style={styles.emptySubText}>Try selecting another month</Text>
+          </RNView>
         ) : (
-          monthsData.map((monthData) => (
-            <RNView key={`${monthData.year}-${monthData.month}`} style={styles.monthContainer}>
-              {/* Month Header */}
-              <Text style={styles.monthTitle}>{monthData.monthName}</Text>
+          dayGroups.map((group) => (
+            <RNView key={group.date.toISOString()} style={styles.daySection}>
+              {/* Date and total */}
+              <RNView style={styles.dayHeader}>
+                <Text style={styles.dayDate}>{formatDateLabel(group.date)}</Text>
+                <Text style={styles.dayTotal}>{formatAmount(group.totalAmount)}</Text>
+              </RNView>
 
-              {/* Day of Week Labels */}
-              <RNView style={styles.dayLabelsContainer}>
-                {getDayOfWeekLabels().map((label, index) => (
-                  <RNView key={index} style={styles.dayLabel}>
-                    <Text style={styles.dayLabelText}>{label}</Text>
-                  </RNView>
+              {/* Images for this day */}
+              <RNView style={styles.imagesRow}>
+                {group.expenses.map((expense) => (
+                  <TouchableOpacity
+                    key={expense.id}
+                    onPress={() => onSelectExpense(expense)}
+                    activeOpacity={0.8}
+                    style={styles.imageWrapper}
+                  >
+                    <Image source={{ uri: expense.imageUrl }} style={styles.expenseImage} />
+                  </TouchableOpacity>
                 ))}
-              </RNView>
-
-              {/* Calendar Grid */}
-              <RNView style={styles.calendarGrid}>
-                {monthData.days.map((day, index) => {
-                  if (day === null) {
-                    return <RNView key={`empty-${index}`} style={styles.dayCell} />;
-                  }
-
-                  return (
-                    <RNView
-                      key={`${monthData.year}-${monthData.month}-${day.date}`}
-                      style={styles.dayCell}
-                    >
-                      <RNView style={styles.dayContent}>
-                        {day.latestImageUrl ? (
-                          <Image
-                            source={{ uri: day.latestImageUrl }}
-                            style={styles.dayImage}
-                          />
-                        ) : (
-                          <Text style={styles.dayNumber}>{day.date}</Text>
-                        )}
-                      </RNView>
-                      {day.hasExpense && (
-                        <Text style={styles.dayAmount} numberOfLines={1}>
-                          {formatAmount(day.totalAmount)}
-                        </Text>
-                      )}
-                    </RNView>
-                  );
-                })}
-              </RNView>
-
-              {/* Month Total */}
-              <RNView style={styles.monthTotalContainer}>
-                <Text style={styles.monthTotalLabel}>Total</Text>
-                <Text style={styles.monthTotalAmount}>
-                  {formatAmount(monthData.totalAmount)}
-                </Text>
               </RNView>
             </RNView>
           ))
         )}
       </ScrollView>
+
+      {/* Filter picker modal */}
+      <Modal
+        visible={activeFilterField !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveFilterField(null)}
+      >
+        <RNView style={styles.modalOverlay}>
+          <RNView style={styles.modalContent}>
+            <RNView style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {activeFilterField === 'year'
+                  ? 'Select year'
+                  : activeFilterField === 'month'
+                  ? 'Select month'
+                  : 'Select day'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setActiveFilterField(null)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </RNView>
+
+            <ScrollView
+              style={styles.modalList}
+              contentContainerStyle={styles.modalListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <TouchableOpacity
+                style={styles.modalItem}
+                onPress={() => {
+                  if (activeFilterField === 'year') setSelectedYear('all');
+                  if (activeFilterField === 'month') setSelectedMonth('all');
+                  if (activeFilterField === 'day') setSelectedDay('all');
+                  setActiveFilterField(null);
+                }}
+              >
+                <Text style={styles.modalItemText}>All</Text>
+              </TouchableOpacity>
+
+              {activeFilterField === 'year' &&
+                yearOptions.map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={styles.modalItem}
+                    onPress={() => {
+                      setSelectedYear(year);
+                      setActiveFilterField(null);
+                    }}
+                  >
+                    <Text style={styles.modalItemText}>{year}</Text>
+                  </TouchableOpacity>
+                ))}
+
+              {activeFilterField === 'month' &&
+                monthNames.map((name, index) => (
+                  <TouchableOpacity
+                    key={name}
+                    style={styles.modalItem}
+                    onPress={() => {
+                      setSelectedMonth(index);
+                      setActiveFilterField(null);
+                    }}
+                  >
+                    <Text style={styles.modalItemText}>{name}</Text>
+                  </TouchableOpacity>
+                ))}
+
+              {activeFilterField === 'day' &&
+                (() => {
+                  let maxDay = 31;
+
+                  if (selectedMonth !== 'all') {
+                    if (selectedMonth === 1) {
+                      // February
+                      if (selectedYear === 'all') {
+                        // No specific year -> allow up to 29
+                        maxDay = 29;
+                      } else {
+                        // Specific year -> real leap year handling
+                        maxDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+                      }
+                    } else {
+                      const yearForCalc =
+                        selectedYear === 'all' ? new Date().getFullYear() : selectedYear;
+                      maxDay = new Date(yearForCalc, selectedMonth + 1, 0).getDate();
+                    }
+                  }
+
+                  return Array.from({ length: maxDay }).map((_, index) => {
+                    const day = index + 1;
+                    return (
+                      <TouchableOpacity
+                        key={day}
+                        style={styles.modalItem}
+                        onPress={() => {
+                          setSelectedDay(day);
+                          setActiveFilterField(null);
+                        }}
+                      >
+                        <Text style={styles.modalItemText}>{day}</Text>
+                      </TouchableOpacity>
+                    );
+                  });
+                })()}
+            </ScrollView>
+          </RNView>
+        </RNView>
+      </Modal>
     </RNView>
   );
 }
@@ -214,94 +384,115 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  monthContainer: {
+  // Filter bar
+  filterBar: {
     paddingHorizontal: 20,
-    paddingTop: 40,
-    marginBottom: 40,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  monthTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  dayLabelsContainer: {
+  filterHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  dayLabel: {
-    width: DAY_SIZE,
-    alignItems: 'center',
-  },
-  dayLabelText: {
-    color: '#666',
+  filterLabel: {
+    color: '#999',
     fontSize: 12,
-    fontWeight: '500',
   },
-  calendarGrid: {
+  filterRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  dayCell: {
-    width: DAY_SIZE,
-    height: DAY_SIZE + 30,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginBottom: 8,
+  filterField: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  dayContent: {
-    width: DAY_SIZE - 8,
-    height: DAY_SIZE - 8,
-    borderRadius: (DAY_SIZE - 8) / 2,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+  filterFieldLabel: {
+    color: '#777',
+    fontSize: 10,
     marginBottom: 4,
   },
-  dayImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: (DAY_SIZE - 8) / 2,
+  filterFieldValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  dayNumber: {
+  filterFieldValueText: {
+    color: '#fff',
+    fontSize: 12,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  resetButtonDisabled: {
+    opacity: 0.5,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  resetButtonText: {
+    color: '#ccc',
+    fontSize: 11,
+  },
+  resetButtonTextDisabled: {
+    color: '#666',
+  },
+
+  // List
+  listScrollView: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+  },
+  daySection: {
+    marginBottom: 32,
+  },
+  dayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dayDate: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
-  dayAmount: {
+  dayTotal: {
     color: PRIMARY_COLOR,
-    fontSize: 9,
-    fontWeight: '600',
-    textAlign: 'center',
-    width: DAY_SIZE - 4,
-  },
-  monthTotalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-  },
-  monthTotalLabel: {
-    color: '#999',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  monthTotalAmount: {
-    color: PRIMARY_COLOR,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
   },
+  imagesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  imageWrapper: {
+    width: IMAGE_THUMB_SIZE,
+    height: IMAGE_THUMB_SIZE,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  expenseImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Empty states
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -317,5 +508,55 @@ const styles = StyleSheet.create({
     color: '#444',
     fontSize: 14,
     marginTop: 8,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#111',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalList: {
+    maxHeight: '80%',
+  },
+  modalListContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  modalItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  modalItemText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
