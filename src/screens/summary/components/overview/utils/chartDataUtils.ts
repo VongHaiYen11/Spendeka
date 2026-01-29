@@ -1,4 +1,4 @@
-import { Transaction } from '@/server/fakeDBGetData';
+import { Transaction } from '@/services/ExpenseService';
 import { AggregatedBucket, ChartType, Range } from '../types';
 import { INCOME_COLOR, SPENT_COLOR } from '../constants';
 import { createBuckets, getBucketIndex, splitAmount } from './bucketUtils';

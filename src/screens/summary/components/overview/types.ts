@@ -15,7 +15,6 @@ export interface OverviewProps {
   startDate: Date;
   endDate: Date;
   range: Range;
-  userId?: string;
 }
 
 export interface AggregatedBucket {

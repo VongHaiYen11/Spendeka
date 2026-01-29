@@ -1,10 +1,8 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
-import {
-    getTransactionsByDateRange
-} from "@/server/fakeDBGetData";
+import { getTransactionsByDateRange } from "@/services/ExpenseService";
 import { parseISO } from "date-fns";
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import DateGroup from "./components/DateGroup";
 import FilterButton from "./components/FilterButton";
@@ -16,8 +14,6 @@ import {
     groupTransactionsByMonth,
     sortMonthKeys,
 } from "./utils/transactionHelpers";
-
-const USER_ID = "user1";
 
 export default function HistoryScreen() {
   const params = useLocalSearchParams();
@@ -58,19 +54,24 @@ export default function HistoryScreen() {
   }, [startDate, endDate]);
 
   // Get and filter transactions
-  const allTransactions = useMemo(() => {
-    const transactions = getTransactionsByDateRange(
-      USER_ID,
-      startDate,
-      endDate,
-    );
-    return filterTransactions(transactions, searchQuery);
-  }, [startDate, endDate, searchQuery]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      const transactions = await getTransactionsByDateRange(startDate, endDate);
+      setAllTransactions(transactions);
+    };
+    loadTransactions();
+  }, [startDate, endDate]);
+
+  const filteredTransactions = useMemo(() => {
+    return filterTransactions(allTransactions, searchQuery);
+  }, [allTransactions, searchQuery]);
 
   // Group by month
   const groupedTransactions = useMemo(() => {
-    return groupTransactionsByMonth(allTransactions);
-  }, [allTransactions]);
+    return groupTransactionsByMonth(filteredTransactions);
+  }, [filteredTransactions]);
 
   // Sort month groups (newest first)
   const sortedMonthKeys = useMemo(() => {

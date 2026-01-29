@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
-import { Transaction } from '@/server/fakeDBGetData';
+import { Transaction } from '@/services/ExpenseService';
 import { formatDollar } from '@/utils/formatCurrency';
 import React from 'react';
 import { StyleSheet } from 'react-native';

@@ -3,8 +3,8 @@ import Colors from "@/constants/Colors";
 import {
   getIncomeByCategory,
   getSpentByCategory,
-} from "@/server/fakeDBGetData";
-import { useMemo, useState } from "react";
+} from "@/services/ExpenseService";
+import { useEffect, useMemo, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { CATEGORY_OPTIONS } from "../constants";
 import {
@@ -40,10 +40,9 @@ export interface UseChartCategoriesReturn {
 export const useChartCategories = ({
   startDate,
   endDate,
-  userId = "user1",
 }: Pick<
   ChartCategoriesProps,
-  "startDate" | "endDate" | "userId"
+  "startDate" | "endDate"
 >): UseChartCategoriesReturn => {
   const { width } = useWindowDimensions();
   const [categoryType, setCategoryType] = useState<CategoryType>("income");
@@ -65,16 +64,19 @@ export const useChartCategories = ({
     pickerBg: isDark ? "#1f2937" : Colors.general.gray100,
   };
 
-  // Keep useMemo for expensive data fetching operations (filtering and reducing over potentially large datasets)
-  const incomeByCategory = useMemo(
-    () => getIncomeByCategory(userId, startDate, endDate),
-    [userId, startDate, endDate],
-  );
+  // Fetch category data asynchronously
+  const [incomeByCategory, setIncomeByCategory] = useState<Record<string, number>>({});
+  const [spentByCategory, setSpentByCategory] = useState<Record<string, number>>({});
 
-  const spentByCategory = useMemo(
-    () => getSpentByCategory(userId, startDate, endDate),
-    [userId, startDate, endDate],
-  );
+  useEffect(() => {
+    const loadCategoryData = async () => {
+      const income = await getIncomeByCategory(startDate, endDate);
+      const spent = await getSpentByCategory(startDate, endDate);
+      setIncomeByCategory(income);
+      setSpentByCategory(spent);
+    };
+    loadCategoryData();
+  }, [startDate, endDate]);
 
   // Keep useMemo for expensive computation (sorting, mapping, color generation) and stable reference for PieChart
   const chartData = useMemo(() => {

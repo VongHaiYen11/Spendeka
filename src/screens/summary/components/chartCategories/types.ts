@@ -5,7 +5,6 @@ export interface ChartCategoriesProps {
   startDate: Date;
   endDate: Date;
   range: Range;
-  userId?: string;
 }
 
 export interface ChartDataItem {

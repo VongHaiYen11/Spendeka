@@ -1,6 +1,7 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
-import { getCategoryIcon, Transaction } from '@/server/fakeDBGetData';
+import { Transaction } from '@/services/ExpenseService';
 import { formatDollar } from '@/utils/formatCurrency';
+import { getCategoryIconEmoji } from '@/utils/getCategoryIcon';
 import { format } from 'date-fns';
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -10,20 +11,22 @@ interface TransactionItemProps {
 }
 
 // Format currency for display
-// Income (positive amount): green with +$amount
-// Spent (negative amount): red with -$amount
-const formatCurrency = (amount: number) => {
-  const formatted = formatDollar(amount);
-  // Income is positive amount, show with plus sign (green)
-  if (amount > 0) {
+// Income (negative amount): green with +$amount
+// Spent (positive amount): red with -$amount
+const formatCurrency = (amount: number, type?: 'income' | 'spent') => {
+  const formatted = formatDollar(Math.abs(amount));
+  // Use type field if available, otherwise infer from amount sign
+  const isIncome = type === 'income' || (type === undefined && amount < 0);
+  if (isIncome) {
     return formatted.replace(/^\$/, '+$');
   }
-  // Spent is negative amount, already has minus sign from formatDollar
-  return formatted;
+  // Spent is positive amount, show with minus sign
+  return formatted.replace(/^\$/, '-$');
 };
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
-  const isIncome = transaction.amount > 0;
+  // Use type field if available, otherwise infer from amount sign
+  const isIncome = transaction.type === 'income' || (transaction.type === undefined && transaction.amount < 0);
   const iconColor = isIncome ? '#4CAF50' : '#F44336'; // Green for income, red for spent
   const textColor = useThemeColor({}, 'text');
   const secondaryTextColor = useThemeColor({}, 'text');
@@ -31,7 +34,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   return (
     <View style={styles.transactionItem}>
       <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-        <Text style={styles.icon}>{getCategoryIcon(transaction.category)}</Text>
+        <Text style={styles.icon}>{getCategoryIconEmoji(transaction.category)}</Text>
       </View>
       <View style={styles.transactionDetails}>
         <Text style={[styles.transactionName, { color: textColor }]}>
@@ -47,7 +50,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           { color: isIncome ? '#4CAF50' : '#F44336' },
         ]}
       >
-        {formatCurrency(transaction.amount)}
+        {formatCurrency(transaction.amount, transaction.type)}
       </Text>
     </View>
   );

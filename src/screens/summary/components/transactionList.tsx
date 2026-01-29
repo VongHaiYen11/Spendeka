@@ -1,10 +1,11 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
-import { getCategoryIcon, getTransactionsByDateRange, Transaction } from '@/server/fakeDBGetData';
+import { getTransactionsByDateRange, Transaction } from '@/services/ExpenseService';
 import { formatDollar } from '@/utils/formatCurrency';
+import { getCategoryIconEmoji } from '@/utils/getCategoryIcon';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text as RNText, StyleSheet, TouchableOpacity } from 'react-native';
 
 type Range = 'day' | 'week' | 'month' | 'year' | 'all';
@@ -13,21 +14,21 @@ interface TransactionListProps {
   startDate: Date;
   endDate: Date;
   range: Range;
-  userId?: string;
   limit?: number;
 }
 
 // Format currency for display
 // Spent (positive): show as -$amount in red
 // Income (negative): show as +$amount in green
-const formatTransactionAmount = (amount: number) => {
-  const formatted = formatDollar(amount);
-  // Spent is positive, show with minus sign
-  if (amount > 0) {
-    return formatted.replace(/^\$/, '-$');
+const formatTransactionAmount = (amount: number, type?: 'income' | 'spent') => {
+  const formatted = formatDollar(Math.abs(amount));
+  // Use type field if available, otherwise infer from amount sign
+  const isIncome = type === 'income' || (type === undefined && amount < 0);
+  if (isIncome) {
+    return formatted.replace(/^\$/, '+$');
   }
-  // Income is negative, show with plus sign
-  return formatted.replace('-', '+');
+  // Spent is positive, show with minus sign
+  return formatted.replace(/^\$/, '-$');
 };
 
 const TransactionItem: React.FC<{
@@ -36,7 +37,8 @@ const TransactionItem: React.FC<{
   isDark: boolean;
   isLast?: boolean;
 }> = ({ transaction, tintColor, isDark, isLast = false }) => {
-  const isIncome = transaction.amount < 0;
+  // Use type field if available, otherwise infer from amount sign
+  const isIncome = transaction.type === 'income' || (transaction.type === undefined && transaction.amount < 0);
   const iconColor = isIncome ? '#4CAF50' : '#F44336'; // Green for income, red for spent
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -45,7 +47,7 @@ const TransactionItem: React.FC<{
   return (
     <View style={[styles.transactionItem, isLast && styles.lastItem]}>
       <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-        <Text style={styles.icon}>{getCategoryIcon(transaction.category)}</Text>
+        <Text style={styles.icon}>{getCategoryIconEmoji(transaction.category)}</Text>
       </View>
       <View style={styles.transactionDetails}>
         <Text style={[styles.transactionName, { color: textColor }]}>
@@ -61,7 +63,7 @@ const TransactionItem: React.FC<{
           { color: isIncome ? '#4CAF50' : '#F44336' },
         ]}
       >
-        {formatTransactionAmount(transaction.amount)}
+        {formatTransactionAmount(transaction.amount, transaction.type)}
       </Text>
     </View>
   );
@@ -70,7 +72,6 @@ const TransactionItem: React.FC<{
 const TransactionList: React.FC<TransactionListProps> = ({
   startDate,
   endDate,
-  userId = 'user1',
   limit = 5,
 }) => {
   const router = useRouter();
@@ -86,17 +87,21 @@ const TransactionList: React.FC<TransactionListProps> = ({
     [isDark]
   );
 
-  const transactions = useMemo(() => {
-    const allTransactions = getTransactionsByDateRange(userId, startDate, endDate);
-    // Sort by date descending (newest first)
-    return allTransactions
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, limit);
-  }, [userId, startDate, endDate, limit]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactionsCount, setAllTransactionsCount] = useState(0);
 
-  const allTransactionsCount = useMemo(() => {
-    return getTransactionsByDateRange(userId, startDate, endDate).length;
-  }, [userId, startDate, endDate]);
+  useEffect(() => {
+    const loadTransactions = async () => {
+      const allTransactions = await getTransactionsByDateRange(startDate, endDate);
+      // Sort by date descending (newest first)
+      const sorted = allTransactions
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, limit);
+      setTransactions(sorted);
+      setAllTransactionsCount(allTransactions.length);
+    };
+    loadTransactions();
+  }, [startDate, endDate, limit]);
 
   const hasMore = allTransactionsCount > limit;
 

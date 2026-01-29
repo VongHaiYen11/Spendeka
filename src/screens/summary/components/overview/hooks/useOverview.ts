@@ -1,7 +1,7 @@
 import { useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
-import { getRawSummaryData } from '@/server/fakeDBGetData';
-import { useMemo, useState } from 'react';
+import { getRawSummaryData } from '@/services/ExpenseService';
+import { useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { TYPE_OPTIONS } from '../constants';
 import { ChartType, OverviewProps, Range, ThemeColors } from '../types';
@@ -39,8 +39,7 @@ export const useOverview = ({
   startDate,
   endDate,
   range,
-  userId = 'user1',
-}: Pick<OverviewProps, 'startDate' | 'endDate' | 'range' | 'userId'>): UseOverviewReturn => {
+}: Pick<OverviewProps, 'startDate' | 'endDate' | 'range'>): UseOverviewReturn => {
   const { width } = useWindowDimensions();
   const [chartType, setChartType] = useState<ChartType>('all');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -61,11 +60,16 @@ export const useOverview = ({
     chartAxis: isDark ? '#d1d5db' : Colors.general.gray700,
   };
 
-  // Keep useMemo for expensive data fetching operations
-  const rawTransactions = useMemo(
-    () => getRawSummaryData(userId, startDate, endDate),
-    [userId, startDate, endDate]
-  );
+  // Fetch transactions asynchronously
+  const [rawTransactions, setRawTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      const transactions = await getRawSummaryData(startDate, endDate);
+      setRawTransactions(transactions);
+    };
+    loadTransactions();
+  }, [startDate, endDate]);
 
   // Keep useMemo for expensive aggregation computation
   const buckets = useMemo(

@@ -1,4 +1,4 @@
-import { Transaction } from "@/server/fakeDBGetData";
+import { Transaction } from "@/services/ExpenseService";
 import { format } from "date-fns";
 
 // Group transactions by month
