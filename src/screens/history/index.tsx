@@ -1,8 +1,10 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
-import { getTransactionsByDateRange } from "@/services/ExpenseService";
+import { useTransactions } from "@/contexts/TransactionContext";
+import { DatabaseTransaction } from "@/types/expense";
+import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
 import { parseISO } from "date-fns";
 import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import DateGroup from "./components/DateGroup";
 import FilterButton from "./components/FilterButton";
@@ -35,13 +37,13 @@ export default function HistoryScreen() {
   }, [params.endDate]);
 
   const [filters, setFilters] = useState<FilterState>({
-    transactionType: 'all',
+    transactionType: "all",
     categories: [],
-    minAmount: '',
-    maxAmount: '',
+    minAmount: "",
+    maxAmount: "",
     startDate: startDate,
     endDate: endDate,
-    groupBy: 'month',
+    groupBy: "month",
   });
 
   // Update filters when date range changes
@@ -53,20 +55,22 @@ export default function HistoryScreen() {
     }));
   }, [startDate, endDate]);
 
-  // Get and filter transactions
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  // Get transactions from global state and filter by date range
+  const { transactions: allTransactions } = useTransactions();
 
-  useEffect(() => {
-    const loadTransactions = async () => {
-      const transactions = await getTransactionsByDateRange(startDate, endDate);
-      setAllTransactions(transactions);
-    };
-    loadTransactions();
-  }, [startDate, endDate]);
+  const filteredByDateRange = useMemo(
+    () => filterTransactionsByDateRange(allTransactions, startDate, endDate),
+    [allTransactions, startDate, endDate],
+  );
 
   const filteredTransactions = useMemo(() => {
-    return filterTransactions(allTransactions, searchQuery);
-  }, [allTransactions, searchQuery]);
+    return filterTransactions(filteredByDateRange, searchQuery, {
+      transactionType: filters.transactionType,
+      categories: filters.categories,
+      minAmount: filters.minAmount,
+      maxAmount: filters.maxAmount,
+    });
+  }, [filteredByDateRange, searchQuery, filters]);
 
   // Group by month
   const groupedTransactions = useMemo(() => {
@@ -94,7 +98,6 @@ export default function HistoryScreen() {
         onClose={() => setFilterModalVisible(false)}
         onApply={(newFilters) => {
           setFilters(newFilters);
-          // Filter logic will be implemented later
         }}
       />
 

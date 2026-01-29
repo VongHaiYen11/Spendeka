@@ -26,7 +26,7 @@ if (Platform.OS === 'web') {
     const { getAnalytics } = require("firebase/analytics");
     analytics = getAnalytics(app);
   } catch (error) {
-    console.log('Analytics not available:', error);
+    // Analytics not available on this platform
   }
 }
 

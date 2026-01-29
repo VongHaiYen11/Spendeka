@@ -1,14 +1,16 @@
-import { Text, useThemeColor, View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { getTransactionsByDateRange, Transaction } from '@/services/ExpenseService';
-import { formatDollar } from '@/utils/formatCurrency';
-import { getCategoryIconEmoji } from '@/utils/getCategoryIcon';
-import { format } from 'date-fns';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Text as RNText, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, useThemeColor, View } from "@/components/Themed";
+import Colors from "@/constants/Colors";
+import { useTransactions } from "@/contexts/TransactionContext";
+import { DatabaseTransaction, getCategoryIconConfig } from "@/types/expense";
+import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
+import { formatDollar } from "@/utils/formatCurrency";
+import { Ionicons } from "@expo/vector-icons";
+import { format } from "date-fns";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { Text as RNText, StyleSheet, TouchableOpacity } from "react-native";
 
-type Range = 'day' | 'week' | 'month' | 'year' | 'all';
+type Range = "day" | "week" | "month" | "year" | "all";
 
 interface TransactionListProps {
   startDate: Date;
@@ -18,49 +20,55 @@ interface TransactionListProps {
 }
 
 // Format currency for display
-// Spent (positive): show as -$amount in red
-// Income (negative): show as +$amount in green
-const formatTransactionAmount = (amount: number, type?: 'income' | 'spent') => {
+// Spent: show as -$amount in red
+// Income: show as +$amount in green
+const formatTransactionAmount = (amount: number, type: "income" | "spent") => {
   const formatted = formatDollar(Math.abs(amount));
-  // Use type field if available, otherwise infer from amount sign
-  const isIncome = type === 'income' || (type === undefined && amount < 0);
-  if (isIncome) {
-    return formatted.replace(/^\$/, '+$');
+  if (type === "income") {
+    return formatted.replace(/^\$/, "+$");
   }
-  // Spent is positive, show with minus sign
-  return formatted.replace(/^\$/, '-$');
+  // Spent show with minus sign
+  return formatted.replace(/^\$/, "-$");
 };
 
 const TransactionItem: React.FC<{
-  transaction: Transaction;
+  transaction: DatabaseTransaction;
   tintColor: string;
   isDark: boolean;
   isLast?: boolean;
 }> = ({ transaction, tintColor, isDark, isLast = false }) => {
-  // Use type field if available, otherwise infer from amount sign
-  const isIncome = transaction.type === 'income' || (transaction.type === undefined && transaction.amount < 0);
-  const iconColor = isIncome ? '#4CAF50' : '#F44336'; // Green for income, red for spent
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const secondaryTextColor = useThemeColor({}, 'text');
+  const isIncome = transaction.type === "income";
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const secondaryTextColor = useThemeColor({}, "text");
+  const categoryIcon = getCategoryIconConfig(transaction.category);
 
   return (
     <View style={[styles.transactionItem, isLast && styles.lastItem]}>
-      <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-        <Text style={styles.icon}>{getCategoryIconEmoji(transaction.category)}</Text>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: categoryIcon.color + "20" },
+        ]}
+      >
+        <Ionicons
+          name={categoryIcon.icon as any}
+          size={20}
+          color={categoryIcon.color}
+        />
       </View>
       <View style={styles.transactionDetails}>
         <Text style={[styles.transactionName, { color: textColor }]}>
-          {transaction.note || transaction.category}
+          {transaction.caption || transaction.category}
         </Text>
         <Text style={[styles.transactionMeta, { color: secondaryTextColor }]}>
-          {transaction.category} — {format(new Date(transaction.date), 'HH:mm')}
+          {transaction.category} — {format(transaction.createdAt, "HH:mm")}
         </Text>
       </View>
       <Text
         style={[
           styles.transactionAmount,
-          { color: isIncome ? '#4CAF50' : '#F44336' },
+          { color: isIncome ? "#4CAF50" : "#F44336" },
         ]}
       >
         {formatTransactionAmount(transaction.amount, transaction.type)}
@@ -75,40 +83,44 @@ const TransactionList: React.FC<TransactionListProps> = ({
   limit = 5,
 }) => {
   const router = useRouter();
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const tintColor = useThemeColor({}, "tint");
   const isDark = backgroundColor === Colors.dark.background;
 
   const themeColors = useMemo(
     () => ({
-      chartText: isDark ? '#9ca3af' : Colors.general.gray600,
+      chartText: isDark ? "#9ca3af" : Colors.general.gray600,
     }),
-    [isDark]
+    [isDark],
   );
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [allTransactionsCount, setAllTransactionsCount] = useState(0);
+  // Get transactions from global state
+  const { transactions: allTransactions } = useTransactions();
 
-  useEffect(() => {
-    const loadTransactions = async () => {
-      const allTransactions = await getTransactionsByDateRange(startDate, endDate);
-      // Sort by date descending (newest first)
-      const sorted = allTransactions
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, limit);
-      setTransactions(sorted);
-      setAllTransactionsCount(allTransactions.length);
+  // Filter and sort transactions
+  const { transactions, allTransactionsCount } = useMemo(() => {
+    const filtered = filterTransactionsByDateRange(
+      allTransactions,
+      startDate,
+      endDate,
+    );
+    // Sort by date descending (newest first)
+    const sorted = filtered
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+    return {
+      transactions: sorted,
+      allTransactionsCount: filtered.length,
     };
-    loadTransactions();
-  }, [startDate, endDate, limit]);
+  }, [allTransactions, startDate, endDate, limit]);
 
   const hasMore = allTransactionsCount > limit;
 
   const handleSeeMore = () => {
     // Navigate to history screen with date range params
     router.push({
-      pathname: '/history',
+      pathname: "/history",
       params: {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -135,11 +147,11 @@ const TransactionList: React.FC<TransactionListProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Recent Transactions</Text>
-        {hasMore && (
-          <TouchableOpacity onPress={handleSeeMore}>
-            <Text style={[styles.seeMoreText, { color: tintColor }]}>See More</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={handleSeeMore}>
+          <Text style={[styles.seeMoreText, { color: tintColor }]}>
+            See More
+          </Text>
+        </TouchableOpacity>
       </View>
       <>
         {transactions.map((transaction, index) => (
@@ -156,6 +168,9 @@ const TransactionList: React.FC<TransactionListProps> = ({
             style={styles.seeMoreButton}
             onPress={handleSeeMore}
           >
+            <Text style={[styles.seeMoreButtonText, { color: tintColor }]}>
+              See More
+            </Text>
           </TouchableOpacity>
         )}
       </>
@@ -170,44 +185,41 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   seeMoreText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
-  },
-  icon: {
-    fontSize: 20,
   },
   transactionDetails: {
     flex: 1,
   },
   transactionName: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   transactionMeta: {
@@ -216,26 +228,26 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyState: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 16,
     paddingVertical: 20,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   seeMoreButton: {
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   seeMoreButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   lastItem: {
     borderBottomWidth: 0,

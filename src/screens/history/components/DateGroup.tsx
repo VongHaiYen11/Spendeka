@@ -1,9 +1,9 @@
-import { Text, useThemeColor, View } from '@/components/Themed';
-import { Transaction } from '@/services/ExpenseService';
-import { formatDollar } from '@/utils/formatCurrency';
-import React from 'react';
-import { StyleSheet } from 'react-native';
-import TransactionItem from './TransactionItem';
+import { Text, useThemeColor, View } from "@/components/Themed";
+import { Transaction } from "@/services/ExpenseService";
+import { formatDollar } from "@/utils/formatCurrency";
+import React from "react";
+import { StyleSheet } from "react-native";
+import TransactionItem from "./TransactionItem";
 
 interface DateGroupProps {
   dateKey: string;
@@ -17,22 +17,17 @@ const calculateGroupTotal = (transactions: Transaction[]) => {
 };
 
 const DateGroup: React.FC<DateGroupProps> = ({ dateKey, transactions }) => {
-  const textColor = useThemeColor({}, 'text');
+  const textColor = useThemeColor({}, "text");
   const total = calculateGroupTotal(transactions);
 
   return (
     <View style={styles.dateGroup}>
       <View style={styles.dateHeader}>
-        <Text style={[styles.dateLabel, { color: textColor }]}>
-          {dateKey}
-        </Text>
+        <Text style={[styles.dateLabel, { color: textColor }]}>{dateKey}</Text>
       </View>
       <>
         {transactions.map((transaction) => (
-          <TransactionItem
-            key={transaction.id}
-            transaction={transaction}
-          />
+          <TransactionItem key={transaction.id} transaction={transaction} />
         ))}
         <View style={styles.groupTotal}>
           <Text style={[styles.totalLabel, { color: textColor }]}>
@@ -54,7 +49,7 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1,
     opacity: 0.7,
   },
@@ -62,12 +57,12 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     marginTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    alignItems: 'flex-end',
+    borderTopColor: "rgba(0,0,0,0.1)",
+    alignItems: "flex-end",
   },
   totalLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

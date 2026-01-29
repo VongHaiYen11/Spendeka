@@ -4,6 +4,7 @@ import { Expense, formatAmount, getCategoryInfo } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -49,6 +50,37 @@ export default function ExpenseDetailScreen({
   useEffect(() => {
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
+
+  // Handle when expenses list changes (e.g., after deletion)
+  useEffect(() => {
+    const currentExpenseId = sortedExpenses[currentIndex]?.id;
+    
+    // If current expense was deleted, navigate to next/previous or close
+    if (sortedExpenses.length === 0) {
+      // No expenses left, close the screen
+      onClose();
+      return;
+    }
+
+    // If current expense doesn't exist anymore, navigate to closest available
+    if (currentExpenseId && !sortedExpenses.find((e) => e.id === currentExpenseId)) {
+      if (currentIndex >= sortedExpenses.length) {
+        // Was viewing last item, go to previous
+        const newIndex = Math.max(0, sortedExpenses.length - 1);
+        setCurrentIndex(newIndex);
+        if (listRef.current && pageHeight) {
+          listRef.current.scrollToIndex({ index: newIndex, animated: true });
+        }
+      } else {
+        // Go to next item (or stay at current index if valid)
+        const newIndex = Math.min(currentIndex, sortedExpenses.length - 1);
+        setCurrentIndex(newIndex);
+        if (listRef.current && pageHeight) {
+          listRef.current.scrollToIndex({ index: newIndex, animated: true });
+        }
+      }
+    }
+  }, [sortedExpenses, currentIndex, onClose, pageHeight]);
 
   const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!pageHeight) return;
@@ -146,6 +178,15 @@ export default function ExpenseDetailScreen({
               index,
             })}
             initialScrollIndex={initialIndex}
+            onScrollToIndexFailed={(info) => {
+              // Handle scroll to index failure gracefully
+              const wait = new Promise((resolve) => setTimeout(resolve, 500));
+              wait.then(() => {
+                if (listRef.current) {
+                  listRef.current.scrollToIndex({ index: info.index, animated: false });
+                }
+              });
+            }}
           />
         )}
       </RNView>

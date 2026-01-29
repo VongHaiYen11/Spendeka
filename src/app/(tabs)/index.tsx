@@ -1,11 +1,15 @@
-import { StyleSheet } from 'react-native';
-import { Text, View, SafeView } from '@/components/Themed';
+import { SafeView, Text, View } from "@/components/Themed";
+import { StyleSheet } from "react-native";
 
 export default function HomeScreen() {
   return (
     <SafeView style={styles.container}>
       <Text style={styles.title}>Home</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
+      <View
+        style={styles.separator}
+        lightColor="#eee"
+        darkColor="rgba(255,255,255,0.1)"
+      />
     </SafeView>
   );
 }
@@ -13,16 +17,16 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   separator: {
     marginVertical: 30,
     height: 1,
-    width: '80%',
+    width: "80%",
   },
 });

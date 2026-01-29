@@ -96,7 +96,10 @@ export default function ExpenseCalendarView({
     });
 
     const groups: DayGroup[] = Array.from(dayMap.values()).map(({ date, expenses: dayExpenses }) => {
-      const totalAmount = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+      // Only sum expenses with type "spent"
+      const totalAmount = dayExpenses
+        .filter((e) => e.type === "spent" || !e.type) // Include "spent" or undefined (backward compatibility)
+        .reduce((sum, e) => sum + e.amount, 0);
 
       // Sort expenses so newest of the day comes first
       const sortedExpenses = [...dayExpenses].sort(
@@ -388,7 +391,7 @@ const styles = StyleSheet.create({
   filterBar: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 24,
   },
   filterHeaderRow: {
     flexDirection: 'row',

@@ -1,11 +1,12 @@
-import { useThemeColor } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { getRawSummaryData } from '@/services/ExpenseService';
-import { useEffect, useMemo, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
-import { TYPE_OPTIONS } from '../constants';
-import { ChartType, OverviewProps, Range, ThemeColors } from '../types';
-import { aggregateTransactions, buildChartData } from '../utils/chartDataUtils';
+import { useThemeColor } from "@/components/Themed";
+import Colors from "@/constants/Colors";
+import { useTransactions } from "@/contexts/TransactionContext";
+import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
+import { useMemo, useState } from "react";
+import { useWindowDimensions } from "react-native";
+import { TYPE_OPTIONS } from "../constants";
+import { ChartType, OverviewProps, ThemeColors } from "../types";
+import { aggregateTransactions, buildChartData } from "../utils/chartDataUtils";
 
 export interface UseOverviewReturn {
   chartType: ChartType;
@@ -39,48 +40,48 @@ export const useOverview = ({
   startDate,
   endDate,
   range,
-}: Pick<OverviewProps, 'startDate' | 'endDate' | 'range'>): UseOverviewReturn => {
+}: Pick<
+  OverviewProps,
+  "startDate" | "endDate" | "range"
+>): UseOverviewReturn => {
   const { width } = useWindowDimensions();
-  const [chartType, setChartType] = useState<ChartType>('all');
+  const [chartType, setChartType] = useState<ChartType>("all");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [items, setItems] = useState(TYPE_OPTIONS);
 
   // Theme resolution
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
   const isDark = backgroundColor === Colors.dark.background;
 
   const themeColors: ThemeColors = {
-    bg: isDark ? '#111827' : Colors.general.white,
+    bg: isDark ? "#111827" : Colors.general.white,
     text: textColor,
-    border: isDark ? '#374151' : Colors.general.gray200,
-    pickerBg: isDark ? '#1f2937' : Colors.general.gray100,
-    chartText: isDark ? '#9ca3af' : Colors.general.gray600,
-    chartLine: isDark ? '#374151' : Colors.general.gray200,
-    chartAxis: isDark ? '#d1d5db' : Colors.general.gray700,
+    border: isDark ? "#374151" : Colors.general.gray200,
+    pickerBg: isDark ? "#1f2937" : Colors.general.gray100,
+    chartText: isDark ? "#9ca3af" : Colors.general.gray600,
+    chartLine: isDark ? "#374151" : Colors.general.gray200,
+    chartAxis: isDark ? "#d1d5db" : Colors.general.gray700,
   };
 
-  // Fetch transactions asynchronously
-  const [rawTransactions, setRawTransactions] = useState<any[]>([]);
+  // Get transactions from global state and filter by date range
+  const { transactions: allTransactions } = useTransactions();
 
-  useEffect(() => {
-    const loadTransactions = async () => {
-      const transactions = await getRawSummaryData(startDate, endDate);
-      setRawTransactions(transactions);
-    };
-    loadTransactions();
-  }, [startDate, endDate]);
+  const rawTransactions = useMemo(
+    () => filterTransactionsByDateRange(allTransactions, startDate, endDate),
+    [allTransactions, startDate, endDate],
+  );
 
   // Keep useMemo for expensive aggregation computation
   const buckets = useMemo(
     () => aggregateTransactions(rawTransactions, range, startDate, endDate),
-    [rawTransactions, range, startDate, endDate]
+    [rawTransactions, range, startDate, endDate],
   );
 
   // Keep useMemo for expensive chart data computation
   const chartData = useMemo(
     () => buildChartData(buckets, chartType, range),
-    [buckets, chartType, range]
+    [buckets, chartType, range],
   );
 
   const barPercentage = useMemo(() => {
@@ -92,8 +93,8 @@ export const useOverview = ({
   }, [buckets.length]);
 
   const hasData = useMemo(
-    () => buckets.some(b => b.income > 0 || b.spent > 0),
-    [buckets]
+    () => buckets.some((b) => b.income > 0 || b.spent > 0),
+    [buckets],
   );
 
   const baseWidth = width - 32;
@@ -105,7 +106,7 @@ export const useOverview = ({
   // Responsive chart height: account for rotated labels and legend
   // Line charts need extra height for vertical labels and legend space
   const chartHeight = useMemo(() => {
-    if (range === 'all') {
+    if (chartType === "all") {
       // Line chart: extra height for rotated labels (90°) and legend
       // Base chart area + rotated label space (~40px) + legend space (~30px)
       const responsiveHeight = Math.round(baseWidth * 0.65);
@@ -114,7 +115,7 @@ export const useOverview = ({
     // Bar chart: standard height
     const responsiveHeight = Math.round(baseWidth * 0.6);
     return Math.max(220, Math.min(responsiveHeight, 320));
-  }, [baseWidth, range]);
+  }, [baseWidth, chartType]);
 
   const chartConfig = {
     backgroundGradientFrom: themeColors.bg,
@@ -139,13 +140,13 @@ export const useOverview = ({
     data: chartData,
     width: chartWidth,
     height: chartHeight,
-    yAxisLabel: '',
-    yAxisSuffix: '',
+    yAxisLabel: "",
+    yAxisSuffix: "",
     fromZero: true,
     withInnerLines: true,
     segments: 5, // Divide Y-axis into 5 equal segments (6 tick values including 0)
     chartConfig,
-    style: { borderRadius: 16, alignSelf: 'center' },
+    style: { borderRadius: 16, alignSelf: "center" },
   };
 
   // Bar chart specific props
@@ -156,17 +157,17 @@ export const useOverview = ({
     horizontalLabelRotation: 0,
   };
 
-  // Line chart specific props (for "all" range)
+  // Line chart specific props (for "all" chart type)
   const lineChartProps = {
     ...commonChartProps,
-    verticalLabelRotation: 90, // Rotate labels vertically to save space
+    verticalLabelRotation: range === "all" ? 90 : 0, // Rotate labels only for 'all' range (many data points)
     withDots: true,
     withShadow: false,
-    bezier: false, // Straight lines for clearer year-to-year comparison
+    bezier: false, // Straight lines for clearer comparison
   };
 
-  // Use line chart for "all" range, bar chart for others
-  const isLineChart = range === 'all';
+  // Use line chart for "all" chart type (showing both income and spent), bar chart for others
+  const isLineChart = chartType === "all";
 
   return {
     chartType,

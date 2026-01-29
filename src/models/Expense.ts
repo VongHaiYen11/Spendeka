@@ -5,6 +5,7 @@ export interface Expense {
   caption: string;
   amount: number;
   category: ExpenseCategory;
+  type?: "income" | "spent"; // Optional for backward compatibility
   createdAt: Date;
 }
 
@@ -55,13 +56,15 @@ export const createExpense = (
   imageUrl: string,
   caption: string,
   amount: number,
-  category: ExpenseCategory
+  category: ExpenseCategory,
+  type: "income" | "spent" = "spent"
 ): Expense => ({
   id: `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   imageUrl,
   caption,
   amount,
   category,
+  type,
   createdAt: new Date(),
 });
 

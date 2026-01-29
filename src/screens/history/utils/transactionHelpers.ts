@@ -1,12 +1,14 @@
-import { Transaction } from "@/services/ExpenseService";
+import { DatabaseTransaction } from "@/types/expense";
 import { format } from "date-fns";
 
 // Group transactions by month
-export const groupTransactionsByMonth = (transactions: Transaction[]) => {
-  const groups: Record<string, Transaction[]> = {};
+export const groupTransactionsByMonth = (
+  transactions: DatabaseTransaction[],
+) => {
+  const groups: Record<string, DatabaseTransaction[]> = {};
 
   transactions.forEach((transaction) => {
-    const date = new Date(transaction.date);
+    const date = transaction.createdAt;
     // Format as "MMMM yyyy" (e.g., "January 2026")
     const monthKey = format(date, "MMMM yyyy");
 
@@ -18,9 +20,7 @@ export const groupTransactionsByMonth = (transactions: Transaction[]) => {
 
   // Sort transactions within each group by date (newest first)
   Object.keys(groups).forEach((key) => {
-    groups[key].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    groups[key].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   });
 
   return groups;
@@ -38,19 +38,55 @@ export const sortMonthKeys = (monthKeys: string[]): string[] => {
   });
 };
 
-// Filter transactions by search query
+// Filter transactions by search query and filters
 export const filterTransactions = (
-  transactions: Transaction[],
+  transactions: DatabaseTransaction[],
   searchQuery: string,
-): Transaction[] => {
-  if (!searchQuery.trim()) {
-    return transactions;
+  filters?: {
+    transactionType?: "all" | "income" | "spent";
+    categories?: string[];
+    minAmount?: string;
+    maxAmount?: string;
+  },
+): DatabaseTransaction[] => {
+  let filtered = transactions;
+
+  // Filter by transaction type
+  if (filters?.transactionType && filters.transactionType !== "all") {
+    filtered = filtered.filter((t) => {
+      return t.type === filters.transactionType;
+    });
   }
 
-  const query = searchQuery.toLowerCase();
-  return transactions.filter(
-    (t) =>
-      t.category.toLowerCase().includes(query) ||
-      (t.note && t.note.toLowerCase().includes(query)),
-  );
+  // Filter by categories
+  if (filters?.categories && filters.categories.length > 0) {
+    filtered = filtered.filter((t) => filters.categories!.includes(t.category));
+  }
+
+  // Filter by amount range
+  if (filters?.minAmount) {
+    const min = parseFloat(filters.minAmount);
+    if (!isNaN(min)) {
+      filtered = filtered.filter((t) => Math.abs(t.amount) >= min);
+    }
+  }
+
+  if (filters?.maxAmount) {
+    const max = parseFloat(filters.maxAmount);
+    if (!isNaN(max)) {
+      filtered = filtered.filter((t) => Math.abs(t.amount) <= max);
+    }
+  }
+
+  // Filter by search query
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    filtered = filtered.filter(
+      (t) =>
+        t.category.toLowerCase().includes(query) ||
+        (t.caption && t.caption.toLowerCase().includes(query)),
+    );
+  }
+
+  return filtered;
 };

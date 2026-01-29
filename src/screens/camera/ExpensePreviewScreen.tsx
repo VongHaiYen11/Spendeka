@@ -1,9 +1,9 @@
-import { Text, View } from '@/components/Themed';
-import { PRIMARY_COLOR } from '@/constants/Colors';
-import { ExpenseCategory, EXPENSE_CATEGORIES_EN } from '@/models/Expense';
-import { createExpenseWithImage } from '@/services/ExpenseService';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import { Text, View } from "@/components/Themed";
+import { PRIMARY_COLOR } from "@/constants/Colors";
+import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
+import { createExpenseWithImage } from "@/services/ExpenseService";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,15 +13,15 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  View as RNView,
   ScrollView,
   StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View as RNView,
-} from 'react-native';
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const IMAGE_SIZE = width - 40;
 const MAX_NOTE_LENGTH = 50;
 
@@ -36,33 +36,36 @@ export default function ExpensePreviewScreen({
   onSaveSuccess,
   onCancel,
 }: ExpensePreviewScreenProps) {
-  const [caption, setCaption] = useState('');
-  const [amount, setAmount] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>('food');
+  const [caption, setCaption] = useState("");
+  const [amount, setAmount] = useState("");
+  const [selectedCategory, setSelectedCategory] =
+    useState<ExpenseCategory>("food");
   const [isSaving, setIsSaving] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [categorySearch, setCategorySearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState("");
 
   const selectedCategoryInfo = useMemo(
     () => EXPENSE_CATEGORIES_EN.find((c) => c.value === selectedCategory),
-    [selectedCategory]
+    [selectedCategory],
   );
 
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return EXPENSE_CATEGORIES_EN;
     const search = categorySearch.toLowerCase();
     return EXPENSE_CATEGORIES_EN.filter((cat) =>
-      cat.label.toLowerCase().includes(search)
+      cat.label.toLowerCase().includes(search),
     );
   }, [categorySearch]);
 
   const formatAmountInput = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, '');
+    const numericValue = text.replace(/[^0-9]/g, "");
     if (numericValue) {
-      const formatted = new Intl.NumberFormat('en-US').format(parseInt(numericValue));
+      const formatted = new Intl.NumberFormat("en-US").format(
+        parseInt(numericValue),
+      );
       setAmount(formatted);
     } else {
-      setAmount('');
+      setAmount("");
     }
   };
 
@@ -75,23 +78,27 @@ export default function ExpensePreviewScreen({
   const handleSelectCategory = (category: ExpenseCategory) => {
     setSelectedCategory(category);
     setShowCategoryModal(false);
-    setCategorySearch('');
+    setCategorySearch("");
   };
 
   const handleSave = async () => {
-    const amountValue = parseFloat(amount.replace(/[^0-9]/g, ''));
+    const amountValue = parseFloat(amount.replace(/[^0-9]/g, ""));
     if (!amountValue || amountValue <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+      Alert.alert("Error", "Please enter a valid amount");
       return;
     }
 
     setIsSaving(true);
     try {
-      await createExpenseWithImage(imageUri, caption, amountValue, selectedCategory);
+      await createExpenseWithImage(
+        imageUri,
+        caption,
+        amountValue,
+        selectedCategory,
+      );
       onSaveSuccess();
     } catch (error) {
-      Alert.alert('Error', 'Could not save expense');
-      console.error('Save error:', error);
+      Alert.alert("Error", "Could not save expense");
     } finally {
       setIsSaving(false);
     }
@@ -102,7 +109,7 @@ export default function ExpensePreviewScreen({
       <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView
         style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -186,8 +193,9 @@ export default function ExpensePreviewScreen({
             {/** Derived from current amount string */}
             {/** Keep validation in handleSave as safety */}
             {(() => {
-              const numeric = amount.replace(/[^0-9]/g, '');
-              const isAmountValid = numeric.length > 0 && parseInt(numeric, 10) > 0;
+              const numeric = amount.replace(/[^0-9]/g, "");
+              const isAmountValid =
+                numeric.length > 0 && parseInt(numeric, 10) > 0;
               const isDisabled = isSaving || !isAmountValid;
 
               return (
@@ -228,7 +236,7 @@ export default function ExpensePreviewScreen({
               <TouchableOpacity
                 onPress={() => {
                   setShowCategoryModal(false);
-                  setCategorySearch('');
+                  setCategorySearch("");
                 }}
                 style={styles.modalCloseButton}
               >
@@ -248,7 +256,7 @@ export default function ExpensePreviewScreen({
                 autoFocus
               />
               {categorySearch.length > 0 && (
-                <TouchableOpacity onPress={() => setCategorySearch('')}>
+                <TouchableOpacity onPress={() => setCategorySearch("")}>
                   <Ionicons name="close-circle" size={20} color="#666" />
                 </TouchableOpacity>
               )}
@@ -263,7 +271,8 @@ export default function ExpensePreviewScreen({
                 <TouchableOpacity
                   style={[
                     styles.categoryListItem,
-                    selectedCategory === item.value && styles.categoryListItemSelected,
+                    selectedCategory === item.value &&
+                      styles.categoryListItemSelected,
                   ]}
                   onPress={() => handleSelectCategory(item.value)}
                 >
@@ -278,20 +287,27 @@ export default function ExpensePreviewScreen({
                   <Text
                     style={[
                       styles.categoryListLabel,
-                      selectedCategory === item.value && styles.categoryListLabelSelected,
+                      selectedCategory === item.value &&
+                        styles.categoryListLabelSelected,
                     ]}
                   >
                     {item.label}
                   </Text>
                   {selectedCategory === item.value && (
-                    <Ionicons name="checkmark" size={20} color={PRIMARY_COLOR} />
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={PRIMARY_COLOR}
+                    />
                   )}
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
                 <RNView style={styles.emptySearch}>
                   <Ionicons name="search-outline" size={40} color="#444" />
-                  <Text style={styles.emptySearchText}>No categories found</Text>
+                  <Text style={styles.emptySearchText}>
+                    No categories found
+                  </Text>
                 </RNView>
               }
             />
@@ -305,7 +321,7 @@ export default function ExpensePreviewScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   content: {
     flex: 1,
@@ -316,9 +332,9 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -327,9 +343,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   placeholderButton: {
     width: 44,
@@ -337,42 +353,42 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 
   // Image
   imageContainer: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    alignSelf: 'center',
+    alignSelf: "center",
     borderRadius: 30,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   captionOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     left: 16,
     right: 16,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   captionInput: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
   charCounter: {
-    color: 'rgba(255,255,255,0.5)',
+    color: "rgba(255,255,255,0.5)",
     fontSize: 10,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: 4,
   },
 
@@ -382,57 +398,57 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   inputLabel: {
-    color: '#999',
+    color: "#999",
     fontSize: 14,
     marginBottom: 10,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 12,
     paddingHorizontal: 16,
   },
   amountInput: {
     flex: 1,
-    color: '#fff',
+    color: "#fff",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     paddingVertical: 12,
   },
   currencyText: {
-    color: '#666',
+    color: "#666",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // Category Dropdown
   categoryDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   categoryDropdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   categoryDropdownIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoryDropdownText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 
   // Save Button
@@ -442,9 +458,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: PRIMARY_COLOR,
     paddingVertical: 14,
     borderRadius: 12,
@@ -454,51 +470,51 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: '#000',
+    color: "#000",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '70%',
+    maxHeight: "70%",
     paddingBottom: 40,
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
   },
   modalTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalCloseButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // Search
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
     marginHorizontal: 20,
     marginBottom: 16,
     borderRadius: 12,
@@ -507,46 +523,46 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
     paddingVertical: 12,
   },
 
   // Category List
   categoryListItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
     gap: 14,
   },
   categoryListItemSelected: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   categoryListIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoryListLabel: {
     flex: 1,
-    color: '#999',
+    color: "#999",
     fontSize: 16,
   },
   categoryListLabelSelected: {
-    color: '#fff',
-    fontWeight: '600',
+    color: "#fff",
+    fontWeight: "600",
   },
 
   // Empty Search
   emptySearch: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 40,
   },
   emptySearchText: {
-    color: '#666',
+    color: "#666",
     fontSize: 14,
     marginTop: 12,
   },

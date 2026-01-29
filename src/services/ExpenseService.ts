@@ -1,20 +1,39 @@
-import { CLOUDINARY_CONFIG, CLOUDINARY_UPLOAD_URL } from '@/config/cloudinaryConfig';
-import { db } from '@/config/firebaseConfig';
-import { createExpense, Expense, ExpenseCategory } from '@/models/Expense';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  collection,
+  CLOUDINARY_CONFIG,
+  CLOUDINARY_UPLOAD_URL,
+} from "@/config/cloudinaryConfig";
+import { db } from "@/config/firebaseConfig";
+import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
+import { createExpense, Expense, ExpenseCategory } from "@/models/Expense";
+import { DatabaseTransaction } from "@/types/expense";
+import { getCategoryIconEmoji } from "@/utils/getCategoryIcon";
+import { getDateRange, RangeType } from "@/utils/getDateRange";
+import {
   addDoc,
-  getDocs,
+  collection,
   deleteDoc,
   doc,
-  query,
+  getDocs,
   orderBy,
+  query,
   Timestamp,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 
-const EXPENSES_COLLECTION = 'expenses';
-const EXPENSES_STORAGE_KEY = '@spendeka_expenses'; // Key cũ từ AsyncStorage
+// Helper function to compare dates (ignoring time)
+function isDateInRange(date: Date, startDate: Date, endDate: Date): boolean {
+  const dateToCheck = new Date(date);
+  dateToCheck.setHours(0, 0, 0, 0);
+
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  return dateToCheck >= start && dateToCheck <= end;
+}
+
+const EXPENSES_COLLECTION = "expenses";
 
 /**
  * Upload ảnh lên Cloudinary và tạo expense mới
@@ -23,7 +42,7 @@ export const createExpenseWithImage = async (
   imageUri: string,
   caption: string,
   amount: number,
-  category: ExpenseCategory
+  category: ExpenseCategory,
 ): Promise<Expense> => {
   try {
     // Upload ảnh lên Cloudinary
@@ -37,7 +56,6 @@ export const createExpenseWithImage = async (
 
     return expense;
   } catch (error) {
-    console.error('Error creating expense:', error);
     throw error;
   }
 };
@@ -48,30 +66,30 @@ export const createExpenseWithImage = async (
 const uploadImageToCloudinary = async (uri: string): Promise<string> => {
   const formData = new FormData();
 
-  const uriParts = uri.split('.');
+  const uriParts = uri.split(".");
   const fileType = uriParts[uriParts.length - 1];
 
-  formData.append('file', {
+  formData.append("file", {
     uri: uri,
     type: `image/${fileType}`,
     name: `expense_${Date.now()}.${fileType}`,
   } as any);
 
-  formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
-  formData.append('folder', 'spendeka_expenses');
+  formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+  formData.append("folder", "spendeka_expenses");
 
   const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-    method: 'POST',
+    method: "POST",
     body: formData,
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'multipart/form-data',
+      Accept: "application/json",
+      "Content-Type": "multipart/form-data",
     },
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error?.message || 'Upload failed');
+    throw new Error(errorData.error?.message || "Upload failed");
   }
 
   const data = await response.json();
@@ -83,25 +101,52 @@ const uploadImageToCloudinary = async (uri: string): Promise<string> => {
  */
 const saveExpense = async (expense: Expense): Promise<void> => {
   try {
-    console.log('📤 Saving expense to Firestore:', {
-      id: expense.id,
-      caption: expense.caption,
-      amount: expense.amount,
-      category: expense.category,
-    });
-    
-    const docRef = await addDoc(collection(db, EXPENSES_COLLECTION), {
+    // Convert Expense to DatabaseTransaction format
+    const dbTransaction: DatabaseTransaction = {
       id: expense.id,
       imageUrl: expense.imageUrl,
       caption: expense.caption,
       amount: expense.amount,
       category: expense.category,
-      createdAt: Timestamp.fromDate(expense.createdAt),
+      type: "spent", // Default to 'spent' for backward compatibility
+      createdAt: expense.createdAt,
+    };
+
+    await addDoc(collection(db, EXPENSES_COLLECTION), {
+      id: dbTransaction.id,
+      imageUrl: dbTransaction.imageUrl,
+      caption: dbTransaction.caption,
+      amount: dbTransaction.amount,
+      category: dbTransaction.category,
+      type: dbTransaction.type,
+      createdAt: Timestamp.fromDate(dbTransaction.createdAt),
     });
-    
-    console.log('✅ Expense saved to Firestore successfully! Document ID:', docRef.id);
+    // Notify all listeners that transactions have changed
+    transactionEventEmitter.emit();
   } catch (error) {
-    console.error('❌ Error saving expense to Firestore:', error);
+    throw error;
+  }
+};
+
+/**
+ * Save DatabaseTransaction directly to Firestore
+ */
+export const saveDatabaseTransaction = async (
+  transaction: DatabaseTransaction,
+): Promise<void> => {
+  try {
+    await addDoc(collection(db, EXPENSES_COLLECTION), {
+      id: transaction.id,
+      imageUrl: transaction.imageUrl,
+      caption: transaction.caption,
+      amount: transaction.amount,
+      category: transaction.category,
+      type: transaction.type,
+      createdAt: Timestamp.fromDate(transaction.createdAt),
+    });
+    // Notify all listeners that transactions have changed
+    transactionEventEmitter.emit();
+  } catch (error) {
     throw error;
   }
 };
@@ -109,33 +154,44 @@ const saveExpense = async (expense: Expense): Promise<void> => {
 /**
  * Lấy tất cả expenses từ Firestore, sắp xếp theo thời gian mới nhất
  */
-const getDatabaseTransactions = async (): Promise<DatabaseTransaction[]> => {
+export const getDatabaseTransactions = async (): Promise<DatabaseTransaction[]> => {
   try {
-    console.log('📥 Loading expenses from Firestore...');
     const expensesRef = collection(db, EXPENSES_COLLECTION);
-    const q = query(expensesRef, orderBy('createdAt', 'desc'));
+    const q = query(expensesRef, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
 
-    const expenses: Expense[] = [];
+    const transactions: DatabaseTransaction[] = [];
     querySnapshot.forEach((docSnapshot) => {
       const data = docSnapshot.data();
-      expenses.push({
+      transactions.push({
         id: data.id,
-        imageUrl: data.imageUrl,
+        imageUrl: data.imageUrl || "", // Default to empty string if missing
         caption: data.caption,
         amount: data.amount,
         category: data.category,
+        type: data.type || "spent", // Default to 'spent' for backward compatibility
         createdAt: data.createdAt.toDate(),
       });
     });
 
-    console.log(`✅ Loaded ${expenses.length} expenses from Firestore`);
-    return expenses;
+    return transactions;
   } catch (error) {
-    console.error('❌ Error loading expenses from Firestore:', error);
     return [];
   }
 };
+
+/**
+ * Convert DatabaseTransaction to Expense (for backward compatibility)
+ */
+const databaseTransactionToExpense = (tx: DatabaseTransaction): Expense => ({
+  id: tx.id,
+  imageUrl: tx.imageUrl,
+  caption: tx.caption,
+  amount: tx.amount,
+  category: tx.category,
+  type: tx.type,
+  createdAt: tx.createdAt,
+});
 
 /**
  * Lấy tất cả expenses, sắp xếp theo thời gian mới nhất
@@ -172,11 +228,12 @@ export const deleteExpense = async (id: string): Promise<void> => {
 
     if (expenseDocId) {
       await deleteDoc(doc(db, EXPENSES_COLLECTION, expenseDocId));
+      // Notify all listeners that transactions have changed
+      transactionEventEmitter.emit();
     } else {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
   } catch (error) {
-    console.error('Error deleting expense from Firestore:', error);
     throw error;
   }
 };
@@ -185,7 +242,7 @@ export const deleteExpense = async (id: string): Promise<void> => {
  * Lấy tổng chi tiêu theo category
  */
 export const getExpensesByCategory = async (
-  category: ExpenseCategory
+  category: ExpenseCategory,
 ): Promise<Expense[]> => {
   const expenses = await getExpenses();
   return expenses.filter((e) => e.category === category);
@@ -196,7 +253,7 @@ export const getExpensesByCategory = async (
  */
 export const getExpensesInRange = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Expense[]> => {
   const dbTransactions = await getDatabaseTransactions();
   return dbTransactions
@@ -209,10 +266,12 @@ export const getExpensesInRange = async (
  */
 const getDatabaseTransactionsInRange = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<DatabaseTransaction[]> => {
   const dbTransactions = await getDatabaseTransactions();
-  return dbTransactions.filter((t) => isDateInRange(t.createdAt, startDate, endDate));
+  return dbTransactions.filter((t) =>
+    isDateInRange(t.createdAt, startDate, endDate),
+  );
 };
 
 /**
@@ -232,119 +291,59 @@ export const clearAllExpenses = async (): Promise<void> => {
     const querySnapshot = await getDocs(expensesRef);
 
     const deletePromises = querySnapshot.docs.map((docSnapshot) =>
-      deleteDoc(doc(db, EXPENSES_COLLECTION, docSnapshot.id))
+      deleteDoc(doc(db, EXPENSES_COLLECTION, docSnapshot.id)),
     );
 
     await Promise.all(deletePromises);
   } catch (error) {
-    console.error('Error clearing all expenses from Firestore:', error);
-    throw error;
-  }
-};
-
-/**
- * Migrate dữ liệu cũ từ AsyncStorage sang Firestore
- * Chỉ cần gọi một lần sau khi chuyển sang Firestore
- */
-export const migrateOldExpensesToFirestore = async (): Promise<number> => {
-  try {
-    // Lấy dữ liệu cũ từ AsyncStorage
-    const expensesJson = await AsyncStorage.getItem(EXPENSES_STORAGE_KEY);
-    if (!expensesJson) {
-      console.log('No old expenses found in AsyncStorage');
-      return 0;
-    }
-
-    const oldExpenses: Expense[] = JSON.parse(expensesJson).map((e: any) => ({
-      ...e,
-      createdAt: new Date(e.createdAt),
-    }));
-
-    // Lấy danh sách expenses đã có trong Firestore để tránh duplicate
-    const existingExpenses = await getExpenses();
-    const existingIds = new Set(existingExpenses.map((e) => e.id));
-
-    // Chỉ migrate những expense chưa có trong Firestore
-    const expensesToMigrate = oldExpenses.filter((e) => !existingIds.has(e.id));
-
-    if (expensesToMigrate.length === 0) {
-      console.log('All expenses already migrated');
-      return 0;
-    }
-
-    // Upload từng expense vào Firestore
-    const migrationPromises = expensesToMigrate.map((expense) =>
-      addDoc(collection(db, EXPENSES_COLLECTION), {
-        id: expense.id,
-        imageUrl: expense.imageUrl,
-        caption: expense.caption,
-        amount: expense.amount,
-        category: expense.category,
-        createdAt: Timestamp.fromDate(expense.createdAt),
-      })
-    );
-
-    await Promise.all(migrationPromises);
-
-    console.log(`Migrated ${expensesToMigrate.length} expenses to Firestore`);
-
-    // Xóa dữ liệu cũ từ AsyncStorage sau khi migrate thành công (optional)
-    // await AsyncStorage.removeItem(EXPENSES_STORAGE_KEY);
-
-    return expensesToMigrate.length;
-  } catch (error) {
-    console.error('Error migrating expenses to Firestore:', error);
     throw error;
   }
 };
 
 // ============================================================================
-// Adapter functions for summary screens (compatible with fakeDBGetData.ts)
+// Functions for summary and history screens (using DatabaseTransaction directly)
 // ============================================================================
 
 /**
- * Get transactions by date range (for summary screens)
+ * Get transactions by date range (returns DatabaseTransaction[])
  */
 export const getTransactionsByDateRange = async (
   startDate: Date,
-  endDate: Date
-): Promise<Transaction[]> => {
-  const dbTransactions = await getDatabaseTransactionsInRange(startDate, endDate);
-  return dbTransactions.map(databaseTransactionToTransaction);
+  endDate: Date,
+): Promise<DatabaseTransaction[]> => {
+  return await getDatabaseTransactionsInRange(startDate, endDate);
 };
 
 /**
- * Get raw summary data (for overview chart)
+ * Get raw summary data (for overview chart) - returns DatabaseTransaction[]
  */
 export const getRawSummaryData = async (
   startDate: Date,
-  endDate: Date
-): Promise<Transaction[]> => {
-  return getTransactionsByDateRange(startDate, endDate);
+  endDate: Date,
+): Promise<DatabaseTransaction[]> => {
+  return await getTransactionsByDateRange(startDate, endDate);
 };
 
 /**
- * Get transactions by range (for summary screens)
+ * Get transactions by range (for summary screens) - returns DatabaseTransaction[]
  */
 export const getTransactionsByRange = async (
   range: string,
-  currentDate: Date
-): Promise<Transaction[]> => {
+  currentDate: Date,
+): Promise<DatabaseTransaction[]> => {
   const { start, end } = getDateRange(range as RangeType, currentDate);
   const dbTransactions = await getDatabaseTransactions();
 
-  return dbTransactions
-    .filter((t) => {
-      const d = t.createdAt;
-      if (!start) {
-        // all-time: từ đầu đến hôm nay
-        const endDate = new Date(end || new Date());
-        endDate.setHours(23, 59, 59, 999);
-        return d <= endDate;
-      }
-      return isDateInRange(d, start, end);
-    })
-    .map(databaseTransactionToTransaction);
+  return dbTransactions.filter((t) => {
+    const d = t.createdAt;
+    if (!start) {
+      // all-time: từ đầu đến hôm nay
+      const endDate = new Date(end || new Date());
+      endDate.setHours(23, 59, 59, 999);
+      return d <= endDate;
+    }
+    return isDateInRange(d, start, end);
+  });
 };
 
 /**
@@ -352,11 +351,12 @@ export const getTransactionsByRange = async (
  */
 export const getSavedAmount = async (
   range: string,
-  currentDate: Date
+  currentDate: Date,
 ): Promise<number> => {
   const txs = await getTransactionsByRange(range, currentDate);
+  // Use type field from DatabaseTransaction
   return txs
-    .filter((t) => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 };
 
@@ -365,11 +365,12 @@ export const getSavedAmount = async (
  */
 export const getSavedAmountByDateRange = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<number> => {
   const txs = await getTransactionsByDateRange(startDate, endDate);
+  // Use type field from DatabaseTransaction
   return txs
-    .filter((t) => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 };
 
@@ -378,11 +379,12 @@ export const getSavedAmountByDateRange = async (
  */
 export const getSpentAmount = async (
   range: string,
-  currentDate: Date
+  currentDate: Date,
 ): Promise<number> => {
   const txs = await getTransactionsByRange(range, currentDate);
+  // Use type field from DatabaseTransaction
   return txs
-    .filter((t) => t.type === 'spent')
+    .filter((t) => t.type === "spent")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 };
 
@@ -391,11 +393,12 @@ export const getSpentAmount = async (
  */
 export const getSpentAmountByDateRange = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<number> => {
   const txs = await getTransactionsByDateRange(startDate, endDate);
+  // Use type field from DatabaseTransaction
   return txs
-    .filter((t) => t.type === 'spent')
+    .filter((t) => t.type === "spent")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 };
 
@@ -404,12 +407,12 @@ export const getSpentAmountByDateRange = async (
  */
 export const getTotalAmountByRange = async (
   range: string,
-  currentDate: Date
+  currentDate: Date,
 ): Promise<number> => {
   const txs = await getTransactionsByRange(range, currentDate);
   return txs.reduce((sum, t) => {
-    // Income is negative amount, spent is positive amount
-    return sum + t.amount;
+    // Income adds to total, spent subtracts from total
+    return t.type === "income" ? sum + t.amount : sum - t.amount;
   }, 0);
 };
 
@@ -418,12 +421,12 @@ export const getTotalAmountByRange = async (
  */
 export const getTotalAmountByDateRange = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<number> => {
   const txs = await getTransactionsByDateRange(startDate, endDate);
   return txs.reduce((sum, t) => {
-    // Income is negative amount, spent is positive amount
-    return sum + t.amount;
+    // Income adds to total, spent subtracts from total
+    return t.type === "income" ? sum + t.amount : sum - t.amount;
   }, 0);
 };
 
@@ -432,11 +435,12 @@ export const getTotalAmountByDateRange = async (
  */
 export const getIncomeByCategory = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Record<string, number>> => {
   const txs = await getTransactionsByDateRange(startDate, endDate);
+  // Use type field from DatabaseTransaction
   return txs
-    .filter((t) => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((acc: Record<string, number>, t) => {
       acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
       return acc;
@@ -448,11 +452,13 @@ export const getIncomeByCategory = async (
  */
 export const getSpentByCategory = async (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Record<string, number>> => {
   const txs = await getTransactionsByDateRange(startDate, endDate);
+  // Use type field from DatabaseTransaction
+  // Include transactions with type "spent" or undefined/null (default to spent for backward compatibility)
   return txs
-    .filter((t) => t.type === 'spent')
+    .filter((t) => !t.type || t.type === "spent")
     .reduce((acc: Record<string, number>, t) => {
       acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
       return acc;

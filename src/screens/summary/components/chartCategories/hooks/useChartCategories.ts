@@ -1,10 +1,12 @@
 import { useThemeColor } from "@/components/Themed";
 import Colors from "@/constants/Colors";
+import { useTransactions } from "@/contexts/TransactionContext";
 import {
-  getIncomeByCategory,
-  getSpentByCategory,
-} from "@/services/ExpenseService";
-import { useEffect, useMemo, useState } from "react";
+  filterTransactionsByDateRange,
+  getIncomeByCategoryFromTransactions,
+  getSpentByCategoryFromTransactions,
+} from "@/utils/transactionHelpers";
+import { useMemo, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { CATEGORY_OPTIONS } from "../constants";
 import {
@@ -45,7 +47,7 @@ export const useChartCategories = ({
   "startDate" | "endDate"
 >): UseChartCategoriesReturn => {
   const { width } = useWindowDimensions();
-  const [categoryType, setCategoryType] = useState<CategoryType>("income");
+  const [categoryType, setCategoryType] = useState<CategoryType>("spent");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [items, setItems] = useState(CATEGORY_OPTIONS);
 
@@ -64,25 +66,31 @@ export const useChartCategories = ({
     pickerBg: isDark ? "#1f2937" : Colors.general.gray100,
   };
 
-  // Fetch category data asynchronously
-  const [incomeByCategory, setIncomeByCategory] = useState<Record<string, number>>({});
-  const [spentByCategory, setSpentByCategory] = useState<Record<string, number>>({});
+  // Get transactions from global state
+  const { transactions } = useTransactions();
 
-  useEffect(() => {
-    const loadCategoryData = async () => {
-      const income = await getIncomeByCategory(startDate, endDate);
-      const spent = await getSpentByCategory(startDate, endDate);
-      setIncomeByCategory(income);
-      setSpentByCategory(spent);
-    };
-    loadCategoryData();
-  }, [startDate, endDate]);
+  // Filter transactions by date range
+  const filteredTransactions = useMemo(
+    () => filterTransactionsByDateRange(transactions, startDate, endDate),
+    [transactions, startDate, endDate],
+  );
+
+  // Calculate category data from filtered transactions
+  const incomeByCategory = useMemo(
+    () => getIncomeByCategoryFromTransactions(filteredTransactions),
+    [filteredTransactions],
+  );
+
+  const spentByCategory = useMemo(
+    () => getSpentByCategoryFromTransactions(filteredTransactions),
+    [filteredTransactions],
+  );
 
   // Keep useMemo for expensive computation (sorting, mapping, color generation) and stable reference for PieChart
   const chartData = useMemo(() => {
-    // Fix: Swap data sources - incomeByCategory appears to contain spent data and vice versa
+    // Use the correct data source based on categoryType
     const categoryData =
-      categoryType === "income" ? spentByCategory : incomeByCategory;
+      categoryType === "income" ? incomeByCategory : spentByCategory;
     return generateChartData(categoryData, themeColors, tintColor, isDark);
   }, [
     categoryType,

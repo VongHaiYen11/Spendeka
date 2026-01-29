@@ -5,9 +5,12 @@ import {
   addDays,
   differenceInCalendarDays,
   format,
+  isSameDay,
+  isSameMonth,
+  isSameYear,
   subDays,
 } from 'date-fns';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
 interface HeaderProps {
@@ -25,6 +28,32 @@ export default function HeaderSummary({
 }: HeaderProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const { start, end } = getDateRange(range, currentDate);
+  const today = new Date();
+
+  // Check if the current date range includes today
+  const includesToday = useMemo(() => {
+    if (range === 'all') return true; // 'all' always includes today
+    
+    if (!start || !end) return false;
+    
+    // For day: check if currentDate is today
+    if (range === 'day') {
+      return isSameDay(currentDate, today);
+    }
+    
+    // For week, month, year: check if today is within the date range
+    // Today should be >= start and <= end
+    const todayStartOfDay = new Date(today);
+    todayStartOfDay.setHours(0, 0, 0, 0);
+    
+    const startOfDay = new Date(start);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(end);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return todayStartOfDay >= startOfDay && todayStartOfDay <= endOfDay;
+  }, [range, currentDate, start, end]);
 
   const onPrev = () => {
     if (range === 'all') return;
@@ -115,8 +144,8 @@ export default function HeaderSummary({
 
         <TouchableOpacity
           onPress={onNext}
-          disabled={range === 'all'}
-          className={`px-4 py-2 ${range === 'all' ? 'opacity-30' : ''}`}
+          disabled={range === 'all' || includesToday}
+          className={`px-4 py-2 ${range === 'all' || includesToday ? 'opacity-30' : ''}`}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text className="text-lg">▶</Text>
