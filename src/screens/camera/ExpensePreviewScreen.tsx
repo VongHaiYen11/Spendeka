@@ -87,13 +87,7 @@ export default function ExpensePreviewScreen({
 
     setIsSaving(true);
     try {
-      await createExpenseWithImage(
-        imageUri,
-        caption || 'Expense',
-        amountValue,
-        selectedCategory
-      );
-      Alert.alert('Success', 'Expense saved!');
+      await createExpenseWithImage(imageUri, caption, amountValue, selectedCategory);
       onSaveSuccess();
     } catch (error) {
       Alert.alert('Error', 'Could not save expense');
@@ -188,20 +182,34 @@ export default function ExpensePreviewScreen({
 
           {/* Save Button */}
           <RNView style={styles.saveButtonContainer}>
-            <TouchableOpacity
-              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark" size={24} color="#000" />
-                  <Text style={styles.saveButtonText}>Save Expense</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {/** Disable save when amount is not valid */}
+            {/** Derived from current amount string */}
+            {/** Keep validation in handleSave as safety */}
+            {(() => {
+              const numeric = amount.replace(/[^0-9]/g, '');
+              const isAmountValid = numeric.length > 0 && parseInt(numeric, 10) > 0;
+              const isDisabled = isSaving || !isAmountValid;
+
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.saveButton,
+                    (isSaving || !isAmountValid) && styles.saveButtonDisabled,
+                  ]}
+                  onPress={handleSave}
+                  disabled={isDisabled}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator color="#000" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark" size={24} color="#000" />
+                      <Text style={styles.saveButtonText}>Save Expense</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            })()}
           </RNView>
         </ScrollView>
       </KeyboardAvoidingView>
