@@ -13,7 +13,7 @@ import { ScrollView } from 'react-native';
 import AccountInfo from './components/accountInfo';
 import ChartCategories from './components/chartCategories';
 import HeaderSummary from './components/header';
-import BarChart from './components/overview';
+import Overview from './components/overview';
 import TransactionList from './components/transactionList';
 
 type RangeType = 'day' | 'week' | 'month' | 'year' | 'all';
@@ -70,7 +70,7 @@ export default function Summary() {
           spentAmount={spentAmount}
           totalAmount={range === 'all' ? totalAmount : undefined}
         />
-        <BarChart
+        <Overview
           startDate={startDate}
           endDate={endDate}
           range={range}

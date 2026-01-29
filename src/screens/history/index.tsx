@@ -1,48 +1,80 @@
-import { SafeView, Text, useThemeColor, View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { getTransactionsByDateRange, Transaction } from '@/server/fakeDBGetData';
-import { parseISO } from 'date-fns';
-import { useLocalSearchParams } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import DateGroup from './components/DateGroup';
-import FilterButton from './components/FilterButton';
-import Header from './components/Header';
-import SearchBar from './components/SearchBar';
-import { filterTransactions, groupTransactionsByDate, sortDateKeys } from './utils/transactionHelpers';
+import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
+import {
+    getTransactionsByDateRange
+} from "@/server/fakeDBGetData";
+import { parseISO } from "date-fns";
+import { useLocalSearchParams } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { ScrollView, StyleSheet } from "react-native";
+import DateGroup from "./components/DateGroup";
+import FilterButton from "./components/FilterButton";
+import FilterModal, { FilterState } from "./components/FilterModal";
+import Header from "./components/Header";
+import SearchBar from "./components/SearchBar";
+import {
+    filterTransactions,
+    groupTransactionsByMonth,
+    sortMonthKeys,
+} from "./utils/transactionHelpers";
 
-const USER_ID = 'user1';
+const USER_ID = "user1";
 
 export default function HistoryScreen() {
   const params = useLocalSearchParams();
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
 
   // Get date range from params or use default
   const startDate = useMemo(() => {
-    return params.startDate ? parseISO(params.startDate as string) : new Date(2000, 0, 1);
+    return params.startDate
+      ? parseISO(params.startDate as string)
+      : new Date(2000, 0, 1);
   }, [params.startDate]);
 
   const endDate = useMemo(() => {
     return params.endDate ? parseISO(params.endDate as string) : new Date();
   }, [params.endDate]);
 
+  const [filters, setFilters] = useState<FilterState>({
+    transactionType: 'all',
+    categories: [],
+    minAmount: '',
+    maxAmount: '',
+    startDate: startDate,
+    endDate: endDate,
+    groupBy: 'month',
+  });
+
+  // Update filters when date range changes
+  React.useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      startDate: startDate,
+      endDate: endDate,
+    }));
+  }, [startDate, endDate]);
+
   // Get and filter transactions
   const allTransactions = useMemo(() => {
-    const transactions = getTransactionsByDateRange(USER_ID, startDate, endDate);
+    const transactions = getTransactionsByDateRange(
+      USER_ID,
+      startDate,
+      endDate,
+    );
     return filterTransactions(transactions, searchQuery);
   }, [startDate, endDate, searchQuery]);
 
-  // Group by date
+  // Group by month
   const groupedTransactions = useMemo(() => {
-    return groupTransactionsByDate(allTransactions);
+    return groupTransactionsByMonth(allTransactions);
   }, [allTransactions]);
 
-  // Sort date groups
-  const sortedDateKeys = useMemo(() => {
-    return sortDateKeys(Object.keys(groupedTransactions));
+  // Sort month groups (newest first)
+  const sortedMonthKeys = useMemo(() => {
+    return sortMonthKeys(Object.keys(groupedTransactions));
   }, [groupedTransactions]);
 
   return (
@@ -52,8 +84,18 @@ export default function HistoryScreen() {
       {/* Search and Filter Bar */}
       <View style={[styles.searchContainer, { backgroundColor }]}>
         <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
-        <FilterButton />
+        <FilterButton onPress={() => setFilterModalVisible(true)} />
       </View>
+
+      {/* Filter Modal */}
+      <FilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        onApply={(newFilters) => {
+          setFilters(newFilters);
+          // Filter logic will be implemented later
+        }}
+      />
 
       {/* Transaction List */}
       <ScrollView
@@ -61,18 +103,18 @@ export default function HistoryScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {sortedDateKeys.length === 0 ? (
+        {sortedMonthKeys.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyText, { color: textColor }]}>
               No transactions found
             </Text>
           </View>
         ) : (
-          sortedDateKeys.map((dateKey) => (
+          sortedMonthKeys.map((monthKey) => (
             <DateGroup
-              key={dateKey}
-              dateKey={dateKey}
-              transactions={groupedTransactions[dateKey]}
+              key={monthKey}
+              dateKey={monthKey}
+              transactions={groupedTransactions[monthKey]}
             />
           ))
         )}
@@ -86,12 +128,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   scrollView: {
     flex: 1,
@@ -101,7 +143,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     padding: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyText: {
     fontSize: 16,

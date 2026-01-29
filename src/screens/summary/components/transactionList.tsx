@@ -1,6 +1,7 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { getCategoryIcon, getTransactionsByDateRange, Transaction } from '@/server/fakeDBGetData';
+import { formatDollar } from '@/utils/formatCurrency';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
@@ -20,17 +21,13 @@ interface TransactionListProps {
 // Spent (positive): show as -$amount in red
 // Income (negative): show as +$amount in green
 const formatTransactionAmount = (amount: number) => {
-  const abs = Math.abs(amount);
-  const formatted = abs.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const formatted = formatDollar(amount);
   // Spent is positive, show with minus sign
   if (amount > 0) {
-    return `-$${formatted}`;
+    return formatted.replace(/^\$/, '-$');
   }
   // Income is negative, show with plus sign
-  return `+$${formatted}`;
+  return formatted.replace('-', '+');
 };
 
 const TransactionItem: React.FC<{
@@ -154,9 +151,6 @@ const TransactionList: React.FC<TransactionListProps> = ({
             style={styles.seeMoreButton}
             onPress={handleSeeMore}
           >
-            <Text style={[styles.seeMoreButtonText, { color: tintColor }]}>
-              See All Transactions ({allTransactionsCount})
-            </Text>
           </TouchableOpacity>
         )}
       </>

@@ -1,5 +1,6 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
 import { getCategoryIcon, Transaction } from '@/server/fakeDBGetData';
+import { formatDollar } from '@/utils/formatCurrency';
 import { format } from 'date-fns';
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -9,20 +10,16 @@ interface TransactionItemProps {
 }
 
 // Format currency for display
-// Income (positive amount): green with +$amount (no minus)
+// Income (positive amount): green with +$amount
 // Spent (negative amount): red with -$amount
 const formatCurrency = (amount: number) => {
-  const abs = Math.abs(amount);
-  const formatted = abs.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const formatted = formatDollar(amount);
   // Income is positive amount, show with plus sign (green)
   if (amount > 0) {
-    return `+$${formatted}`;
+    return formatted.replace(/^\$/, '+$');
   }
-  // Spent is negative amount, show with minus sign (red)
-  return `-$${formatted}`;
+  // Spent is negative amount, already has minus sign from formatDollar
+  return formatted;
 };
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {

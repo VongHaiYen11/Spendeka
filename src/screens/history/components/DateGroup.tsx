@@ -1,5 +1,6 @@
 import { Text, useThemeColor, View } from '@/components/Themed';
 import { Transaction } from '@/server/fakeDBGetData';
+import { formatDollar } from '@/utils/formatCurrency';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import TransactionItem from './TransactionItem';
@@ -8,16 +9,6 @@ interface DateGroupProps {
   dateKey: string;
   transactions: Transaction[];
 }
-
-// Format currency for display
-const formatCurrency = (amount: number) => {
-  const abs = Math.abs(amount);
-  const formatted = abs.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `$${formatted}`;
-};
 
 // Calculate total for a date group (sum of both spent and income)
 const calculateGroupTotal = (transactions: Transaction[]) => {
@@ -45,7 +36,7 @@ const DateGroup: React.FC<DateGroupProps> = ({ dateKey, transactions }) => {
         ))}
         <View style={styles.groupTotal}>
           <Text style={[styles.totalLabel, { color: textColor }]}>
-            Total: {formatCurrency(total)}
+            Total: {formatDollar(total)}
           </Text>
         </View>
       </>
