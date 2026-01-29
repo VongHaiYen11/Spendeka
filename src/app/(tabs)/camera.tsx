@@ -6,7 +6,7 @@ import {
   ExpenseCalendarView,
   ExpenseDetailScreen,
 } from '@/screens/camera';
-import { getExpenses, deleteExpense } from '@/services/ExpenseService';
+import { getExpenses, deleteExpense, migrateOldExpensesToFirestore } from '@/services/ExpenseService';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Camera, CameraView, FlashMode } from 'expo-camera';
@@ -87,6 +87,16 @@ export default function CameraScreen() {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
+    
+    // Migrate dữ liệu cũ từ AsyncStorage sang Firestore (chỉ chạy một lần)
+    (async () => {
+      try {
+        await migrateOldExpensesToFirestore();
+      } catch (error) {
+        console.error('Migration error (can be ignored if no old data):', error);
+      }
+    })();
+    
     loadExpenses();
   }, []);
 
