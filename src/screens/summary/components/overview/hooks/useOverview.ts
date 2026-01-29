@@ -4,18 +4,8 @@ import { getRawSummaryData } from '@/server/fakeDBGetData';
 import { useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { TYPE_OPTIONS } from '../constants';
-import { ChartType, OverviewProps, Range } from '../types';
+import { ChartType, OverviewProps, Range, ThemeColors } from '../types';
 import { aggregateTransactions, buildChartData } from '../utils/chartDataUtils';
-
-export interface ThemeColors {
-  bg: string;
-  text: string;
-  border: string;
-  pickerBg: string;
-  chartText: string;
-  chartLine: string;
-  chartAxis: string;
-}
 
 export interface UseOverviewReturn {
   chartType: ChartType;
