@@ -1,28 +1,353 @@
-import { StyleSheet } from 'react-native';
-import { Text, View, SafeView } from '@/components/Themed';
+import { SafeView, Text, View } from '@/components/Themed';
+import { PRIMARY_COLOR } from '@/constants/Colors';
+import { Expense } from '@/models/Expense';
+import { ExpensePreviewScreen, ExpenseCalendarView } from '@/screens/camera';
+import { getExpenses } from '@/services/ExpenseService';
+import { Ionicons } from '@expo/vector-icons';
+import { Camera, CameraView, FlashMode } from 'expo-camera';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View as RNView,
+} from 'react-native';
+
+const { width } = Dimensions.get('window');
+const CAMERA_SIZE = width - 40;
+
+type TabType = 'camera' | 'history';
 
 export default function CameraScreen() {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [facing, setFacing] = useState<'front' | 'back'>('back');
+  const [flash, setFlash] = useState<FlashMode>('off');
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('camera');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+  const cameraRef = useRef<CameraView>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+    loadExpenses();
+  }, []);
+
+  const startPulse = () => {
+    Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const loadExpenses = async () => {
+    try {
+      const loadedExpenses = await getExpenses();
+      setExpenses(loadedExpenses);
+    } catch (error) {
+      console.error('Error loading expenses:', error);
+    }
+  };
+
+  const takePicture = async () => {
+    if (cameraRef.current && !isCapturing) {
+      setIsCapturing(true);
+      startPulse();
+      try {
+        const photo = await cameraRef.current.takePictureAsync({
+          shutterSound: false,
+        });
+        if (photo?.uri) {
+          setCapturedImage(photo.uri);
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Could not take photo');
+        console.error(error);
+      } finally {
+        setIsCapturing(false);
+      }
+    }
+  };
+
+  const handlePreviewSaveSuccess = async () => {
+    setCapturedImage(null);
+    await loadExpenses();
+  };
+
+  const handlePreviewCancel = () => {
+    setCapturedImage(null);
+  };
+
+  const toggleCameraFacing = () => {
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+  };
+
+  const toggleFlash = () => {
+    setFlash((current) => (current === 'off' ? 'on' : 'off'));
+  };
+
+  // Loading permission
+  if (hasPermission === null) {
+    return (
+      <SafeView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <Text style={styles.loadingText}>Requesting camera permission...</Text>
+      </SafeView>
+    );
+  }
+
+  // No permission
+  if (hasPermission === false) {
+    return (
+      <SafeView style={styles.loadingContainer}>
+        <Ionicons name="camera-outline" size={64} color="#666" />
+        <Text style={styles.loadingText}>No camera access</Text>
+        <Text style={styles.subText}>Please grant permission in settings</Text>
+      </SafeView>
+    );
+  }
+
+  // Preview Screen
+  if (capturedImage) {
+    return (
+      <ExpensePreviewScreen
+        imageUri={capturedImage}
+        onSaveSuccess={handlePreviewSaveSuccess}
+        onCancel={handlePreviewCancel}
+      />
+    );
+  }
+
+  // Main Camera Screen
   return (
-    <SafeView style={styles.container}>
-      <Text style={styles.title}>Camera</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-    </SafeView>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header with Tabs */}
+      <RNView style={styles.header}>
+        <RNView style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'camera' && styles.activeTab]}
+            onPress={() => setActiveTab('camera')}
+          >
+            <Ionicons
+              name="camera"
+              size={20}
+              color={activeTab === 'camera' ? PRIMARY_COLOR : '#666'}
+            />
+            <Text style={[styles.tabText, activeTab === 'camera' && styles.activeTabText]}>
+              Camera
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'history' && styles.activeTab]}
+            onPress={() => setActiveTab('history')}
+          >
+            <Ionicons
+              name="receipt"
+              size={20}
+              color={activeTab === 'history' ? PRIMARY_COLOR : '#666'}
+            />
+            <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
+              Expenses
+            </Text>
+          </TouchableOpacity>
+        </RNView>
+      </RNView>
+
+      {/* Content */}
+      {activeTab === 'camera' ? (
+        <RNView style={styles.cameraPage}>
+          <RNView style={styles.cameraWrapper}>
+            <RNView style={styles.cameraContainer}>
+              <CameraView
+                ref={cameraRef}
+                style={styles.camera}
+                facing={facing}
+                flash={flash}
+              />
+            </RNView>
+          </RNView>
+
+          <RNView style={styles.controls}>
+            <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
+              <Ionicons
+                name={flash === 'on' ? 'flash' : 'flash-off'}
+                size={24}
+                color={flash === 'on' ? PRIMARY_COLOR : '#fff'}
+              />
+            </TouchableOpacity>
+
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity
+                style={styles.captureButton}
+                onPress={takePicture}
+                disabled={isCapturing}
+                activeOpacity={0.8}
+              >
+                <RNView style={styles.captureButtonInner}>
+                  {isCapturing && (
+                    <ActivityIndicator size="small" color="#000" style={styles.captureLoader} />
+                  )}
+                </RNView>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
+              <Ionicons name="camera-reverse-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+          </RNView>
+        </RNView>
+      ) : (
+        <RNView style={styles.historyPage}>
+          <ExpenseCalendarView expenses={expenses} />
+        </RNView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  subText: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
+  },
+
+  // Header with Tabs
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 25,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 22,
+    gap: 8,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  activeTab: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  tabText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  activeTabText: {
+    color: PRIMARY_COLOR,
+  },
+
+  // Camera Page
+  cameraPage: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingBottom: 40,
+  },
+  cameraWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraContainer: {
+    width: CAMERA_SIZE,
+    height: CAMERA_SIZE,
+    borderRadius: 30,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a1a',
+  },
+  camera: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Controls
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    marginTop: 30,
+  },
+  controlButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: PRIMARY_COLOR,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: PRIMARY_COLOR,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  captureButtonInner: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: PRIMARY_COLOR,
+    borderWidth: 4,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureLoader: {
+    position: 'absolute',
+  },
+
+  // History Page - Calendar View
+  historyPage: {
+    flex: 1,
   },
 });
