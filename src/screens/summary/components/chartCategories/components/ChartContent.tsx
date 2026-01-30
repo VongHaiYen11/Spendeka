@@ -1,6 +1,7 @@
 import React from "react";
 import { Text as RNText, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
+import { useThemeColor } from "@/components/Themed";
 import { styles } from "../styles";
 import { ChartDataItem, ThemeColors } from "../types";
 
@@ -28,9 +29,11 @@ export const ChartContent: React.FC<ChartContentProps> = ({
   themeColors,
   hasData,
 }) => {
+  const cardColor = useThemeColor({}, "card");
+
   if (!hasData) {
     return (
-      <View style={styles.emptyState}>
+      <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
         <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>
           No data
         </RNText>
@@ -39,7 +42,7 @@ export const ChartContent: React.FC<ChartContentProps> = ({
   }
 
   return (
-    <View style={styles.chartContainer}>
+    <View style={[styles.chartContainer, { backgroundColor: cardColor }]}>
       <View style={styles.chartArea}>
         <View
           style={[styles.chartWrapper, { backgroundColor: themeColors.bg }]}

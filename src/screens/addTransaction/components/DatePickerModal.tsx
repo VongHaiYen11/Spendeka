@@ -1,5 +1,6 @@
-import { Text } from "@/components/Themed";
+import { Text, useThemeColor } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React from "react";
 import {
@@ -9,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DARK_BG } from "../constants";
 
 interface DatePickerModalProps {
   visible: boolean;
@@ -24,6 +24,11 @@ export default function DatePickerModal({
   onClose,
   onChange,
 }: DatePickerModalProps) {
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const colorScheme = useColorScheme();
+  const themeVariant = colorScheme === "dark" ? "dark" : "light";
+
   return (
     <Modal
       visible={visible}
@@ -37,16 +42,20 @@ export default function DatePickerModal({
         onPress={onClose}
       >
         <View
-          style={styles.dateModalContent}
+          style={[styles.dateModalContent, { backgroundColor }]}
           onStartShouldSetResponder={() => true}
         >
           <View style={styles.dateModalHeader}>
-            <Text style={styles.modalTitle}>Select Date</Text>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              Select Date
+            </Text>
             <TouchableOpacity
               onPress={onClose}
               style={styles.dateModalDoneButton}
             >
-              <Text style={styles.modalCloseText}>Done</Text>
+              <Text style={[styles.modalCloseText, { color: PRIMARY_COLOR }]}>
+                Done
+              </Text>
             </TouchableOpacity>
           </View>
           <DateTimePicker
@@ -57,7 +66,7 @@ export default function DatePickerModal({
               if (date) onChange(date);
             }}
             maximumDate={new Date()}
-            themeVariant="dark"
+            themeVariant={themeVariant}
             style={
               Platform.OS === "android" ? styles.datePickerAndroid : undefined
             }
@@ -75,17 +84,14 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalTitle: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
   },
   modalCloseText: {
-    color: PRIMARY_COLOR,
     fontSize: 16,
     fontWeight: "600",
   },
   dateModalContent: {
-    backgroundColor: DARK_BG,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,

@@ -53,12 +53,12 @@ export const useChartCategories = ({
 
   // Theme resolution
   const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
   const textColor = useThemeColor({}, "text");
-  const tintColor = useThemeColor({}, "tint");
   const isDark = backgroundColor === Colors.dark.background;
 
   const themeColors: ThemeColors = {
-    bg: isDark ? "#111827" : Colors.general.white,
+    bg: cardColor,
     text: textColor,
     chartText: isDark ? "#9ca3af" : Colors.general.gray600,
     chartAxis: isDark ? "#d1d5db" : Colors.general.gray700,
@@ -91,14 +91,12 @@ export const useChartCategories = ({
     // Use the correct data source based on categoryType
     const categoryData =
       categoryType === "income" ? incomeByCategory : spentByCategory;
-    return generateChartData(categoryData, themeColors, tintColor, isDark);
+    return generateChartData(categoryData, themeColors, categoryType);
   }, [
     categoryType,
     incomeByCategory,
     spentByCategory,
     themeColors,
-    tintColor,
-    isDark,
   ]);
 
   const chartWidth = width - 32;

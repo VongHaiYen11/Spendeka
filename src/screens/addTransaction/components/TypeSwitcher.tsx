@@ -22,7 +22,7 @@ export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
             styles.typeButtonText,
             value === "spent"
               ? styles.typeButtonTextActive
-              : styles.typeButtonTextInactive,
+              : [styles.typeButtonTextInactive, { color: PRIMARY_COLOR }],
           ]}
         >
           Expense
@@ -37,7 +37,7 @@ export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
             styles.typeButtonText,
             value === "income"
               ? styles.typeButtonTextActive
-              : styles.typeButtonTextInactive,
+              : [styles.typeButtonTextInactive, { color: PRIMARY_COLOR }],
           ]}
         >
           Income
@@ -74,7 +74,5 @@ const styles = StyleSheet.create({
   typeButtonTextActive: {
     color: "#000",
   },
-  typeButtonTextInactive: {
-    color: PRIMARY_COLOR,
-  },
+  typeButtonTextInactive: {},
 });

@@ -1,4 +1,4 @@
-import { SafeView, View } from "@/components/Themed";
+import { SafeView, View, useThemeColor } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
 import {
   EXPENSE_CATEGORIES_EN,
@@ -51,6 +51,7 @@ export default function AddTransactionScreen() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
 
+  const backgroundColor = useThemeColor({}, "background");
   const selectedCategoryInfo =
     transactionType === "spent"
       ? EXPENSE_CATEGORIES_EN.find((c) => c.value === category)
@@ -143,7 +144,7 @@ export default function AddTransactionScreen() {
   };
 
   return (
-    <SafeView style={styles.container}>
+    <SafeView style={[styles.container, { backgroundColor }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -152,7 +153,7 @@ export default function AddTransactionScreen() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -211,7 +212,6 @@ export default function AddTransactionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
   },
   keyboardView: {
     flex: 1,
@@ -222,7 +222,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 100,
-    backgroundColor: "#000",
   },
   rowsContainer: {
     backgroundColor: "transparent",

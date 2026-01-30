@@ -51,11 +51,12 @@ export const useOverview = ({
 
   // Theme resolution
   const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
   const textColor = useThemeColor({}, "text");
   const isDark = backgroundColor === Colors.dark.background;
 
   const themeColors: ThemeColors = {
-    bg: isDark ? "#111827" : Colors.general.white,
+    bg: cardColor,
     text: textColor,
     border: isDark ? "#374151" : Colors.general.gray200,
     pickerBg: isDark ? "#1f2937" : Colors.general.gray100,

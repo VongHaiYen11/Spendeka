@@ -3,7 +3,6 @@ import { PRIMARY_COLOR } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { WIDGET_BG } from "../constants";
 
 interface DetailRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -19,9 +18,15 @@ export default function DetailRow({
   onPress,
 }: DetailRowProps) {
   const textColor = useThemeColor({}, "text");
+  const cardColor = useThemeColor({}, "card");
+  const placeholderColor = useThemeColor({}, "placeholder");
 
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.row, { backgroundColor: cardColor }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.rowLeft}>
         <Ionicons name={icon} size={22} color={PRIMARY_COLOR} />
         <Text style={[styles.rowLabel, { color: textColor }]}>{label}</Text>
@@ -34,7 +39,7 @@ export default function DetailRow({
         >
           {value}
         </Text>
-        <Ionicons name="chevron-forward" size={20} color="#666" />
+        <Ionicons name="chevron-forward" size={20} color={placeholderColor} />
       </View>
     </TouchableOpacity>
   );
@@ -47,7 +52,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: WIDGET_BG,
     marginTop: 14,
     width: "100%",
     borderRadius: 12,

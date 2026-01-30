@@ -1,4 +1,4 @@
-import { Text } from "@/components/Themed";
+import { Text, useThemeColor } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import {
   EXPENSE_CATEGORIES_EN,
@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DARK_BG, ROW_BG } from "../constants";
 
 interface CategoryModalProps {
   visible: boolean;
@@ -41,6 +40,11 @@ export default function CategoryModal({
   onSelectCategory,
   onSearchChange,
 }: CategoryModalProps) {
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const cardColor = useThemeColor({}, "card");
+  const placeholderColor = useThemeColor({}, "placeholder");
+
   const categories = categoryLists[transactionType];
   const filteredCategories = searchQuery.trim()
     ? categories.filter((cat) =>
@@ -56,19 +60,21 @@ export default function CategoryModal({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor }]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Category</Text>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              Select Category
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color={textColor} />
             </TouchableOpacity>
           </View>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#666" />
+          <View style={[styles.searchContainer, { backgroundColor: cardColor }]}>
+            <Ionicons name="search" size={20} color={placeholderColor} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: textColor }]}
               placeholder="Search category..."
-              placeholderTextColor="#666"
+              placeholderTextColor={placeholderColor}
               value={searchQuery}
               onChangeText={onSearchChange}
             />
@@ -95,8 +101,11 @@ export default function CategoryModal({
                 <Text
                   style={[
                     styles.categoryLabel,
-                    selectedCategory === item.value &&
+                    { color: placeholderColor },
+                    selectedCategory === item.value && [
                       styles.categoryLabelSelected,
+                      { color: textColor },
+                    ],
                   ]}
                 >
                   {item.label}
@@ -120,7 +129,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: DARK_BG,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "70%",
@@ -135,7 +143,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   modalTitle: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
   },
@@ -145,7 +152,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: ROW_BG,
     marginHorizontal: 20,
     marginBottom: 16,
     borderRadius: 12,
@@ -154,7 +160,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: "#fff",
     fontSize: 16,
     paddingVertical: 12,
   },
@@ -169,7 +174,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   categoryItemSelected: {
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(128,128,128,0.15)",
   },
   categoryIcon: {
     width: 40,
@@ -180,11 +185,9 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     flex: 1,
-    color: "#999",
     fontSize: 16,
   },
   categoryLabelSelected: {
-    color: "#fff",
     fontWeight: "600",
   },
 });

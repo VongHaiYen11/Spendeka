@@ -7,4 +7,3 @@ export const CATEGORY_OPTIONS: Array<{ label: string; value: CategoryType }> = [
 
 export const CHART_HEIGHT = 200;
 export const MAX_CATEGORIES = 9;
-export const COLOR_SHADES_COUNT = 10;

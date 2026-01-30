@@ -1,3 +1,4 @@
+import { useThemeColor } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
@@ -8,14 +9,17 @@ interface AmountInputProps {
 }
 
 export default function AmountInput({ value, onChangeText }: AmountInputProps) {
+  const textColor = useThemeColor({}, "text");
+  const placeholderColor = useThemeColor({}, "placeholder");
+
   return (
     <View style={styles.amountSection}>
       <View style={styles.amountRow}>
         <Text style={styles.dollarSign}>$</Text>
         <TextInput
-          style={styles.amountInput}
+          style={[styles.amountInput, { color: textColor }]}
           placeholder="0.00"
-          placeholderTextColor="rgba(255,255,255,0.5)"
+          placeholderTextColor={placeholderColor}
           value={value}
           onChangeText={onChangeText}
           keyboardType="decimal-pad"
@@ -48,7 +52,6 @@ const styles = StyleSheet.create({
     minWidth: 160,
     paddingVertical: 12,
     textAlign: "center",
-    color: "#fff",
   },
   amountUnderline: {
     width: "80%",

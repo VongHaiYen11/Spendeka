@@ -3,7 +3,6 @@ import { PRIMARY_COLOR } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TextInput, View } from "react-native";
-import { WIDGET_BG } from "../constants";
 
 interface NoteSectionProps {
   value: string;
@@ -12,17 +11,23 @@ interface NoteSectionProps {
 
 export default function NoteSection({ value, onChangeText }: NoteSectionProps) {
   const textColor = useThemeColor({}, "text");
+  const cardColor = useThemeColor({}, "card");
+  const placeholderColor = useThemeColor({}, "placeholder");
 
   return (
-    <View style={styles.noteSection}>
+    <View style={[styles.noteSection, { backgroundColor: cardColor }]}>
       <View style={styles.noteLabelRow}>
-        <Ionicons name="document-text-outline" size={22} color={PRIMARY_COLOR} />
+        <Ionicons
+          name="document-text-outline"
+          size={22}
+          color={PRIMARY_COLOR}
+        />
         <Text style={[styles.rowLabel, { color: textColor }]}>Note</Text>
       </View>
       <TextInput
         style={[styles.noteInputArea, { color: textColor }]}
         placeholder="Add a note..."
-        placeholderTextColor="#666"
+        placeholderTextColor={placeholderColor}
         value={value}
         onChangeText={onChangeText}
         multiline
@@ -35,7 +40,6 @@ const styles = StyleSheet.create({
   noteSection: {
     marginTop: 14,
     width: "100%",
-    backgroundColor: WIDGET_BG,
     borderRadius: 12,
     padding: 14,
   },

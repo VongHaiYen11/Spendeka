@@ -1,4 +1,4 @@
-import { Text } from "@/components/Themed";
+import { Text, useThemeColor } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -18,8 +18,10 @@ export default function CreateButtonFooter({
   onPress,
   isLoading,
 }: CreateButtonFooterProps) {
+  const backgroundColor = useThemeColor({}, "background");
+
   return (
-    <View style={styles.createButtonFooter}>
+    <View style={[styles.createButtonFooter, { backgroundColor }]}>
       <TouchableOpacity
         style={[styles.createButton, isLoading && styles.createButtonDisabled]}
         onPress={onPress}
@@ -29,7 +31,9 @@ export default function CreateButtonFooter({
           <ActivityIndicator color="#000" />
         ) : (
           <>
-            <Text style={styles.createButtonText}>Create Transaction</Text>
+            <Text style={[styles.createButtonText, { color: "#000" }]}>
+              Create Transaction
+            </Text>
             <Ionicons name="add" size={24} color="#000" />
           </>
         )}
@@ -43,7 +47,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 34,
-    backgroundColor: "#000",
   },
   createButton: {
     flexDirection: "row",
@@ -60,6 +63,5 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#000",
   },
 });

@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { WIDGET_BG } from "../constants";
 
 interface ImageSectionProps {
   imageUri: string | null;
@@ -23,6 +22,7 @@ export default function ImageSection({
   onRemoveImage,
 }: ImageSectionProps) {
   const textColor = useThemeColor({}, "text");
+  const cardColor = useThemeColor({}, "card");
   const [previewWidth, setPreviewWidth] = useState<number>(0);
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
@@ -37,7 +37,7 @@ export default function ImageSection({
     Image.getSize(
       imageUri,
       (width, height) => setImageDimensions({ width, height }),
-      () => setImageDimensions(null)
+      () => setImageDimensions(null),
     );
   }, [imageUri]);
 
@@ -54,7 +54,7 @@ export default function ImageSection({
 
   return (
     <>
-      <View style={styles.imageRow}>
+      <View style={[styles.imageRow, { backgroundColor: cardColor }]}>
         <View style={styles.rowLeft}>
           <Ionicons name="image-outline" size={22} color={PRIMARY_COLOR} />
           <Text style={[styles.rowLabel, { color: textColor }]}>Image</Text>
@@ -77,7 +77,7 @@ export default function ImageSection({
       </View>
       {imageUri && (
         <View
-          style={styles.imagePreview}
+          style={[styles.imagePreview, { backgroundColor: cardColor }]}
           onLayout={onPreviewLayout}
         >
           <TouchableOpacity
@@ -88,7 +88,10 @@ export default function ImageSection({
           </TouchableOpacity>
           <Image
             source={{ uri: imageUri }}
-            style={[styles.imagePreviewImg, { height: previewHeight }]}
+            style={[
+              styles.imagePreviewImg,
+              { height: previewHeight, backgroundColor: cardColor },
+            ]}
             resizeMode="contain"
           />
         </View>
@@ -104,7 +107,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: WIDGET_BG,
     marginTop: 14,
     width: "100%",
     borderRadius: 12,
@@ -131,7 +133,6 @@ const styles = StyleSheet.create({
     marginTop: 14,
     width: "100%",
     position: "relative",
-    backgroundColor: WIDGET_BG,
     borderRadius: 12,
     padding: 8,
     overflow: "hidden",
@@ -152,6 +153,5 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 160,
     borderRadius: 8,
-    backgroundColor: "#333",
   },
 });

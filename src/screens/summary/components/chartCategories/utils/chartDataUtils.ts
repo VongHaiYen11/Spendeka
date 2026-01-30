@@ -1,16 +1,17 @@
-import { COLOR_SHADES_COUNT, MAX_CATEGORIES } from "../constants";
-import { ChartDataItem, ThemeColors } from "../types";
-import { generateColorShades } from "./colorUtils";
+import { getCategoryDisplayInfo } from "@/models/Expense";
+import type { TransactionCategory } from "@/types/transaction";
+import { MAX_CATEGORIES } from "../constants";
+import { ChartDataItem, CategoryType, ThemeColors } from "../types";
 
 /**
- * Generates chart data for pie chart from category data
- * Takes top 9 categories and groups the rest as "Others"
+ * Generates chart data for pie chart from category data.
+ * Takes top 9 categories and groups the rest as "Others".
+ * Uses each category's color from the Expense model (same in light and dark mode).
  */
 export const generateChartData = (
   categoryData: Record<string, number>,
   themeColors: ThemeColors,
-  tintColor: string,
-  isDark: boolean,
+  categoryType: CategoryType,
 ): ChartDataItem[] => {
   const entries = Object.entries(categoryData).filter(
     ([_, value]) => value > 0,
@@ -22,38 +23,35 @@ export const generateChartData = (
   // Sort by amount descending
   const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
 
-  // Generate color shades for smooth distribution
-  const colorShades = generateColorShades(
-    tintColor,
-    COLOR_SHADES_COUNT,
-    isDark,
-  );
-
   // Take top categories
   const topCategories = sortedEntries.slice(0, MAX_CATEGORIES);
   const otherCategories = sortedEntries.slice(MAX_CATEGORIES);
 
-  // Map top categories with colors (use first N shades)
   const chartData: ChartDataItem[] = topCategories.map(
-    ([category, value], index) => ({
-      name: category,
-      amount: value,
-      color: colorShades[index],
-      legendFontColor: themeColors.chartText,
-      legendFontSize: 12,
-    }),
+    ([category, value]) => {
+      const info = getCategoryDisplayInfo(category as TransactionCategory);
+      return {
+        name: info.label,
+        amount: value,
+        color: info.color,
+        legendFontColor: themeColors.chartText,
+        legendFontSize: 12,
+      };
+    },
   );
 
-  // Add "others" category if there are more than MAX_CATEGORIES
   if (otherCategories.length > 0) {
     const othersTotal = otherCategories.reduce(
       (sum, [_, value]) => sum + value,
       0,
     );
+    const otherKey: TransactionCategory =
+      categoryType === "income" ? "other_income" : "other";
+    const otherInfo = getCategoryDisplayInfo(otherKey);
     chartData.push({
       name: "Others",
       amount: othersTotal,
-      color: colorShades[MAX_CATEGORIES], // Use the last shade for "others"
+      color: otherInfo.color,
       legendFontColor: themeColors.chartText,
       legendFontSize: 12,
     });
