@@ -104,7 +104,7 @@ const saveExpense = async (expense: Expense): Promise<void> => {
     // Convert Expense to DatabaseTransaction format
     const dbTransaction: DatabaseTransaction = {
       id: expense.id,
-      imageUrl: expense.imageUrl,
+      imageUrl: expense.imageUrl ?? "",
       caption: expense.caption,
       amount: expense.amount,
       category: expense.category,
@@ -114,7 +114,7 @@ const saveExpense = async (expense: Expense): Promise<void> => {
 
     await addDoc(collection(db, EXPENSES_COLLECTION), {
       id: dbTransaction.id,
-      imageUrl: dbTransaction.imageUrl,
+      imageUrl: dbTransaction.imageUrl ?? "",
       caption: dbTransaction.caption,
       amount: dbTransaction.amount,
       category: dbTransaction.category,
@@ -137,7 +137,7 @@ export const saveDatabaseTransaction = async (
   try {
     await addDoc(collection(db, EXPENSES_COLLECTION), {
       id: transaction.id,
-      imageUrl: transaction.imageUrl,
+      imageUrl: transaction.imageUrl ?? "",
       caption: transaction.caption,
       amount: transaction.amount,
       category: transaction.category,
@@ -185,7 +185,7 @@ export const getDatabaseTransactions = async (): Promise<DatabaseTransaction[]> 
  */
 const databaseTransactionToExpense = (tx: DatabaseTransaction): Expense => ({
   id: tx.id,
-  imageUrl: tx.imageUrl,
+  imageUrl: tx.imageUrl ?? "",
   caption: tx.caption,
   amount: tx.amount,
   category: tx.category,

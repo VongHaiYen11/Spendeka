@@ -1,9 +1,10 @@
 /**
  * Database Transaction structure - matches Firestore schema
+ * imageUrl can be blank (e.g. for manual/income entries without a photo)
  */
 export interface DatabaseTransaction {
   id: string;
-  imageUrl: string;
+  imageUrl?: string; // Optional; can be blank for transactions without image
   caption: string;
   amount: number;
   category: ExpenseCategory;

@@ -1,7 +1,7 @@
 // Expense model
 export interface Expense {
   id: string;
-  imageUrl: string;
+  imageUrl?: string; // Optional; can be blank for transactions without image
   caption: string;
   amount: number;
   category: ExpenseCategory;
@@ -51,7 +51,7 @@ export const EXPENSE_CATEGORIES: CategoryInfo[] = [
   { value: 'other', label: 'Khác', icon: 'ellipsis-horizontal', color: '#AEB6BF' },
 ];
 
-// Helper to create new expense
+// Helper to create new expense (imageUrl can be blank)
 export const createExpense = (
   imageUrl: string,
   caption: string,
@@ -60,7 +60,7 @@ export const createExpense = (
   type: "income" | "spent" = "spent"
 ): Expense => ({
   id: `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-  imageUrl,
+  imageUrl: imageUrl ?? "",
   caption,
   amount,
   category,

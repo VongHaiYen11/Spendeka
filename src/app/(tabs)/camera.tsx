@@ -33,7 +33,7 @@ type TabType = "camera" | "history";
 // Convert DatabaseTransaction to Expense
 const databaseTransactionToExpense = (tx: DatabaseTransaction): Expense => ({
   id: tx.id,
-  imageUrl: tx.imageUrl,
+  imageUrl: tx.imageUrl ?? "",
   caption: tx.caption,
   amount: tx.amount,
   category: tx.category,
