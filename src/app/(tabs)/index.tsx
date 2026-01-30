@@ -1,19 +1,30 @@
-import { StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
-import { Text, View, SafeView } from '@/components/Themed';
+import { StyleSheet, TouchableOpacity, StatusBar, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, View, SafeView, useThemeColor } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import Colors from '@/constants/Colors';
+import Colors, { PRIMARY_COLOR } from '@/constants/Colors';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
+  const [textModalVisible, setTextModalVisible] = useState(false);
+  const [textInputValue, setTextInputValue] = useState('');
   const colorScheme = useColorScheme();
   const iconColor = Colors[colorScheme ?? 'light'].text;
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const borderColor = useThemeColor({}, 'border');
 
   const handleDump = () => {
     router.push('/add-transaction' as import('expo-router').Href);
+  };
+
+  const openTextModal = () => setTextModalVisible(true);
+  const closeTextModal = () => {
+    setTextModalVisible(false);
+    setTextInputValue('');
   };
 
   return (
@@ -47,7 +58,7 @@ export default function HomeScreen() {
             <Ionicons name="scan-outline" size={28} color={iconColor} />
             <Text style={styles.toolbarLabel}>Scan bill</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.toolbarButton}>
+          <TouchableOpacity style={styles.toolbarButton} onPress={openTextModal}>
             <Ionicons name="text-outline" size={28} color={iconColor} />
             <Text style={styles.toolbarLabel}>Text</Text>
           </TouchableOpacity>
@@ -66,6 +77,63 @@ export default function HomeScreen() {
           <Text style={[styles.dumpButtonText, { color: iconColor }]}>Dump</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Text to Transaction Modal */}
+      <Modal
+        visible={textModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeTextModal}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={closeTextModal}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboard}
+          >
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={[styles.modalContent, { backgroundColor }]}>
+                <Text style={[styles.modalHeading, { color: textColor }]}>
+                  Text to Transaction
+                </Text>
+                <Text style={[styles.modalInstruction, { color: textColor }]}>
+                  Paste or type your receipt or expense text below. We'll try to turn it into a transaction.
+                </Text>
+                <TextInput
+                  style={[
+                    styles.modalInput,
+                    { color: textColor, borderColor, backgroundColor: backgroundColor === '#000' ? '#1a1a1a' : '#f5f5f5' },
+                  ]}
+                  placeholder="e.g. Coffee $4.50, Lunch $12..."
+                  placeholderTextColor={colorScheme === 'dark' ? '#888' : '#999'}
+                  value={textInputValue}
+                  onChangeText={setTextInputValue}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalCancelButton, { borderColor }]}
+                    onPress={closeTextModal}
+                  >
+                    <Text style={[styles.modalCancelText, { color: textColor }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalCreateButton, { backgroundColor: PRIMARY_COLOR }]}
+                    onPress={() => {}}
+                  >
+                    <Text style={styles.modalCreateText}>Create</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
     </SafeView>
   );
 }
@@ -149,5 +217,67 @@ const styles = StyleSheet.create({
   dumpButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Text to Transaction modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalKeyboard: {
+    width: '100%',
+  },
+  modalContent: {
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  modalHeading: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  modalInstruction: {
+    fontSize: 14,
+    opacity: 0.85,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 100,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalCancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalCreateButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  modalCreateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
   },
 });

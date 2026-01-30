@@ -5,10 +5,9 @@ import {
   INCOME_CATEGORIES_EN,
 } from "@/models/Expense";
 import {
-  saveDatabaseTransaction,
-  uploadImageToCloudinary,
+  createAndSaveTransaction,
+  generateTransactionId,
 } from "@/services/ExpenseService";
-import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
 import { DatabaseTransaction, TransactionCategory } from "@/types/expense";
 import { useRouter } from "expo-router";
 import { format, isToday } from "date-fns";
@@ -32,7 +31,6 @@ import {
   NoteSection,
   TypeSwitcher,
 } from "./components";
-import { generateTransactionId } from "./constants";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
@@ -114,16 +112,10 @@ export default function AddTransactionScreen() {
     addTransactionOptimistic(newTransaction);
     router.back();
 
-    // Save to DB in background (upload image first, then persist)
+    // Save to DB in background (single function: upload image if any, then persist)
     (async () => {
       try {
-        let imageUrl = "";
-        if (imageUri) {
-          imageUrl = await uploadImageToCloudinary(imageUri);
-        }
-        newTransaction.imageUrl = imageUrl || undefined;
-        await saveDatabaseTransaction(newTransaction);
-        transactionEventEmitter.emit();
+        await createAndSaveTransaction(newTransaction, imageUri);
       } catch (error) {
         removeOptimisticTransaction(newTransaction.id);
         Alert.alert(

@@ -13,6 +13,7 @@ export default {
     tabIconDefault: '#ccc',
     tabIconSelected: tintColorLight,
     primary: PRIMARY_COLOR,
+    border: '#E5E7EB',
   },
   dark: {
     text: '#fff',
@@ -21,6 +22,7 @@ export default {
     tabIconDefault: '#ccc',
     tabIconSelected: tintColorDark,
     primary: PRIMARY_COLOR,
+    border: '#374151',
   },
   general: {
     // Chart colors

@@ -1,7 +1,11 @@
 import { Text, View } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
-import { createExpenseWithImage } from "@/services/ExpenseService";
+import {
+  createAndSaveTransaction,
+  generateTransactionId,
+} from "@/services/ExpenseService";
+import { DatabaseTransaction } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
@@ -88,14 +92,19 @@ export default function ExpensePreviewScreen({
       return;
     }
 
+    const transaction: DatabaseTransaction = {
+      id: generateTransactionId(),
+      imageUrl: undefined,
+      caption,
+      amount: amountValue,
+      category: selectedCategory,
+      type: "spent",
+      createdAt: new Date(),
+    };
+
     setIsSaving(true);
     try {
-      await createExpenseWithImage(
-        imageUri,
-        caption,
-        amountValue,
-        selectedCategory,
-      );
+      await createAndSaveTransaction(transaction, imageUri);
       onSaveSuccess();
     } catch (error) {
       Alert.alert("Error", "Could not save expense");
@@ -253,7 +262,6 @@ export default function ExpensePreviewScreen({
                 placeholderTextColor="#666"
                 value={categorySearch}
                 onChangeText={setCategorySearch}
-                autoFocus
               />
               {categorySearch.length > 0 && (
                 <TouchableOpacity onPress={() => setCategorySearch("")}>

@@ -36,7 +36,32 @@ function isDateInRange(date: Date, startDate: Date, endDate: Date): boolean {
 const EXPENSES_COLLECTION = "expenses";
 
 /**
- * Upload ảnh lên Cloudinary và tạo expense mới
+ * Generate a unique transaction id (shared by camera and add-transaction flows)
+ */
+export function generateTransactionId(): string {
+  return `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Single function for creating and saving a transaction to the database.
+ * Used by: Add Transaction screen, Camera (ExpensePreviewScreen).
+ * - Uploads image to Cloudinary if imageUri is provided, then sets transaction.imageUrl.
+ * - Saves to Firestore (saveDatabaseTransaction emits so charts/history refresh).
+ */
+export const createAndSaveTransaction = async (
+  transaction: DatabaseTransaction,
+  imageUri?: string | null
+): Promise<void> => {
+  if (imageUri) {
+    transaction.imageUrl =
+      (await uploadImageToCloudinary(imageUri)) || undefined;
+  }
+  await saveDatabaseTransaction(transaction);
+};
+
+/**
+ * @deprecated Use createAndSaveTransaction with a DatabaseTransaction instead.
+ * Upload ảnh lên Cloudinary và tạo expense mới (expense-only, type "spent").
  */
 export const createExpenseWithImage = async (
   imageUri: string,
@@ -44,20 +69,25 @@ export const createExpenseWithImage = async (
   amount: number,
   category: ExpenseCategory,
 ): Promise<Expense> => {
-  try {
-    // Upload ảnh lên Cloudinary
-    const imageUrl = await uploadImageToCloudinary(imageUri);
-
-    // Tạo expense mới
-    const expense = createExpense(imageUrl, caption, amount, category);
-
-    // Lưu vào storage
-    await saveExpense(expense);
-
-    return expense;
-  } catch (error) {
-    throw error;
-  }
+  const transaction: DatabaseTransaction = {
+    id: generateTransactionId(),
+    imageUrl: undefined,
+    caption,
+    amount,
+    category,
+    type: "spent",
+    createdAt: new Date(),
+  };
+  await createAndSaveTransaction(transaction, imageUri);
+  return {
+    id: transaction.id,
+    imageUrl: transaction.imageUrl ?? "",
+    caption: transaction.caption,
+    amount: transaction.amount,
+    category: transaction.category,
+    type: transaction.type,
+    createdAt: transaction.createdAt,
+  };
 };
 
 /**
