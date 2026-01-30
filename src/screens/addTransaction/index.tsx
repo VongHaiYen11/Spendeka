@@ -7,8 +7,8 @@ import {
 import {
   createAndSaveTransaction,
   generateTransactionId,
-} from "@/services/ExpenseService";
-import { DatabaseTransaction, TransactionCategory } from "@/types/expense";
+} from "@/services/TransactionService";
+import { DatabaseTransaction, TransactionCategory } from "@/types/transaction";
 import { useRouter } from "expo-router";
 import { format, isToday } from "date-fns";
 import * as ImagePicker from "expo-image-picker";

@@ -1,2 +1,2 @@
 export * from './ImageService';
-export * from './ExpenseService';
+export * from './TransactionService';

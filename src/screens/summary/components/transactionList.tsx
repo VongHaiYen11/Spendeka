@@ -1,7 +1,7 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { useTransactions } from "@/contexts/TransactionContext";
-import { DatabaseTransaction, getCategoryIconConfig } from "@/types/expense";
+import { DatabaseTransaction, getCategoryIconConfig } from "@/types/transaction";
 import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
 import { formatDollar } from "@/utils/formatCurrency";
 import { Ionicons } from "@expo/vector-icons";

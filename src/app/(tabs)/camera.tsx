@@ -7,8 +7,8 @@ import {
     ExpenseDetailScreen,
     ExpensePreviewScreen,
 } from "@/screens/camera";
-import { deleteExpense } from "@/services/ExpenseService";
-import { DatabaseTransaction } from "@/types/expense";
+import { deleteExpense } from "@/services/TransactionService";
+import { DatabaseTransaction } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Camera, CameraView, FlashMode } from "expo-camera";

@@ -1,4 +1,4 @@
-import { DatabaseTransaction } from "@/types/expense";
+import { DatabaseTransaction } from "@/types/transaction";
 import { format } from "date-fns";
 
 // Group transactions by month

@@ -1,6 +1,6 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
-import { DatabaseTransaction } from "@/types/expense";
+import { DatabaseTransaction } from "@/types/transaction";
 import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
 import { parseISO } from "date-fns";
 import { useLocalSearchParams } from "expo-router";

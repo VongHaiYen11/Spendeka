@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { DatabaseTransaction, getCategoryIconConfig } from "@/types/expense";
+import { DatabaseTransaction, getCategoryIconConfig } from "@/types/transaction";
 import { formatDollar } from "@/utils/formatCurrency";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";

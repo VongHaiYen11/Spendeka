@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { DatabaseTransaction } from "@/types/expense";
+import { DatabaseTransaction } from "@/types/transaction";
 import { formatDollar } from "@/utils/formatCurrency";
 import React from "react";
 import { StyleSheet } from "react-native";

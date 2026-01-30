@@ -1,5 +1,5 @@
-import { getDatabaseTransactions } from "@/services/ExpenseService";
-import { DatabaseTransaction } from "@/types/expense";
+import { getDatabaseTransactions } from "@/services/TransactionService";
+import { DatabaseTransaction } from "@/types/transaction";
 import { transactionEventEmitter } from "./TransactionEventEmitter";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 

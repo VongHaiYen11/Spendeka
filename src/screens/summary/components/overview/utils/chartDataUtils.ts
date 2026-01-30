@@ -1,4 +1,4 @@
-import { DatabaseTransaction } from "@/types/expense";
+import { DatabaseTransaction } from "@/types/transaction";
 import { INCOME_COLOR, SPENT_COLOR } from "../constants";
 import { AggregatedBucket, ChartType, Range } from "../types";
 import { createBuckets, getBucketIndex, splitAmount } from "./bucketUtils";

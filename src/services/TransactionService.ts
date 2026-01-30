@@ -5,7 +5,7 @@ import {
 import { db } from "@/config/firebaseConfig";
 import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
 import { createExpense, Expense, ExpenseCategory } from "@/models/Expense";
-import { DatabaseTransaction } from "@/types/expense";
+import { DatabaseTransaction } from "@/types/transaction";
 import { getCategoryIconEmoji } from "@/utils/getCategoryIcon";
 import { getDateRange, RangeType } from "@/utils/getDateRange";
 import {

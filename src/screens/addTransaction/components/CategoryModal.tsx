@@ -4,7 +4,7 @@ import {
   EXPENSE_CATEGORIES_EN,
   INCOME_CATEGORIES_EN,
 } from "@/models/Expense";
-import { TransactionCategory } from "@/types/expense";
+import { TransactionCategory } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {

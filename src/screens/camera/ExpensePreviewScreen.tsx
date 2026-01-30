@@ -4,8 +4,8 @@ import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
 import {
   createAndSaveTransaction,
   generateTransactionId,
-} from "@/services/ExpenseService";
-import { DatabaseTransaction } from "@/types/expense";
+} from "@/services/TransactionService";
+import { DatabaseTransaction } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
