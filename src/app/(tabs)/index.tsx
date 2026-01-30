@@ -1,14 +1,20 @@
 import { StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { Text, View, SafeView } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Colors from '@/constants/Colors';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const colorScheme = useColorScheme();
   const iconColor = Colors[colorScheme ?? 'light'].text;
+
+  const handleDump = () => {
+    router.push('/add-transaction' as import('expo-router').Href);
+  };
 
   return (
     <SafeView style={styles.container}>
@@ -56,6 +62,9 @@ export default function HomeScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Home</Text>
         <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
+        <TouchableOpacity style={styles.dumpButton} onPress={handleDump}>
+          <Text style={[styles.dumpButtonText, { color: iconColor }]}>Dump</Text>
+        </TouchableOpacity>
       </View>
     </SafeView>
   );
@@ -129,5 +138,16 @@ const styles = StyleSheet.create({
     marginVertical: 30,
     height: 1,
     width: '80%',
+  },
+  dumpButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: 'rgba(128,128,128,0.3)',
+  },
+  dumpButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

@@ -1,6 +1,6 @@
 import {
-  CLOUDINARY_CONFIG,
-  CLOUDINARY_UPLOAD_URL,
+    CLOUDINARY_CONFIG,
+    CLOUDINARY_UPLOAD_URL,
 } from "@/config/cloudinaryConfig";
 import { db } from "@/config/firebaseConfig";
 import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
@@ -9,14 +9,14 @@ import { DatabaseTransaction } from "@/types/expense";
 import { getCategoryIconEmoji } from "@/utils/getCategoryIcon";
 import { getDateRange, RangeType } from "@/utils/getDateRange";
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  Timestamp,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    Timestamp,
 } from "firebase/firestore";
 
 // Helper function to compare dates (ignoring time)
@@ -63,7 +63,7 @@ export const createExpenseWithImage = async (
 /**
  * Upload ảnh lên Cloudinary
  */
-const uploadImageToCloudinary = async (uri: string): Promise<string> => {
+export const uploadImageToCloudinary = async (uri: string): Promise<string> => {
   const formData = new FormData();
 
   const uriParts = uri.split(".");
@@ -154,7 +154,9 @@ export const saveDatabaseTransaction = async (
 /**
  * Lấy tất cả expenses từ Firestore, sắp xếp theo thời gian mới nhất
  */
-export const getDatabaseTransactions = async (): Promise<DatabaseTransaction[]> => {
+export const getDatabaseTransactions = async (): Promise<
+  DatabaseTransaction[]
+> => {
   try {
     const expensesRef = collection(db, EXPENSES_COLLECTION);
     const q = query(expensesRef, orderBy("createdAt", "desc"));
