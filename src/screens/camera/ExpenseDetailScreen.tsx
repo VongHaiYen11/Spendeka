@@ -1,4 +1,4 @@
-import { Text, View } from '@/components/Themed';
+import { Text, useThemeColor, View } from '@/components/Themed';
 import { PRIMARY_COLOR } from '@/constants/Colors';
 import { Expense, formatAmount, getCategoryDisplayInfo } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +33,7 @@ export default function ExpenseDetailScreen({
   onClose,
   onDelete,
 }: ExpenseDetailScreenProps) {
+  const iconOnColorBg = useThemeColor({}, "background");
   const listRef = useRef<FlatList<Expense>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pageHeight, setPageHeight] = useState<number | null>(null);
@@ -127,7 +128,7 @@ export default function ExpenseDetailScreen({
                   },
                 ]}
               >
-                <Ionicons name={categoryInfo.icon as any} size={20} color="#000" />
+                <Ionicons name={categoryInfo.icon as any} size={20} color={iconOnColorBg} />
               </RNView>
               <Text style={styles.categoryText}>{categoryInfo.label}</Text>
             </RNView>

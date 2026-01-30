@@ -1,4 +1,4 @@
-import { Text, View } from "@/components/Themed";
+import { Text, useThemeColor, View } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
 import {
@@ -48,6 +48,7 @@ export default function ExpensePreviewScreen({
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
 
+  const iconOnColorBg = useThemeColor({}, "background"); // inner icon on category color background
   const selectedCategoryInfo = useMemo(
     () => EXPENSE_CATEGORIES_EN.find((c) => c.value === selectedCategory),
     [selectedCategory],
@@ -185,7 +186,7 @@ export default function ExpensePreviewScreen({
                   <Ionicons
                     name={selectedCategoryInfo?.icon as any}
                     size={18}
-                    color="#000"
+                    color={iconOnColorBg}
                   />
                 </RNView>
                 <Text style={styles.categoryDropdownText}>
@@ -290,7 +291,7 @@ export default function ExpensePreviewScreen({
                       { backgroundColor: item.color },
                     ]}
                   >
-                    <Ionicons name={item.icon as any} size={20} color="#000" />
+                    <Ionicons name={item.icon as any} size={20} color={iconOnColorBg} />
                   </RNView>
                   <Text
                     style={[

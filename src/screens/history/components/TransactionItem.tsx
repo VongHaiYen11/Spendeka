@@ -24,6 +24,7 @@ const formatCurrency = (amount: number, type: "income" | "spent") => {
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   const isIncome = transaction.type === "income";
+  const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const secondaryTextColor = useThemeColor({}, "text");
   const categoryIcon = getCategoryIconConfig(transaction.category);
@@ -33,13 +34,13 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
       <View
         style={[
           styles.iconContainer,
-          { backgroundColor: categoryIcon.color + "20" },
+          { backgroundColor: categoryIcon.color },
         ]}
       >
         <Ionicons
           name={categoryIcon.icon as any}
           size={20}
-          color={categoryIcon.color}
+          color={backgroundColor}
         />
       </View>
       <View style={styles.transactionDetails}>

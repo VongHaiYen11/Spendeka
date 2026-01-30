@@ -44,6 +44,7 @@ export default function CategoryModal({
   const textColor = useThemeColor({}, "text");
   const cardColor = useThemeColor({}, "card");
   const placeholderColor = useThemeColor({}, "placeholder");
+  const iconOnColorBg = backgroundColor; // inner icon follows theme background
 
   const categories = categoryLists[transactionType];
   const filteredCategories = searchQuery.trim()
@@ -96,7 +97,7 @@ export default function CategoryModal({
                     { backgroundColor: item.color },
                   ]}
                 >
-                  <Ionicons name={item.icon as any} size={20} color="#000" />
+                  <Ionicons name={item.icon as any} size={20} color={iconOnColorBg} />
                 </View>
                 <Text
                   style={[
