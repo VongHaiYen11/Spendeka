@@ -56,11 +56,16 @@ export default function CameraScreen() {
   // Get transactions from global state
   const { transactions, reloadTransactions } = useTransactions();
 
-  // Convert to Expense format and filter out invalid image URLs
+  // Convert to Expense format: only spent (expense) with valid image URLs; hide income in camera screen
   const expenses = useMemo(() => {
     return transactions
       .map(databaseTransactionToExpense)
-      .filter((expense) => expense.imageUrl && expense.imageUrl.trim() !== "");
+      .filter(
+        (expense) =>
+          expense.type !== "income" &&
+          expense.imageUrl &&
+          expense.imageUrl.trim() !== "",
+      );
   }, [transactions]);
 
   // Always default to the camera tab when screen gains focus

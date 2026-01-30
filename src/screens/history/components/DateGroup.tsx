@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { DatabaseTransaction } from "@/types/transaction";
+import { calculateNetTotal, DatabaseTransaction } from "@/types/transaction";
 import { formatDollar } from "@/utils/formatCurrency";
 import React from "react";
 import { StyleSheet } from "react-native";
@@ -10,15 +10,15 @@ interface DateGroupProps {
   transactions: DatabaseTransaction[];
 }
 
-// Calculate total for a date group (sum of both spent and income)
-const calculateGroupTotal = (transactions: DatabaseTransaction[]) => {
-  // Sum absolute values of all transactions (both spent and income)
-  return transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+const formatTotalWithSign = (total: number) => {
+  if (total >= 0) return `+${formatDollar(total)}`;
+  return formatDollar(total); // already includes "-"
 };
 
 const DateGroup: React.FC<DateGroupProps> = ({ dateKey, transactions }) => {
   const textColor = useThemeColor({}, "text");
-  const total = calculateGroupTotal(transactions);
+  const total = calculateNetTotal(transactions);
+  const totalColor = total > 0 ? "#4CAF50" : total < 0 ? "#F44336" : textColor;
 
   return (
     <View style={styles.dateGroup}>
@@ -30,8 +30,8 @@ const DateGroup: React.FC<DateGroupProps> = ({ dateKey, transactions }) => {
           <TransactionItem key={transaction.id} transaction={transaction} />
         ))}
         <View style={styles.groupTotal}>
-          <Text style={[styles.totalLabel, { color: textColor }]}>
-            Total: {formatDollar(total)}
+          <Text style={[styles.totalLabel, { color: totalColor }]}>
+            Total: {formatTotalWithSign(total)}
           </Text>
         </View>
       </>

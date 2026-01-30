@@ -49,3 +49,16 @@ export const getCategoryIconConfig = (
   if (fromIncome) return { icon: fromIncome.icon, color: fromIncome.color };
   return { icon: "ellipsis-horizontal", color: "#AEB6BF" };
 };
+
+/**
+ * Net total for a list of transactions: + for income, - for spent.
+ */
+export const calculateNetTotal = (
+  transactions: DatabaseTransaction[]
+): number => {
+  return transactions.reduce(
+    (sum, t) =>
+      sum + (t.type === "income" ? Math.abs(t.amount) : -Math.abs(t.amount)),
+    0,
+  );
+};
