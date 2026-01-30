@@ -1,9 +1,10 @@
 import { Text } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import {
-  ExpenseCategory,
   EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
 } from "@/models/Expense";
+import { TransactionCategory } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -18,26 +19,34 @@ import { DARK_BG, ROW_BG } from "../constants";
 
 interface CategoryModalProps {
   visible: boolean;
-  selectedCategory: ExpenseCategory;
+  transactionType: "income" | "spent";
+  selectedCategory: TransactionCategory;
   searchQuery: string;
   onClose: () => void;
-  onSelectCategory: (category: ExpenseCategory) => void;
+  onSelectCategory: (category: TransactionCategory) => void;
   onSearchChange: (query: string) => void;
 }
 
+const categoryLists = {
+  spent: EXPENSE_CATEGORIES_EN,
+  income: INCOME_CATEGORIES_EN,
+};
+
 export default function CategoryModal({
   visible,
+  transactionType,
   selectedCategory,
   searchQuery,
   onClose,
   onSelectCategory,
   onSearchChange,
 }: CategoryModalProps) {
+  const categories = categoryLists[transactionType];
   const filteredCategories = searchQuery.trim()
-    ? EXPENSE_CATEGORIES_EN.filter((cat) =>
+    ? categories.filter((cat) =>
         cat.label.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : EXPENSE_CATEGORIES_EN;
+    : categories;
 
   return (
     <Modal
@@ -73,7 +82,7 @@ export default function CategoryModal({
                   selectedCategory === item.value &&
                     styles.categoryItemSelected,
                 ]}
-                onPress={() => onSelectCategory(item.value)}
+                onPress={() => onSelectCategory(item.value as TransactionCategory)}
               >
                 <View
                   style={[

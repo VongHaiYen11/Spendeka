@@ -1,3 +1,10 @@
+import {
+  EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
+  type ExpenseCategory,
+  type IncomeCategory,
+} from "@/models/Expense";
+
 /**
  * Database Transaction structure - matches Firestore schema
  * imageUrl can be blank (e.g. for manual/income entries without a photo)
@@ -7,51 +14,38 @@ export interface DatabaseTransaction {
   imageUrl?: string; // Optional; can be blank for transactions without image
   caption: string;
   amount: number;
-  category: ExpenseCategory;
+  category: TransactionCategory;
   type: "income" | "spent";
   createdAt: Date;
 }
 
+/** Re-export from @/models/Expense */
+export type { ExpenseCategory, IncomeCategory } from "@/models/Expense";
+
 /**
- * Expense Category type - matches your DatabaseTransaction
- * Note: Must match ExpenseCategory in @/models/Expense.ts
+ * Union of all transaction categories (expense or income)
  */
-export type ExpenseCategory =
-  | "food"
-  | "transport"
-  | "shopping"
-  | "bills"
-  | "entertainment"
-  | "health"
-  | "education"
-  | "other";
+export type TransactionCategory = ExpenseCategory | IncomeCategory;
 
 /**
  * Category Icon Configuration
- * Maps each category to its Ionicons name and color
- * Easy to edit and maintain in one place
+ * Icon and color are defined in @/models/Expense (EXPENSE_CATEGORIES_EN / INCOME_CATEGORIES_EN)
  */
 export interface CategoryIconConfig {
   icon: string; // Ionicons name
   color: string; // Background color for icon container
 }
 
-export const CATEGORY_ICONS: Record<ExpenseCategory, CategoryIconConfig> = {
-  food: { icon: "fast-food", color: "#FF6B6B" },
-  transport: { icon: "car", color: "#4ECDC4" },
-  shopping: { icon: "bag-handle", color: "#FFE66D" },
-  entertainment: { icon: "game-controller", color: "#95E1D3" },
-  bills: { icon: "receipt", color: "#DDA0DD" },
-  health: { icon: "medical", color: "#98D8C8" },
-  education: { icon: "book", color: "#F7DC6F" },
-  other: { icon: "ellipsis-horizontal", color: "#AEB6BF" },
-};
-
 /**
- * Get category icon configuration
+ * Get category icon configuration (expense or income)
+ * Icon and color are defined in @/models/Expense for easy editing
  */
 export const getCategoryIconConfig = (
-  category: ExpenseCategory,
+  category: TransactionCategory
 ): CategoryIconConfig => {
-  return CATEGORY_ICONS[category] || CATEGORY_ICONS.other;
+  const fromExpense = EXPENSE_CATEGORIES_EN.find((c) => c.value === category);
+  if (fromExpense) return { icon: fromExpense.icon, color: fromExpense.color };
+  const fromIncome = INCOME_CATEGORIES_EN.find((c) => c.value === category);
+  if (fromIncome) return { icon: fromIncome.icon, color: fromIncome.color };
+  return { icon: "ellipsis-horizontal", color: "#AEB6BF" };
 };

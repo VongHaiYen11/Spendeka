@@ -8,6 +8,10 @@ interface TransactionContextType {
   isLoading: boolean;
   reloadTransactions: () => Promise<void>;
   refreshTransactions: () => Promise<void>;
+  /** Add a transaction to the list immediately (optimistic); persist to DB separately */
+  addTransactionOptimistic: (transaction: DatabaseTransaction) => void;
+  /** Remove an optimistically added transaction (e.g. when background save fails) */
+  removeOptimisticTransaction: (id: string) => void;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(
@@ -47,6 +51,14 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  const addTransactionOptimistic = useCallback((transaction: DatabaseTransaction) => {
+    setTransactions((prev) => [transaction, ...prev]);
+  }, []);
+
+  const removeOptimisticTransaction = useCallback((id: string) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   // Load transactions on mount
   useEffect(() => {
     loadTransactions();
@@ -67,6 +79,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading,
         reloadTransactions,
         refreshTransactions,
+        addTransactionOptimistic,
+        removeOptimisticTransaction,
       }}
     >
       {children}

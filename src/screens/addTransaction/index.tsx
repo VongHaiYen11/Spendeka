@@ -1,14 +1,15 @@
 import { SafeView, View } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
 import {
-  ExpenseCategory,
   EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
 } from "@/models/Expense";
 import {
   saveDatabaseTransaction,
   uploadImageToCloudinary,
 } from "@/services/ExpenseService";
-import { DatabaseTransaction } from "@/types/expense";
+import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
+import { DatabaseTransaction, TransactionCategory } from "@/types/expense";
 import { useRouter } from "expo-router";
 import { format, isToday } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
@@ -35,24 +36,27 @@ import { generateTransactionId } from "./constants";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
-  const { reloadTransactions } = useTransactions();
+  const {
+    addTransactionOptimistic,
+    removeOptimisticTransaction,
+  } = useTransactions();
 
   const [amount, setAmount] = useState("");
   const [transactionType, setTransactionType] = useState<"income" | "spent">(
     "spent"
   );
-  const [category, setCategory] = useState<ExpenseCategory>("food");
+  const [category, setCategory] = useState<TransactionCategory>("food");
   const [caption, setCaption] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
 
-  const selectedCategoryInfo = EXPENSE_CATEGORIES_EN.find(
-    (c) => c.value === category
-  );
+  const selectedCategoryInfo =
+    transactionType === "spent"
+      ? EXPENSE_CATEGORIES_EN.find((c) => c.value === category)
+      : INCOME_CATEGORIES_EN.find((c) => c.value === category);
   const dateLabel = isToday(selectedDate)
     ? "Today"
     : format(selectedDate, "MMM d, yyyy");
@@ -90,37 +94,44 @@ export default function AddTransactionScreen() {
     }
   };
 
-  const handleCreateTransaction = async () => {
+  const handleCreateTransaction = () => {
     const amountValue = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (!amountValue || amountValue <= 0) {
       Alert.alert("Invalid amount", "Please enter a valid amount.");
       return;
     }
 
-    setIsSaving(true);
-    try {
-      let imageUrl = "";
-      if (imageUri) {
-        imageUrl = await uploadImageToCloudinary(imageUri);
-      }
+    const newTransaction: DatabaseTransaction = {
+      id: generateTransactionId(),
+      imageUrl: undefined, // filled in after background upload
+      caption: caption.trim() || category,
+      amount: Math.abs(amountValue),
+      category,
+      type: transactionType,
+      createdAt: selectedDate,
+    };
 
-      const newTransaction: DatabaseTransaction = {
-        id: generateTransactionId(),
-        imageUrl: imageUrl || undefined,
-        caption: caption.trim() || category,
-        amount: Math.abs(amountValue),
-        category,
-        type: transactionType,
-        createdAt: selectedDate,
-      };
-      await saveDatabaseTransaction(newTransaction);
-      await reloadTransactions();
-      router.back();
-    } catch (error) {
-      Alert.alert("Error", "Could not create transaction. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+    addTransactionOptimistic(newTransaction);
+    router.back();
+
+    // Save to DB in background (upload image first, then persist)
+    (async () => {
+      try {
+        let imageUrl = "";
+        if (imageUri) {
+          imageUrl = await uploadImageToCloudinary(imageUri);
+        }
+        newTransaction.imageUrl = imageUrl || undefined;
+        await saveDatabaseTransaction(newTransaction);
+        transactionEventEmitter.emit();
+      } catch (error) {
+        removeOptimisticTransaction(newTransaction.id);
+        Alert.alert(
+          "Could not save",
+          "The transaction was not saved. Please try again."
+        );
+      }
+    })();
   };
 
   const handleCloseCategoryModal = () => {
@@ -128,10 +139,15 @@ export default function AddTransactionScreen() {
     setCategorySearch("");
   };
 
-  const handleSelectCategory = (c: ExpenseCategory) => {
+  const handleSelectCategory = (c: TransactionCategory) => {
     setCategory(c);
     setShowCategoryModal(false);
     setCategorySearch("");
+  };
+
+  const handleTransactionTypeChange = (type: "income" | "spent") => {
+    setTransactionType(type);
+    setCategory(type === "spent" ? "food" : "salary");
   };
 
   return (
@@ -150,13 +166,13 @@ export default function AddTransactionScreen() {
         >
           <AmountInput value={amount} onChangeText={formatAmountInput} />
 
-          <TypeSwitcher value={transactionType} onChange={setTransactionType} />
+          <TypeSwitcher value={transactionType} onChange={handleTransactionTypeChange} />
 
           <View style={styles.rowsContainer}>
             <DetailRow
               icon="grid-outline"
               label="Category"
-              value={selectedCategoryInfo?.label ?? "Food"}
+              value={selectedCategoryInfo?.label ?? (transactionType === "spent" ? "Food" : "Salary")}
               onPress={() => setShowCategoryModal(true)}
             />
             <DetailRow
@@ -176,12 +192,13 @@ export default function AddTransactionScreen() {
 
         <CreateButtonFooter
           onPress={handleCreateTransaction}
-          isLoading={isSaving}
+          isLoading={false}
         />
       </KeyboardAvoidingView>
 
       <CategoryModal
         visible={showCategoryModal}
+        transactionType={transactionType}
         selectedCategory={category}
         searchQuery={categorySearch}
         onClose={handleCloseCategoryModal}

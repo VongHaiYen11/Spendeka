@@ -1,6 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { PRIMARY_COLOR } from '@/constants/Colors';
-import { Expense, formatAmount, getCategoryInfo } from '@/models/Expense';
+import { Expense, formatAmount, getCategoryDisplayInfo } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -90,7 +90,7 @@ export default function ExpenseDetailScreen({
   };
 
   const renderItem = ({ item }: { item: Expense }) => {
-    const categoryInfo = getCategoryInfo(item.category);
+    const categoryInfo = getCategoryDisplayInfo(item.category);
 
     return (
       <RNView style={[styles.page, pageHeight ? { height: pageHeight } : null]}>

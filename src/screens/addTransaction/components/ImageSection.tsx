@@ -1,8 +1,14 @@
 import { Text, useThemeColor } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  Image,
+  LayoutChangeEvent,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { WIDGET_BG } from "../constants";
 
 interface ImageSectionProps {
@@ -17,6 +23,34 @@ export default function ImageSection({
   onRemoveImage,
 }: ImageSectionProps) {
   const textColor = useThemeColor({}, "text");
+  const [previewWidth, setPreviewWidth] = useState<number>(0);
+  const [imageDimensions, setImageDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!imageUri) {
+      setImageDimensions(null);
+      return;
+    }
+    Image.getSize(
+      imageUri,
+      (width, height) => setImageDimensions({ width, height }),
+      () => setImageDimensions(null)
+    );
+  }, [imageUri]);
+
+  const onPreviewLayout = (e: LayoutChangeEvent) => {
+    const { width } = e.nativeEvent.layout;
+    if (width > 0) setPreviewWidth(width);
+  };
+
+  const innerWidth = previewWidth - 16; // container has padding 8 each side
+  const previewHeight =
+    innerWidth > 0 && imageDimensions
+      ? (innerWidth / imageDimensions.width) * imageDimensions.height
+      : 200; // fallback until layout + image size are known
 
   return (
     <>
@@ -42,7 +76,10 @@ export default function ImageSection({
         )}
       </View>
       {imageUri && (
-        <View style={styles.imagePreview}>
+        <View
+          style={styles.imagePreview}
+          onLayout={onPreviewLayout}
+        >
           <TouchableOpacity
             onPress={onRemoveImage}
             style={styles.imagePreviewClose}
@@ -51,8 +88,8 @@ export default function ImageSection({
           </TouchableOpacity>
           <Image
             source={{ uri: imageUri }}
-            style={styles.imagePreviewImg}
-            resizeMode="cover"
+            style={[styles.imagePreviewImg, { height: previewHeight }]}
+            resizeMode="contain"
           />
         </View>
       )}

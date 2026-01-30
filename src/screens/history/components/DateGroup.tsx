@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { Transaction } from "@/services/ExpenseService";
+import { DatabaseTransaction } from "@/types/expense";
 import { formatDollar } from "@/utils/formatCurrency";
 import React from "react";
 import { StyleSheet } from "react-native";
@@ -7,11 +7,11 @@ import TransactionItem from "./TransactionItem";
 
 interface DateGroupProps {
   dateKey: string;
-  transactions: Transaction[];
+  transactions: DatabaseTransaction[];
 }
 
 // Calculate total for a date group (sum of both spent and income)
-const calculateGroupTotal = (transactions: Transaction[]) => {
+const calculateGroupTotal = (transactions: DatabaseTransaction[]) => {
   // Sum absolute values of all transactions (both spent and income)
   return transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 };
