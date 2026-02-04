@@ -1,8 +1,11 @@
 import { Text, useThemeColor } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import React from "react";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  AndroidNativeProps,
+} from "@react-native-community/datetimepicker";
+import React, { useEffect } from "react";
 import {
   Modal,
   Platform,
@@ -28,6 +31,34 @@ export default function DatePickerModal({
   const textColor = useThemeColor({}, "text");
   const colorScheme = useColorScheme();
   const themeVariant = colorScheme === "dark" ? "dark" : "light";
+
+  // On Android, use the native dialog API instead of our custom Modal.
+  // This avoids the bug where users have to tap the OK button many times
+  // for the selected date to be applied.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (!visible) return;
+
+    DateTimePickerAndroid.open({
+      value,
+      mode: "date",
+      display: "calendar",
+      maximumDate: new Date(),
+      themeVariant,
+      onChange: (event, selectedDate) => {
+        if (event.type === "set" && selectedDate) {
+          onChange(selectedDate);
+        }
+        // Close the wrapper modal state regardless of confirm/cancel
+        onClose();
+      },
+    } as AndroidNativeProps);
+  }, [visible, value, onChange, onClose, themeVariant]);
+
+  // Android dialog is handled via DateTimePickerAndroid above
+  if (Platform.OS === "android") {
+    return null;
+  }
 
   return (
     <Modal
@@ -61,15 +92,12 @@ export default function DatePickerModal({
           <DateTimePicker
             value={value}
             mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "calendar"}
+            display="spinner"
             onChange={(_, date) => {
               if (date) onChange(date);
             }}
             maximumDate={new Date()}
             themeVariant={themeVariant}
-            style={
-              Platform.OS === "android" ? styles.datePickerAndroid : undefined
-            }
           />
         </View>
       </TouchableOpacity>
