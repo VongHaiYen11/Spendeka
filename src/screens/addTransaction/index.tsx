@@ -9,7 +9,7 @@ import {
   generateTransactionId,
 } from "@/services/TransactionService";
 import { DatabaseTransaction, TransactionCategory } from "@/types/transaction";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { format, isToday } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
@@ -39,13 +39,55 @@ export default function AddTransactionScreen() {
     removeOptimisticTransaction,
   } = useTransactions();
 
-  const [amount, setAmount] = useState("");
+  const params = useLocalSearchParams<{
+    caption?: string;
+    amount?: string;
+    category?: string;
+    type?: "income" | "spent";
+    createdAt?: string;
+  }>();
+
+  const allCategoryValues = [
+    ...EXPENSE_CATEGORIES_EN.map((c) => c.value),
+    ...INCOME_CATEGORIES_EN.map((c) => c.value),
+  ];
+
+  const isValidCategory = (
+    c: string | undefined,
+  ): c is TransactionCategory => !!c && allCategoryValues.includes(c as TransactionCategory);
+
+  const initialTransactionType: "income" | "spent" =
+    params.type === "income" || params.type === "spent"
+      ? params.type
+      : "spent";
+
+  const initialCategory: TransactionCategory =
+    (isValidCategory(params.category) ? params.category : undefined) ??
+    (initialTransactionType === "spent" ? "food" : "salary");
+
+  const initialCaption =
+    typeof params.caption === "string" ? params.caption : "";
+
+  const initialAmount =
+    typeof params.amount === "string" && params.amount !== "0"
+      ? params.amount
+      : "";
+
+  let initialDate = new Date();
+  if (typeof params.createdAt === "string") {
+    const d = new Date(params.createdAt);
+    if (!isNaN(d.getTime())) initialDate = d;
+  }
+
+  const [amount, setAmount] = useState(initialAmount);
   const [transactionType, setTransactionType] = useState<"income" | "spent">(
-    "spent"
+    initialTransactionType,
   );
-  const [category, setCategory] = useState<TransactionCategory>("food");
-  const [caption, setCaption] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [category, setCategory] = useState<TransactionCategory>(
+    initialCategory,
+  );
+  const [caption, setCaption] = useState(initialCaption);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);

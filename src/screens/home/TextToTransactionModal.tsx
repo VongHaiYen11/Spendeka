@@ -12,6 +12,7 @@ interface TextToTransactionModalProps {
   value: string;
   onChangeText: (text: string) => void;
   onClose: () => void;
+  onParsed?: (parsed: ParsedTransactionFromText) => void;
 }
 
 export default function TextToTransactionModal({
@@ -19,6 +20,7 @@ export default function TextToTransactionModal({
   value,
   onChangeText,
   onClose,
+  onParsed,
 }: TextToTransactionModalProps) {
   const colorScheme = useColorScheme();
   const textColor = useThemeColor({}, 'text');
@@ -46,15 +48,10 @@ export default function TextToTransactionModal({
 
       const parsed: ParsedTransactionFromText = await response.json();
 
-      // For now, just log the parsed transaction.
-      // Later you can hook this into createAndSaveTransaction or pre-fill the add-transaction form.
       console.log('Parsed transaction from Gemini:', parsed);
-
-      // Show parsed transaction to make the response visible on device
-      Alert.alert(
-        'Parsed transaction',
-        JSON.stringify(parsed, null, 2),
-      );
+      if (onParsed) {
+        onParsed(parsed);
+      }
 
       onClose();
     } catch (error: any) {

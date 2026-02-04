@@ -17,6 +17,8 @@ import TextToTransactionModal from './TextToTransactionModal';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
 import TodaySummaryCard from './TodaySummaryCard';
+import { ParsedTransactionFromText } from '@/types/textToTransaction';
+import type { TransactionCategory } from '@/types/transaction';
 
 export default function Home() {
   const router = useRouter();
@@ -124,6 +126,23 @@ export default function Home() {
     );
   };
 
+  const handleParsedTransaction = (parsed: ParsedTransactionFromText) => {
+    // Map parsed Gemini result to add-transaction route params.
+    // Let the AddTransaction screen validate and provide defaults for any missing fields.
+    const params: Record<string, string> = {
+      caption: parsed.caption ?? '',
+      amount: String(parsed.amount ?? ''),
+      type: parsed.type ?? 'spent',
+      category: parsed.category ?? '',
+      createdAt: parsed.createdAt ?? '',
+    };
+
+    router.push({
+      pathname: '/add-transaction',
+      params,
+    } as any);
+  };
+
   if (selectedExpense) {
     return (
       <ExpenseDetailScreen
@@ -172,6 +191,7 @@ export default function Home() {
         value={textInputValue}
         onChangeText={setTextInputValue}
         onClose={closeTextModal}
+        onParsed={handleParsedTransaction}
       />
     </SafeView>
   );
