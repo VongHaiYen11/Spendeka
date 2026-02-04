@@ -21,6 +21,10 @@ export default function HomeScreen() {
     router.push('/add-transaction' as import('expo-router').Href);
   };
 
+  const handleGoHistory = () => {
+    router.push('/history' as import('expo-router').Href);
+  };
+
   const openTextModal = () => setTextModalVisible(true);
   const closeTextModal = () => {
     setTextModalVisible(false);
@@ -50,7 +54,7 @@ export default function HomeScreen() {
           lightColor="#ffffff"
           darkColor="rgba(255,255,255,0.1)"
         >
-          <TouchableOpacity style={styles.toolbarButton}>
+          <TouchableOpacity style={styles.toolbarButton} onPress={handleGoHistory}>
             <Ionicons name="time-outline" size={28} color={iconColor} />
             <Text style={styles.toolbarLabel}>History</Text>
           </TouchableOpacity>
