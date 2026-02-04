@@ -37,7 +37,6 @@ export default function TextToTransactionModal({
     
     try {
       setIsLoading(true);
-      console.log('TextToTransactionModal API_BASE_URL:', API_BASE_URL);
       const response = await fetch(`${API_BASE_URL}/text-to-transaction`, {
         method: 'POST',
         headers: {
@@ -84,8 +83,6 @@ export default function TextToTransactionModal({
       if (isNaN(dateCheck.getTime())) {
         throw new Error('Invalid date format in parsed transaction');
       }
-
-      console.log('Parsed transaction from Gemini:', parsed);
       
       // CHỈ KHI TẤT CẢ CHECK ĐỀU PASS mới chuyển trang
       // Only navigate to add-transaction page after ALL validations pass
@@ -94,8 +91,6 @@ export default function TextToTransactionModal({
       }
       onClose();
     } catch (error: any) {
-      console.error('Failed to parse transaction text with Gemini:', error);
-      
       // Extract error message from backend
       const rawMessage = typeof error?.message === 'string' ? error.message : undefined;
       
