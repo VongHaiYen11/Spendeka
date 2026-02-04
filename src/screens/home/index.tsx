@@ -1,22 +1,89 @@
 import { SafeView, Text, useThemeColor, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  Alert,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import { useTransactions } from '@/contexts/TransactionContext';
+import { Expense } from '@/models/Expense';
+import { ExpenseDetailScreen } from '@/screens/camera';
+import { isSameDay } from 'date-fns';
 import TextToTransactionModal from './TextToTransactionModal';
+import HomeHeader from './HomeHeader';
+import HomeToolbar from './HomeToolbar';
+import TodaySummaryCard from './TodaySummaryCard';
 
 export default function Home() {
   const router = useRouter();
+  const { transactions, reloadTransactions } = useTransactions();
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const colorScheme = useColorScheme();
   const iconColor = Colors[colorScheme ?? 'light'].text;
+  const textColor = useThemeColor({}, 'text');
+  const todayCardBackground = colorScheme === 'dark' ? '#1a1a1a' : '#ffffff';
+
+  const expenses = useMemo<Expense[]>(() => {
+    return transactions
+      .map((tx) => ({
+        id: tx.id,
+        imageUrl: tx.imageUrl ?? '',
+        caption: tx.caption,
+        amount: tx.amount,
+        category: tx.category,
+        type: tx.type,
+        createdAt: tx.createdAt,
+      }))
+      .filter(
+        (expense) =>
+          expense.type !== 'income' &&
+          expense.imageUrl &&
+          expense.imageUrl.trim() !== '',
+      );
+  }, [transactions]);
+
+  const todayExpenses = useMemo(() => {
+    const now = new Date();
+    return expenses.filter((e) => isSameDay(e.createdAt, now));
+  }, [expenses]);
+
+  const todayTransactions = useMemo(() => {
+    const now = new Date();
+    return transactions.filter((t) => isSameDay(t.createdAt, now));
+  }, [transactions]);
+
+  const totalIncomeToday = useMemo(
+    () =>
+      todayTransactions
+        .filter((t) => t.type === 'income')
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    [todayTransactions],
+  );
+
+  const totalSpentToday = useMemo(
+    () =>
+      todayTransactions
+        .filter((t) => t.type === 'spent' || !t.type)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    [todayTransactions],
+  );
+
+  const formatAmount = (value: number) =>
+    value.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
   const handleDump = () => {
     router.push('/add-transaction' as import('expo-router').Href);
+  };
+
+  const handleGoHistory = () => {
+    router.push('/history' as import('expo-router').Href);
   };
 
   const openTextModal = () => setTextModalVisible(true);
@@ -25,47 +92,70 @@ export default function Home() {
     setTextInputValue('');
   };
 
+  const handleOpenTodayExpenseDetail = (expense: Expense) => {
+    setSelectedExpense(expense);
+  };
+
+  const handleCloseExpenseDetail = () => {
+    setSelectedExpense(null);
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+    Alert.alert(
+      'Delete expense',
+      'Are you sure you want to delete this expense?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { deleteExpense } = await import('@/services/TransactionService');
+              await deleteExpense(expenseId);
+              await reloadTransactions();
+              setSelectedExpense(null);
+            } catch (error) {
+              Alert.alert('Error', 'Could not delete expense');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (selectedExpense) {
+    return (
+      <ExpenseDetailScreen
+        expenses={expenses}
+        initialExpenseId={selectedExpense.id}
+        onClose={handleCloseExpenseDetail}
+        onDelete={handleDeleteExpense}
+      />
+    );
+  }
+
   return (
     <SafeView style={styles.container}>
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.welcomeText}>Welcome, {userName}!</Text>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={24} color={iconColor} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="person-circle-outline" size={24} color={iconColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      {/* Toolbar */}
-      <View style={styles.toolbarContainer}>
-        <View 
-          style={styles.toolbar}
-          lightColor="#ffffff"
-          darkColor="rgba(255,255,255,0.1)"
-        >
-          <TouchableOpacity style={styles.toolbarButton}>
-            <Ionicons name="time-outline" size={28} color={iconColor} />
-            <Text style={styles.toolbarLabel}>History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.toolbarButton}>
-            <Ionicons name="scan-outline" size={28} color={iconColor} />
-            <Text style={styles.toolbarLabel}>Scan bill</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.toolbarButton} onPress={openTextModal}>
-            <Ionicons name="text-outline" size={28} color={iconColor} />
-            <Text style={styles.toolbarLabel}>Text</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.toolbarButton}>
-            <Ionicons name="mic-outline" size={28} color={iconColor} />
-            <Text style={styles.toolbarLabel}>Voice</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <HomeHeader userName={userName} iconColor={iconColor} />
+
+      <HomeToolbar
+        iconColor={iconColor}
+        onPressHistory={handleGoHistory}
+        onPressText={openTextModal}
+      />
+
+      <TodaySummaryCard
+        colorScheme={colorScheme}
+        textColor={textColor}
+        backgroundColor={todayCardBackground}
+        todayExpenses={todayExpenses}
+        totalIncomeToday={totalIncomeToday}
+        totalSpentToday={totalSpentToday}
+        onOpenExpense={handleOpenTodayExpenseDetail}
+        formatAmount={formatAmount}
+      />
       
       {/* Main Content */}
       <View style={styles.content}>
@@ -90,57 +180,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 25,
-  },
-  toolbarContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  welcomeText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  iconButton: {
-    padding: 5,
-  },
-  toolbarButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingVertical: 10,
-  },
-  toolbarLabel: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '500',
   },
   content: {
     flex: 1,
