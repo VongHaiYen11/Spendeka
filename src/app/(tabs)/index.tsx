@@ -1,21 +1,76 @@
-import { StyleSheet, TouchableOpacity, StatusBar, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, TouchableOpacity, StatusBar, Modal, TextInput, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native';
 import { Text, View, SafeView, useThemeColor } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Colors, { PRIMARY_COLOR } from '@/constants/Colors';
+import { useTransactions } from '@/contexts/TransactionContext';
+import { Expense } from '@/models/Expense';
+import { ExpenseDetailScreen } from '@/screens/camera';
+import { isSameDay } from 'date-fns';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { transactions, reloadTransactions } = useTransactions();
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const colorScheme = useColorScheme();
   const iconColor = Colors[colorScheme ?? 'light'].text;
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
+  const todayCardBackground = colorScheme === 'dark' ? '#1a1a1a' : '#ffffff';
+
+  const expenses = useMemo<Expense[]>(() => {
+    return transactions
+      .map((tx) => ({
+        id: tx.id,
+        imageUrl: tx.imageUrl ?? '',
+        caption: tx.caption,
+        amount: tx.amount,
+        category: tx.category,
+        type: tx.type,
+        createdAt: tx.createdAt,
+      }))
+      .filter(
+        (expense) =>
+          expense.type !== 'income' &&
+          expense.imageUrl &&
+          expense.imageUrl.trim() !== '',
+      );
+  }, [transactions]);
+
+  const todayExpenses = useMemo(() => {
+    const now = new Date();
+    return expenses.filter((e) => isSameDay(e.createdAt, now));
+  }, [expenses]);
+
+  const todayTransactions = useMemo(() => {
+    const now = new Date();
+    return transactions.filter((t) => isSameDay(t.createdAt, now));
+  }, [transactions]);
+
+  const totalIncomeToday = useMemo(
+    () =>
+      todayTransactions
+        .filter((t) => t.type === 'income')
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    [todayTransactions],
+  );
+
+  const totalSpentToday = useMemo(
+    () =>
+      todayTransactions
+        .filter((t) => t.type === 'spent' || !t.type)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    [todayTransactions],
+  );
+
+  const formatAmount = (value: number) =>
+    value.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
   const handleDump = () => {
     router.push('/add-transaction' as import('expo-router').Href);
@@ -30,6 +85,49 @@ export default function HomeScreen() {
     setTextModalVisible(false);
     setTextInputValue('');
   };
+
+  const handleOpenTodayExpenseDetail = (expense: Expense) => {
+    setSelectedExpense(expense);
+  };
+
+  const handleCloseExpenseDetail = () => {
+    setSelectedExpense(null);
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+    Alert.alert(
+      'Delete expense',
+      'Are you sure you want to delete this expense?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { deleteExpense } = await import('@/services/TransactionService');
+              await deleteExpense(expenseId);
+              await reloadTransactions();
+              setSelectedExpense(null);
+            } catch (error) {
+              Alert.alert('Error', 'Could not delete expense');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (selectedExpense) {
+    return (
+      <ExpenseDetailScreen
+        expenses={expenses}
+        initialExpenseId={selectedExpense.id}
+        onClose={handleCloseExpenseDetail}
+        onDelete={handleDeleteExpense}
+      />
+    );
+  }
 
   return (
     <SafeView style={styles.container}>
@@ -70,6 +168,53 @@ export default function HomeScreen() {
             <Ionicons name="mic-outline" size={28} color={iconColor} />
             <Text style={styles.toolbarLabel}>Voice</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Today summary card */}
+      <View style={styles.todayCardWrapper}>
+        <View style={[styles.todayCard, { backgroundColor: todayCardBackground }]}>
+          {/* Left: today's latest photos */}
+          <TouchableOpacity
+            style={styles.todayImagesContainer}
+            activeOpacity={todayExpenses.length ? 0.8 : 1}
+            disabled={!todayExpenses.length}
+            onPress={() => {
+              if (todayExpenses.length) {
+                handleOpenTodayExpenseDetail(todayExpenses[0]);
+              }
+            }}
+          >
+            {todayExpenses.length ? (
+              <Image
+                source={{ uri: todayExpenses[0].imageUrl }}
+                style={styles.todayImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.todayEmptyImage}>
+                <Ionicons
+                  name="image-outline"
+                  size={28}
+                  color={colorScheme === 'dark' ? '#777' : '#999'}
+                />
+                <Text style={[styles.todayEmptyText, { color: textColor }]}>
+                  No photos today
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Right: today totals */}
+          <View style={styles.todayInfo}>
+            <Text style={[styles.todayTitle, { color: textColor }]}>Today</Text>
+            <Text style={styles.todayIncomeValue}>
+              +{formatAmount(totalIncomeToday)}
+            </Text>
+            <Text style={styles.todayExpenseValue}>
+              -{formatAmount(totalSpentToday)}
+            </Text>
+          </View>
         </View>
       </View>
       
@@ -196,6 +341,67 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     fontWeight: '500',
+  },
+  todayCardWrapper: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  todayCard: {
+    flexDirection: 'row',
+    borderRadius: 24,
+    padding: 16,
+    height: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  todayImagesContainer: {
+    flex: 1,
+    marginRight: 12,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  todayImage: {
+    width: '100%',
+    height: '100%',
+  },
+  todayEmptyImage: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  todayEmptyText: {
+    marginTop: 6,
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  todayInfo: {
+    flex: 1,
+    paddingLeft: 8,
+    justifyContent: 'center',
+  },
+  todayTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  todayIncomeValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2ecc71',
+    marginTop: 4,
+  },
+  todayExpenseValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#e74c3c',
+    marginTop: 2,
   },
   content: {
     flex: 1,
