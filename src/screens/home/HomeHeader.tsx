@@ -1,6 +1,6 @@
-import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface HomeHeaderProps {
   userName: string;

@@ -17,14 +17,14 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
 
-  // Check if currently on camera screen
-  const isCameraScreen = useMemo(() => {
+  // Dark nav only when on camera tab (opening detail from Home navigates to Camera)
+  const isDarkNav = useMemo(() => {
     return pathname?.includes('/camera') ?? false;
   }, [pathname]);
 
-  // Tab bar style: always dark when on camera screen, otherwise follow theme
+  // Tab bar style: dark when on camera or detail fullscreen, otherwise follow theme
   const tabBarStyle = useMemo(() => {
-    if (isCameraScreen) {
+    if (isDarkNav) {
       return {
         backgroundColor: '#000',
         borderTopColor: 'rgba(255,255,255,0.1)',
@@ -34,21 +34,21 @@ export default function TabLayout() {
       backgroundColor: Colors[colorScheme ?? 'light'].background,
       borderTopColor: Colors[colorScheme ?? 'light'].border,
     };
-  }, [isCameraScreen, colorScheme]);
+  }, [isDarkNav, colorScheme]);
 
   const tabBarInactiveTintColor = useMemo(() => {
-    if (isCameraScreen) {
+    if (isDarkNav) {
       return '#999';
     }
     return Colors[colorScheme ?? 'light'].tabIconDefault;
-  }, [isCameraScreen, colorScheme]);
+  }, [isDarkNav, colorScheme]);
 
   const tabBarActiveTintColor = useMemo(() => {
-    if (isCameraScreen) {
-      return Colors.dark.tint; // Use dark theme tint for camera
+    if (isDarkNav) {
+      return Colors.dark.tint;
     }
     return Colors[colorScheme ?? 'light'].tint;
-  }, [isCameraScreen, colorScheme]);
+  }, [isDarkNav, colorScheme]);
 
   return (
     <Tabs

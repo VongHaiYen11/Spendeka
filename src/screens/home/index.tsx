@@ -3,7 +3,6 @@ import Colors from '@/constants/Colors';
 import { useTransactions } from '@/contexts/TransactionContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Expense } from '@/models/Expense';
-import { ExpenseDetailScreen } from '@/screens/camera';
 import {
   getSavedAmountByDateRange,
   getSpentAmountByDateRange,
@@ -12,12 +11,7 @@ import { formatDollar } from '@/utils/formatCurrency';
 import { isSameDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
 import TextToTransactionModal from './TextToTransactionModal';
@@ -29,7 +23,6 @@ export default function Home() {
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [totalIncomeToday, setTotalIncomeToday] = useState(0);
   const [totalSpentToday, setTotalSpentToday] = useState(0);
   const colorScheme = useColorScheme();
@@ -102,47 +95,11 @@ export default function Home() {
   };
 
   const handleOpenTodayExpenseDetail = (expense: Expense) => {
-    setSelectedExpense(expense);
+    router.push({
+      pathname: '/camera',
+      params: { openExpenseId: expense.id },
+    } as import('expo-router').Href);
   };
-
-  const handleCloseExpenseDetail = () => {
-    setSelectedExpense(null);
-  };
-
-  const handleDeleteExpense = (expenseId: string) => {
-    Alert.alert(
-      'Delete expense',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { deleteExpense } = await import('@/services/TransactionService');
-              await deleteExpense(expenseId);
-              await reloadTransactions();
-              setSelectedExpense(null);
-            } catch (error) {
-              Alert.alert('Error', 'Could not delete expense');
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  if (selectedExpense) {
-    return (
-      <ExpenseDetailScreen
-        expenses={expenses}
-        initialExpenseId={selectedExpense.id}
-        onClose={handleCloseExpenseDetail}
-        onDelete={handleDeleteExpense}
-      />
-    );
-  }
 
   return (
     <SafeView style={styles.container}>

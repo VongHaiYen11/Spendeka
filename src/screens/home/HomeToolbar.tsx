@@ -43,16 +43,16 @@ export default function HomeToolbar({
 
 const styles = StyleSheet.create({
   toolbarContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 28,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -66,10 +66,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
   toolbarLabel: {
-    marginTop: 8,
+    marginTop: 4,
     fontSize: 12,
     fontWeight: '500',
   },

@@ -2,6 +2,7 @@ import { Text } from '@/components/Themed';
 import { Expense } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, View as RNView, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface TodaySummaryCardProps {
   colorScheme: 'light' | 'dark' | null;
@@ -59,37 +60,31 @@ export default function TodaySummaryCard({
           )}
         </TouchableOpacity>
 
-        {/* Right: today totals - stacked sections */}
+        {/* Right: two boxes - Income (green) & Spent (red) like Summary Saved/Spent */}
         <RNView style={styles.todayInfo}>
-          <RNView style={styles.summaryBlock}>
-            <Text style={[styles.summaryLabel, { color: textColor }]}>
-              Income
-            </Text>
-            <Text style={styles.todayIncomeValue}>
+          <LinearGradient
+            colors={['#72E394', '#49B68D']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.financeBox}
+          >
+            <Text style={styles.financeLabel}>Income</Text>
+            <Text style={styles.financeAmount}>
               +{formatAmount(totalIncomeToday)}
             </Text>
-          </RNView>
+          </LinearGradient>
 
-          <RNView
-            style={[
-              styles.todayHorizontalDivider,
-              {
-                backgroundColor:
-                  colorScheme === 'dark'
-                    ? 'rgba(255,255,255,0.2)'
-                    : 'rgba(0,0,0,0.1)',
-              },
-            ]}
-          />
-
-          <RNView style={styles.summaryBlock}>
-            <Text style={[styles.summaryLabel, { color: textColor }]}>
-              Spent
-            </Text>
-            <Text style={styles.todayExpenseValue}>
+          <LinearGradient
+            colors={['#E56B89', '#C84E6D']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.financeBox, styles.financeBoxLast]}
+          >
+            <Text style={styles.financeLabel}>Spent</Text>
+            <Text style={styles.financeAmount}>
               -{formatAmount(totalSpentToday)}
             </Text>
-          </RNView>
+          </LinearGradient>
         </RNView>
       </RNView>
     </RNView>
@@ -102,7 +97,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   todayLabelText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -110,21 +105,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: 24,
     padding: 16,
-    height: 150,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
+  // Left image container: square, takes left half
   todayImagesContainer: {
-    flex: 1,
+    flex: 1, // chiếm nửa trái
     marginRight: 12,
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.04)',
     justifyContent: 'center',
     alignItems: 'center',
+    aspectRatio: 1, // luôn hiển thị dạng hình vuông
   },
   todayImage: {
     width: '100%',
@@ -144,35 +140,29 @@ const styles = StyleSheet.create({
   todayInfo: {
     flex: 1,
     paddingLeft: 12,
+    justifyContent: 'space-between',
+  },
+  financeBox: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
     justifyContent: 'center',
+    marginBottom: 8,
   },
-  summaryBlock: {
-    marginVertical: 4,
+  financeBoxLast: {
+    marginBottom: 0,
   },
-  summaryLabel: {
+  financeLabel: {
     fontSize: 12,
     fontWeight: '500',
-    opacity: 0.8,
-    textAlign: 'left',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
   },
-  todayHorizontalDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginVertical: 6,
-    width: '100%',
-  },
-  todayIncomeValue: {
+  financeAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#2ecc71',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  todayExpenseValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#e74c3c',
-    textAlign: 'center',
-    marginTop: 2,
+    color: '#fff',
   },
 });
 
