@@ -1,6 +1,6 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, usePathname } from 'expo-router';
+import React, { useMemo } from 'react';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -15,11 +15,47 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+
+  // Check if currently on camera screen
+  const isCameraScreen = useMemo(() => {
+    return pathname?.includes('/camera') ?? false;
+  }, [pathname]);
+
+  // Tab bar style: always dark when on camera screen, otherwise follow theme
+  const tabBarStyle = useMemo(() => {
+    if (isCameraScreen) {
+      return {
+        backgroundColor: '#000',
+        borderTopColor: 'rgba(255,255,255,0.1)',
+      };
+    }
+    return {
+      backgroundColor: Colors[colorScheme ?? 'light'].background,
+      borderTopColor: Colors[colorScheme ?? 'light'].border,
+    };
+  }, [isCameraScreen, colorScheme]);
+
+  const tabBarInactiveTintColor = useMemo(() => {
+    if (isCameraScreen) {
+      return '#999';
+    }
+    return Colors[colorScheme ?? 'light'].tabIconDefault;
+  }, [isCameraScreen, colorScheme]);
+
+  const tabBarActiveTintColor = useMemo(() => {
+    if (isCameraScreen) {
+      return Colors.dark.tint; // Use dark theme tint for camera
+    }
+    return Colors[colorScheme ?? 'light'].tint;
+  }, [isCameraScreen, colorScheme]);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor,
+        tabBarInactiveTintColor,
+        tabBarStyle,
         headerShown: false,
       }}>
       <Tabs.Screen

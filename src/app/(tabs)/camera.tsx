@@ -203,21 +203,23 @@ export default function CameraScreen() {
   // Loading permission
   if (hasPermission === null) {
     return (
-      <SafeView style={styles.loadingContainer}>
+      <RNView style={styles.loadingContainer}>
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={PRIMARY_COLOR} />
         <Text style={styles.loadingText}>Requesting camera permission...</Text>
-      </SafeView>
+      </RNView>
     );
   }
 
   // No permission
   if (hasPermission === false) {
     return (
-      <SafeView style={styles.loadingContainer}>
-        <Ionicons name="camera-outline" size={64} color="#666" />
+      <RNView style={styles.loadingContainer}>
+        <StatusBar barStyle="light-content" />
+        <Ionicons name="camera-outline" size={64} color="#999" />
         <Text style={styles.loadingText}>No camera access</Text>
         <Text style={styles.subText}>Please grant permission in settings</Text>
-      </SafeView>
+      </RNView>
     );
   }
 
@@ -244,9 +246,9 @@ export default function CameraScreen() {
     );
   }
 
-  // Main Camera Screen
+  // Main Camera Screen - Always dark mode
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       {/* Header with Tabs */}
@@ -259,7 +261,7 @@ export default function CameraScreen() {
             <Ionicons
               name="camera"
               size={20}
-              color={activeTab === "camera" ? PRIMARY_COLOR : "#666"}
+              color={activeTab === "camera" ? PRIMARY_COLOR : "#999"}
             />
             <Text
               style={[
@@ -278,7 +280,7 @@ export default function CameraScreen() {
             <Ionicons
               name="receipt"
               size={20}
-              color={activeTab === "history" ? PRIMARY_COLOR : "#666"}
+              color={activeTab === "history" ? PRIMARY_COLOR : "#999"}
             />
             <Text
               style={[
@@ -353,7 +355,7 @@ export default function CameraScreen() {
           />
         </RNView>
       )}
-    </View>
+    </RNView>
   );
 }
 
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   subText: {
-    color: "#666",
+    color: "#999",
     fontSize: 14,
     marginTop: 8,
   },
@@ -404,7 +406,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
   },
   tabText: {
-    color: "#666",
+    color: "#999",
     fontSize: 14,
     fontWeight: "600",
   },
