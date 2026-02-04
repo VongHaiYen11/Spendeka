@@ -27,9 +27,14 @@ export default function TextToTransactionModal({
   const borderColor = useThemeColor({}, 'border');
   const widgetBackgroundColor = useThemeColor({}, 'card');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!value.trim() || isLoading) return;
+    
+    // Clear any previous error
+    setErrorMessage(null);
+    
     try {
       setIsLoading(true);
       console.log('TextToTransactionModal API_BASE_URL:', API_BASE_URL);
@@ -48,18 +53,64 @@ export default function TextToTransactionModal({
 
       const parsed: ParsedTransactionFromText = await response.json();
 
+      // KIỂM TRA ĐẦY ĐỦ tất cả các fields trước khi chuyển trang
+      // Validate ALL fields before proceeding to add-transaction page
+      if (!parsed) {
+        throw new Error('Invalid transaction data received from server');
+      }
+
+      if (typeof parsed.amount !== 'number' || parsed.amount <= 0) {
+        throw new Error('Invalid amount in parsed transaction');
+      }
+
+      if (!parsed.caption || typeof parsed.caption !== 'string' || parsed.caption.trim() === '') {
+        throw new Error('Invalid caption in parsed transaction');
+      }
+
+      if (!parsed.category || typeof parsed.category !== 'string') {
+        throw new Error('Invalid category in parsed transaction');
+      }
+
+      if (parsed.type !== 'income' && parsed.type !== 'spent') {
+        throw new Error('Invalid transaction type in parsed transaction');
+      }
+
+      if (!parsed.createdAt || typeof parsed.createdAt !== 'string') {
+        throw new Error('Invalid createdAt in parsed transaction');
+      }
+
+      // Validate createdAt is a valid date
+      const dateCheck = new Date(parsed.createdAt);
+      if (isNaN(dateCheck.getTime())) {
+        throw new Error('Invalid date format in parsed transaction');
+      }
+
       console.log('Parsed transaction from Gemini:', parsed);
+      
+      // CHỈ KHI TẤT CẢ CHECK ĐỀU PASS mới chuyển trang
+      // Only navigate to add-transaction page after ALL validations pass
       if (onParsed) {
         onParsed(parsed);
       }
-
       onClose();
     } catch (error: any) {
       console.error('Failed to parse transaction text with Gemini:', error);
-      Alert.alert(
-        'Unable to parse',
-        error?.message || 'Could not understand this text. Please adjust it and try again.',
-      );
+      
+      // Extract error message from backend
+      const rawMessage = typeof error?.message === 'string' ? error.message : undefined;
+      
+      // Display backend error messages directly (they're already user-friendly)
+      // Examples:
+      // - "No number related to money was found in this text. Please include at least one amount (e.g. 25, 10.50, 100k) and try again."
+      // - "Could not extract a valid transaction from this text. Please include at least one clear money amount and enough details, then try again."
+      // - "Gemini API error: ..."
+      // - "Failed to parse Gemini response as JSON"
+      // - "Gemini response JSON is missing required fields"
+      const userMessage = rawMessage || 'Invalid input. Please include at least one amount (e.g., $10, 25.50) and try again.';
+      
+      setErrorMessage(userMessage);
+      // KHÔNG gọi onParsed hoặc onClose khi có lỗi - giữ modal mở để người dùng sửa lại
+      // Do NOT call onParsed or onClose when there's an error - keep modal open for retry
     } finally {
       setIsLoading(false);
     }
@@ -94,18 +145,32 @@ export default function TextToTransactionModal({
                   styles.modalInput,
                   { 
                     color: textColor, 
-                    borderColor, 
+                    borderColor: errorMessage ? '#e74c3c' : borderColor, 
                     backgroundColor: widgetBackgroundColor,
                   },
                 ]}
                 placeholder="e.g. Coffee $4.50, Lunch $12..."
                 placeholderTextColor={colorScheme === 'dark' ? '#888' : '#999'}
                 value={value}
-                onChangeText={onChangeText}
+                onChangeText={(text) => {
+                  onChangeText(text);
+                  // Clear error when user starts typing
+                  if (errorMessage) setErrorMessage(null);
+                }}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
               />
+              {errorMessage && (
+                <RNView style={styles.errorContainer}>
+                  <Text style={styles.errorText}>
+                    ⚠️ {errorMessage}
+                  </Text>
+                  <Text style={styles.errorHint}>
+                    Please adjust your text and try again.
+                  </Text>
+                </RNView>
+              )}
               <RNView style={styles.modalButtons}>
                 <TouchableOpacity
                   style={[styles.modalCancelButton, { borderColor }]}
@@ -169,7 +234,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     minHeight: 100,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  errorContainer: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#e74c3c',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  errorHint: {
+    fontSize: 12,
+    color: '#e74c3c',
+    opacity: 0.8,
   },
   modalButtons: {
     flexDirection: 'row',

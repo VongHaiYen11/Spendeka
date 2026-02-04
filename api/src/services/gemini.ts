@@ -23,6 +23,14 @@ export async function parseTextToTransaction(
 ): Promise<ParsedTransactionFromText> {
   console.warn("[Gemini] Incoming text:", text);
 
+  // Quick pre-check: if there's no digit at all, it's very unlikely
+  // to contain a money amount – treat as invalid immediately.
+  if (!/\d/.test(text)) {
+    throw new Error(
+      "No number related to money was found in this text. Please include at least one amount (e.g. 25, 10.50, 100k) and try again.",
+    );
+  }
+
   // Server reference time (used for today/yesterday fallback)
   const now = new Date();
   const nowIso = now.toISOString();
@@ -57,6 +65,8 @@ Rules:
 AMOUNT:
 - "amount" must be a positive number.
 - If multiple items exist, sum them.
+- If the user text does NOT contain any number that could reasonably be a money amount (e.g. 10, 10.50, 100k, $20), then the message is invalid.
+- In that case, do NOT return JSON. Instead, return exactly this single word (lowercase, no quotes): error
 
 TYPE:
 - "income" if money received, otherwise "spent".
@@ -81,8 +91,14 @@ CREATEDAT (IMPORTANT):
 - If the user provides a date but NO time, set the time to exactly 00:00:00.
 - If the user provides NO date at all, use the current datetime reference above.
 
+BLANK FIELDS:
+- Try your best to fill all fields from the text.
+- If, after trying your best, more than 3 of the fields (caption, amount, category, type, createdAt) would be empty, unknown, or meaningless defaults, then the message is invalid.
+- In that case, do NOT return JSON. Instead, return exactly this single word (lowercase, no quotes): error
+
 OUTPUT FORMAT:
-- Return ONLY the JSON object.
+- If the message is valid, return ONLY the JSON object described above.
+- If the message is invalid, return ONLY the word error (lowercase), with no JSON and no explanations.
 - No backticks.
 - No explanations.
 `;
@@ -123,6 +139,14 @@ OUTPUT FORMAT:
   }
 
   console.warn("[Gemini] Raw output:", candidateText);
+
+  // Model-level "error" signal: when prompt rules decide the message is invalid.
+  const trimmed = candidateText.trim().toLowerCase();
+  if (trimmed === "error") {
+    throw new Error(
+      "Could not extract a valid transaction from this text. Please include at least one clear money amount and enough details, then try again.",
+    );
+  }
 
   let parsed: ParsedTransactionFromText;
 
