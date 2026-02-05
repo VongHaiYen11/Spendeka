@@ -1,4 +1,4 @@
-import { SafeView, Text, View } from "@/components/Themed";
+import { Text } from "@/components/Themed";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { Expense } from "@/models/Expense";
@@ -11,6 +11,7 @@ import { deleteExpense } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Camera, CameraView, FlashMode } from "expo-camera";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -42,6 +43,10 @@ const databaseTransactionToExpense = (tx: DatabaseTransaction): Expense => ({
 });
 
 export default function CameraScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ openExpenseId?: string }>();
+  const openExpenseId = params.openExpenseId;
+
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facing, setFacing] = useState<"front" | "back">("back");
   const [flash, setFlash] = useState<FlashMode>("off");
@@ -68,6 +73,16 @@ export default function CameraScreen() {
       );
   }, [transactions]);
 
+  // Sync selectedExpense from openExpenseId (when opening detail from Home)
+  useEffect(() => {
+    if (openExpenseId && expenses.length > 0) {
+      const found = expenses.find((e) => e.id === openExpenseId);
+      if (found) setSelectedExpense(found);
+    } else if (!openExpenseId) {
+      setSelectedExpense(null);
+    }
+  }, [openExpenseId, expenses]);
+
   // Always default to the camera tab when screen gains focus
   useFocusEffect(
     useCallback(() => {
@@ -80,7 +95,7 @@ export default function CameraScreen() {
     useCallback(() => {
       const onBackPress = () => {
         if (selectedExpense) {
-          // From detail -> back to expenses
+          router.setParams({ openExpenseId: "" });
           setSelectedExpense(null);
           return true;
         }
@@ -172,6 +187,7 @@ export default function CameraScreen() {
   };
 
   const handleCloseExpenseDetail = () => {
+    router.setParams({ openExpenseId: "" });
     setSelectedExpense(null);
   };
 
@@ -187,9 +203,8 @@ export default function CameraScreen() {
           onPress: async () => {
             try {
               await deleteExpense(expenseId);
-              // Reload transactions from database to get the latest data
               await reloadTransactions();
-              // Then close the detail screen
+              router.setParams({ openExpenseId: "" });
               setSelectedExpense(null);
             } catch (error) {
               Alert.alert("Error", "Could not delete expense");
@@ -203,33 +218,38 @@ export default function CameraScreen() {
   // Loading permission
   if (hasPermission === null) {
     return (
-      <SafeView style={styles.loadingContainer}>
+      <RNView style={styles.loadingContainer}>
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={PRIMARY_COLOR} />
         <Text style={styles.loadingText}>Requesting camera permission...</Text>
-      </SafeView>
+      </RNView>
     );
   }
 
   // No permission
   if (hasPermission === false) {
     return (
-      <SafeView style={styles.loadingContainer}>
-        <Ionicons name="camera-outline" size={64} color="#666" />
+      <RNView style={styles.loadingContainer}>
+        <StatusBar barStyle="light-content" />
+        <Ionicons name="camera-outline" size={64} color="#999" />
         <Text style={styles.loadingText}>No camera access</Text>
         <Text style={styles.subText}>Please grant permission in settings</Text>
-      </SafeView>
+      </RNView>
     );
   }
 
-  // Viewing existing expense detail
+  // Viewing existing expense detail (from Camera tab or from Home via openExpenseId)
   if (selectedExpense) {
     return (
-      <ExpenseDetailScreen
-        expenses={expenses}
-        initialExpenseId={selectedExpense.id}
-        onClose={handleCloseExpenseDetail}
-        onDelete={handleDeleteExpense}
-      />
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
+        <ExpenseDetailScreen
+          expenses={expenses}
+          initialExpenseId={selectedExpense.id}
+          onClose={handleCloseExpenseDetail}
+          onDelete={handleDeleteExpense}
+        />
+      </>
     );
   }
 
@@ -244,9 +264,9 @@ export default function CameraScreen() {
     );
   }
 
-  // Main Camera Screen
+  // Main Camera Screen - Always dark mode
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       {/* Header with Tabs */}
@@ -259,7 +279,7 @@ export default function CameraScreen() {
             <Ionicons
               name="camera"
               size={20}
-              color={activeTab === "camera" ? PRIMARY_COLOR : "#666"}
+              color={activeTab === "camera" ? PRIMARY_COLOR : "#999"}
             />
             <Text
               style={[
@@ -278,7 +298,7 @@ export default function CameraScreen() {
             <Ionicons
               name="receipt"
               size={20}
-              color={activeTab === "history" ? PRIMARY_COLOR : "#666"}
+              color={activeTab === "history" ? PRIMARY_COLOR : "#999"}
             />
             <Text
               style={[
@@ -353,7 +373,7 @@ export default function CameraScreen() {
           />
         </RNView>
       )}
-    </View>
+    </RNView>
   );
 }
 
@@ -374,7 +394,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   subText: {
-    color: "#666",
+    color: "#999",
     fontSize: 14,
     marginTop: 8,
   },
@@ -404,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
   },
   tabText: {
-    color: "#666",
+    color: "#999",
     fontSize: 14,
     fontWeight: "600",
   },

@@ -1,21 +1,20 @@
 import { SafeView, Text, useThemeColor, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import {
-  Alert,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
 import { useTransactions } from '@/contexts/TransactionContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { Expense } from '@/models/Expense';
-import { ExpenseDetailScreen } from '@/screens/camera';
+import {
+  getSavedAmountByDateRange,
+  getSpentAmountByDateRange,
+} from '@/services/TransactionService';
+import { formatDollar } from '@/utils/formatCurrency';
 import { isSameDay } from 'date-fns';
-import TextToTransactionModal from './TextToTransactionModal';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
+import TextToTransactionModal from './TextToTransactionModal';
 import TodaySummaryCard from './TodaySummaryCard';
 
 export default function Home() {
@@ -24,7 +23,8 @@ export default function Home() {
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [totalIncomeToday, setTotalIncomeToday] = useState(0);
+  const [totalSpentToday, setTotalSpentToday] = useState(0);
   const colorScheme = useColorScheme();
   const iconColor = Colors[colorScheme ?? 'light'].text;
   const textColor = useThemeColor({}, 'text');
@@ -54,29 +54,31 @@ export default function Home() {
     return expenses.filter((e) => isSameDay(e.createdAt, now));
   }, [expenses]);
 
-  const todayTransactions = useMemo(() => {
-    const now = new Date();
-    return transactions.filter((t) => isSameDay(t.createdAt, now));
+  // Use TransactionService helpers to calculate today's income/spent totals
+  useEffect(() => {
+    const fetchTodayTotals = async () => {
+      try {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+
+        const [income, spent] = await Promise.all([
+          getSavedAmountByDateRange(start, end),
+          getSpentAmountByDateRange(start, end),
+        ]);
+
+        setTotalIncomeToday(income);
+        setTotalSpentToday(spent);
+      } catch (error) {
+        // Silent fail; keep previous values
+      }
+    };
+
+    fetchTodayTotals();
   }, [transactions]);
 
-  const totalIncomeToday = useMemo(
-    () =>
-      todayTransactions
-        .filter((t) => t.type === 'income')
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
-    [todayTransactions],
-  );
-
-  const totalSpentToday = useMemo(
-    () =>
-      todayTransactions
-        .filter((t) => t.type === 'spent' || !t.type)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
-    [todayTransactions],
-  );
-
-  const formatAmount = (value: number) =>
-    value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const formatAmount = (value: number) => formatDollar(value);
 
   const handleDump = () => {
     router.push('/add-transaction' as import('expo-router').Href);
@@ -93,47 +95,11 @@ export default function Home() {
   };
 
   const handleOpenTodayExpenseDetail = (expense: Expense) => {
-    setSelectedExpense(expense);
+    router.push({
+      pathname: '/camera',
+      params: { openExpenseId: expense.id },
+    } as import('expo-router').Href);
   };
-
-  const handleCloseExpenseDetail = () => {
-    setSelectedExpense(null);
-  };
-
-  const handleDeleteExpense = (expenseId: string) => {
-    Alert.alert(
-      'Delete expense',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { deleteExpense } = await import('@/services/TransactionService');
-              await deleteExpense(expenseId);
-              await reloadTransactions();
-              setSelectedExpense(null);
-            } catch (error) {
-              Alert.alert('Error', 'Could not delete expense');
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  if (selectedExpense) {
-    return (
-      <ExpenseDetailScreen
-        expenses={expenses}
-        initialExpenseId={selectedExpense.id}
-        onClose={handleCloseExpenseDetail}
-        onDelete={handleDeleteExpense}
-      />
-    );
-  }
 
   return (
     <SafeView style={styles.container}>
@@ -156,15 +122,6 @@ export default function Home() {
         onOpenExpense={handleOpenTodayExpenseDetail}
         formatAmount={formatAmount}
       />
-      
-      {/* Main Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>Home</Text>
-        <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-        <TouchableOpacity style={styles.dumpButton} onPress={handleDump}>
-          <Text style={[styles.dumpButtonText, { color: iconColor }]}>Dump</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Text to Transaction Modal */}
       <TextToTransactionModal
@@ -180,31 +137,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-  dumpButton: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: 'rgba(128,128,128,0.3)',
-  },
-  dumpButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
 

@@ -1,7 +1,8 @@
-import { StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { Ionicons } from '@expo/vector-icons';
+import { Text } from '@/components/Themed';
 import { Expense } from '@/models/Expense';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, View as RNView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface TodaySummaryCardProps {
   colorScheme: 'light' | 'dark' | null;
@@ -25,8 +26,9 @@ export default function TodaySummaryCard({
   formatAmount,
 }: TodaySummaryCardProps) {
   return (
-    <View style={styles.todayCardWrapper}>
-      <View style={[styles.todayCard, { backgroundColor }]}>
+    <RNView style={styles.todayCardWrapper}>
+      <Text style={styles.todayLabelText}>Today</Text>
+      <RNView style={[styles.todayCard, { backgroundColor }]}>
         {/* Left: today's latest photo */}
         <TouchableOpacity
           style={styles.todayImagesContainer}
@@ -45,7 +47,7 @@ export default function TodaySummaryCard({
               resizeMode="cover"
             />
           ) : (
-            <View style={styles.todayEmptyImage}>
+            <RNView style={styles.todayEmptyImage}>
               <Ionicons
                 name="image-outline"
                 size={28}
@@ -54,22 +56,38 @@ export default function TodaySummaryCard({
               <Text style={[styles.todayEmptyText, { color: textColor }]}>
                 No photos today
               </Text>
-            </View>
+            </RNView>
           )}
         </TouchableOpacity>
 
-        {/* Right: today totals */}
-        <View style={styles.todayInfo}>
-          <Text style={[styles.todayTitle, { color: textColor }]}>Today</Text>
-          <Text style={styles.todayIncomeValue}>
-            +{formatAmount(totalIncomeToday)}
-          </Text>
-          <Text style={styles.todayExpenseValue}>
-            -{formatAmount(totalSpentToday)}
-          </Text>
-        </View>
-      </View>
-    </View>
+        {/* Right: two boxes - Income (green) & Spent (red) like Summary Saved/Spent */}
+        <RNView style={styles.todayInfo}>
+          <LinearGradient
+            colors={['#72E394', '#49B68D']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.financeBox}
+          >
+            <Text style={styles.financeLabel}>Income</Text>
+            <Text style={styles.financeAmount}>
+              +{formatAmount(totalIncomeToday)}
+            </Text>
+          </LinearGradient>
+
+          <LinearGradient
+            colors={['#E56B89', '#C84E6D']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.financeBox, styles.financeBoxLast]}
+          >
+            <Text style={styles.financeLabel}>Spent</Text>
+            <Text style={styles.financeAmount}>
+              -{formatAmount(totalSpentToday)}
+            </Text>
+          </LinearGradient>
+        </RNView>
+      </RNView>
+    </RNView>
   );
 }
 
@@ -78,25 +96,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
+  todayLabelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   todayCard: {
     flexDirection: 'row',
     borderRadius: 24,
     padding: 16,
-    height: 150,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
+  // Left image container: square, takes left half
   todayImagesContainer: {
-    flex: 1,
+    flex: 1, // chiếm nửa trái
     marginRight: 12,
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.04)',
     justifyContent: 'center',
     alignItems: 'center',
+    aspectRatio: 1, // luôn hiển thị dạng hình vuông
   },
   todayImage: {
     width: '100%',
@@ -115,25 +139,30 @@ const styles = StyleSheet.create({
   },
   todayInfo: {
     flex: 1,
-    paddingLeft: 8,
-    justifyContent: 'center',
+    paddingLeft: 12,
+    justifyContent: 'space-between',
   },
-  todayTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  financeBox: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    justifyContent: 'center',
     marginBottom: 8,
   },
-  todayIncomeValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2ecc71',
-    marginTop: 4,
+  financeBoxLast: {
+    marginBottom: 0,
   },
-  todayExpenseValue: {
-    fontSize: 18,
+  financeLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+  },
+  financeAmount: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#e74c3c',
-    marginTop: 2,
+    color: '#fff',
   },
 });
 
