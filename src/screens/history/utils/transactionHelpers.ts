@@ -57,16 +57,27 @@ export const groupTransactionsByYear = (
   return groups;
 };
 
-// Single group key for "none" (flat list)
-export const FLAT_GROUP_KEY = "All";
-
-export const groupTransactionsFlat = (
+// Group transactions by day (key: "yyyy-MM-dd" for easy sorting)
+export const groupTransactionsByDay = (
   transactions: DatabaseTransaction[],
 ): Record<string, DatabaseTransaction[]> => {
-  const sorted = [...transactions].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-  );
-  return { [FLAT_GROUP_KEY]: sorted };
+  const groups: Record<string, DatabaseTransaction[]> = {};
+
+  transactions.forEach((transaction) => {
+    const date = transaction.createdAt;
+    const dayKey = format(date, "yyyy-MM-dd");
+
+    if (!groups[dayKey]) {
+      groups[dayKey] = [];
+    }
+    groups[dayKey].push(transaction);
+  });
+
+  Object.keys(groups).forEach((key) => {
+    groups[key].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  });
+
+  return groups;
 };
 
 // Sort month keys like "January 2026" (newest first)
@@ -78,13 +89,16 @@ export const sortMonthKeys = (monthKeys: string[]): string[] => {
   });
 };
 
-// Sort group keys: "All", or "2026"/"2025" (year), or "January 2026" (month)
+// Sort group keys: "yyyy-MM-dd" (day), "2026" (year), or "January 2026" (month)
 export const sortGroupKeys = (keys: string[]): string[] => {
   if (keys.length <= 1) return keys;
-  if (keys.includes(FLAT_GROUP_KEY)) return keys;
   const isYearFormat = keys.every((k) => /^\d{4}$/.test(k));
   if (isYearFormat) {
     return [...keys].sort((a, b) => Number(b) - Number(a));
+  }
+  const isDayFormat = keys.every((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
+  if (isDayFormat) {
+    return [...keys].sort((a, b) => b.localeCompare(a));
   }
   return sortMonthKeys(keys);
 };

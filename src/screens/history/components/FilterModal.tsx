@@ -16,7 +16,7 @@ import {
 } from "react-native";
 
 export type TransactionType = "all" | "income" | "spent";
-export type GroupBy = "none" | "month" | "year";
+export type GroupBy = "day" | "month" | "year";
 
 export interface FilterState {
   transactionType: TransactionType;
@@ -68,7 +68,7 @@ const DEFAULT_INCOME_OPTIONS: CategoryOption[] = [
 ];
 
 const GROUP_BY_OPTIONS: Array<{ value: GroupBy; label: string }> = [
-  { value: "none", label: "None" },
+  { value: "day", label: "By Day" },
   { value: "month", label: "By Month" },
   { value: "year", label: "By Year" },
 ];

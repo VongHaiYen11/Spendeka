@@ -12,11 +12,12 @@ import FilterButton from "./components/FilterButton";
 import FilterModal, { FilterState } from "./components/FilterModal";
 import Header from "./components/Header";
 import SearchBar from "./components/SearchBar";
+import { format, parseISO } from "date-fns";
 import {
   filterTransactions,
+  groupTransactionsByDay,
   groupTransactionsByMonth,
   groupTransactionsByYear,
-  groupTransactionsFlat,
   sortGroupKeys,
 } from "./utils/transactionHelpers";
 
@@ -65,8 +66,8 @@ export default function HistoryScreen() {
     if (filters.groupBy === "year") {
       return groupTransactionsByYear(filteredTransactions);
     }
-    if (filters.groupBy === "none") {
-      return groupTransactionsFlat(filteredTransactions);
+    if (filters.groupBy === "day") {
+      return groupTransactionsByDay(filteredTransactions);
     }
     return groupTransactionsByMonth(filteredTransactions);
   }, [filteredTransactions, filters.groupBy]);
@@ -128,13 +129,19 @@ export default function HistoryScreen() {
             </Text>
           </View>
         ) : (
-          sortedGroupKeys.map((groupKey) => (
-            <DateGroup
-              key={groupKey}
-              dateKey={groupKey}
-              transactions={groupedTransactions[groupKey] ?? []}
-            />
-          ))
+          sortedGroupKeys.map((groupKey) => {
+            const displayKey =
+              /^\d{4}-\d{2}-\d{2}$/.test(groupKey)
+                ? format(parseISO(groupKey), "MMM d, yyyy")
+                : groupKey;
+            return (
+              <DateGroup
+                key={groupKey}
+                dateKey={displayKey}
+                transactions={groupedTransactions[groupKey] ?? []}
+              />
+            );
+          })
         )}
       </ScrollView>
     </SafeView>
