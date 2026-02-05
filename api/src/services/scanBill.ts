@@ -12,11 +12,6 @@ export async function scanBillAndParse(
   originalName: string,
   size: number,
 ): Promise<{ rawText: string; parsed: ParsedTransactionFromText }> {
-  const sizeKb = (size / 1024).toFixed(1);
-  console.log(
-    `[scanBill] Incoming file "${originalName}" (${sizeKb} KB, ${size} bytes)`,
-  );
-
   if (!size || size <= 0) {
     await safeUnlink(filePath);
     throw new Error("Uploaded bill image is empty");
@@ -32,13 +27,10 @@ export async function scanBillAndParse(
   }
 
   try {
-    console.log(`[scanBill] Running OCR via Tesseract on "${originalName}" (vie+eng)`);
     // Support Vietnamese + English OCR
     const result = await Tesseract.recognize(filePath, "vie+eng", {
-      logger: (m) => {
-        if (m.status) {
-          console.log(`[scanBill][ocr] ${m.status} ${Math.round((m.progress || 0) * 100)}%`);
-        }
+      logger: () => {
+        // Logger disabled - no console output
       },
     });
 
@@ -47,10 +39,6 @@ export async function scanBillAndParse(
     if (!rawText) {
       throw new Error("OCR did not detect any text in the bill image.");
     }
-
-    console.log(
-      `[scanBill] OCR extracted ${rawText.length} characters of text from "${originalName}"`,
-    );
 
     const parsed = await parseTextToTransaction(rawText);
 
@@ -64,8 +52,9 @@ async function safeUnlink(path: string) {
   try {
     await fsPromises.unlink(path);
   } catch (err: any) {
+    // Ignore errors (file may not exist)
     if (err?.code !== "ENOENT") {
-      console.error(`[scanBill] Failed to delete temp file ${path}`, err);
+      // Silent fail for temp file cleanup
     }
   }
 }

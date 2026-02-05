@@ -128,7 +128,6 @@ export default function Home() {
       await reloadTransactions();
       closeScanModal();
     } catch (error: any) {
-      console.error('Failed to create transaction from scanned bill:', error);
       Alert.alert(
         'Error',
         error?.message || 'Could not create transaction from this bill.',

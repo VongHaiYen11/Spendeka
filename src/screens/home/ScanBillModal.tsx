@@ -85,7 +85,6 @@ export default function ScanBillModal({
       const asset = result.assets[0];
       setImageUri(asset.uri);
     } catch (error: any) {
-      console.error('handleTakePhoto error', error);
       setErrorMessage(
         error?.message || 'Failed to take photo. Please try again.',
       );
@@ -115,7 +114,6 @@ export default function ScanBillModal({
       const asset = result.assets[0];
       setImageUri(asset.uri);
     } catch (error: any) {
-      console.error('handlePickImage error', error);
       setErrorMessage(
         error?.message || 'Failed to pick image. Please try again.',
       );
@@ -220,7 +218,6 @@ export default function ScanBillModal({
         params,
       } as any);
     } catch (error: any) {
-      console.error('handleExtractAndCreate error', error);
       const rawMessage =
         typeof error?.message === 'string' ? error.message : undefined;
       setErrorMessage(

@@ -46,7 +46,6 @@ app.post("/text-to-transaction", async (req: Request, res: Response) => {
     // Return only the structured JSON; the client will map it to DatabaseTransaction.
     return res.json(parsed);
   } catch (error: any) {
-    console.error("text-to-transaction error", error);
     return res
       .status(500)
       .json({ error: error?.message || "Internal server error" });
@@ -65,9 +64,6 @@ app.post(
       }
 
       const { originalname, size, path } = file;
-      console.log(
-        `[scanBill] Received file "${originalname}" (${size} bytes) for scanning`,
-      );
 
       const { rawText, parsed } = await scanBillAndParse(
         path,
@@ -77,8 +73,6 @@ app.post(
 
       return res.json({ rawText, parsed });
     } catch (error: any) {
-      console.error("[scanBill] error", error);
-
       if (error?.code === "FILE_TOO_LARGE") {
         return res.status(413).json({
           error: error.message,

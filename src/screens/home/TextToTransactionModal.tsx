@@ -32,7 +32,6 @@ export default function TextToTransactionModal({
     if (!value.trim() || isLoading) return;
     try {
       setIsLoading(true);
-      console.log('TextToTransactionModal API_BASE_URL:', API_BASE_URL);
       const response = await fetch(`${API_BASE_URL}/text-to-transaction`, {
         method: 'POST',
         headers: {
@@ -63,7 +62,6 @@ export default function TextToTransactionModal({
         params,
       } as any);
     } catch (error: any) {
-      console.error('Failed to parse transaction text with Gemini:', error);
       Alert.alert(
         'Unable to parse',
         error?.message || 'Could not understand this text. Please adjust it and try again.',
