@@ -14,6 +14,7 @@ import { Expense } from '@/models/Expense';
 import { ExpenseDetailScreen } from '@/screens/camera';
 import { isSameDay } from 'date-fns';
 import TextToTransactionModal from './TextToTransactionModal';
+import SpeechToTransactionModal from './SpeechToTransactionModal';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
 import TodaySummaryCard from './TodaySummaryCard';
@@ -26,6 +27,7 @@ export default function Home() {
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
+  const [speechModalVisible, setSpeechModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const colorScheme = useColorScheme();
   const iconColor = Colors[colorScheme ?? 'light'].text;
@@ -92,6 +94,11 @@ export default function Home() {
   const closeTextModal = () => {
     setTextModalVisible(false);
     setTextInputValue('');
+  };
+
+  const openSpeechModal = () => setSpeechModalVisible(true);
+  const closeSpeechModal = () => {
+    setSpeechModalVisible(false);
   };
 
   const handleOpenTodayExpenseDetail = (expense: Expense) => {
@@ -163,6 +170,7 @@ export default function Home() {
         iconColor={iconColor}
         onPressHistory={handleGoHistory}
         onPressText={openTextModal}
+        onPressVoice={openSpeechModal}
       />
 
       <TodaySummaryCard
@@ -191,6 +199,13 @@ export default function Home() {
         value={textInputValue}
         onChangeText={setTextInputValue}
         onClose={closeTextModal}
+        onParsed={handleParsedTransaction}
+      />
+
+      {/* Speech to Transaction Modal */}
+      <SpeechToTransactionModal
+        visible={speechModalVisible}
+        onClose={closeSpeechModal}
         onParsed={handleParsedTransaction}
       />
     </SafeView>

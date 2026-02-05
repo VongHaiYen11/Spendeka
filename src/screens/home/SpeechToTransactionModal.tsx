@@ -3,36 +3,187 @@ import { API_BASE_URL } from "@/config/api";
 import { PRIMARY_COLOR } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { ParsedTransactionFromText } from "@/types/textToTransaction";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform, View as RNView, StyleSheet,
+  Platform,
+  View as RNView,
+  StyleSheet,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  Alert,
 } from "react-native";
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 
-interface TextToTransactionModalProps {
+interface SpeechToTransactionModalProps {
   visible: boolean;
-  value: string;
-  onChangeText: (text: string) => void;
   onClose: () => void;
   onParsed?: (parsed: ParsedTransactionFromText) => void;
 }
 
-export default function TextToTransactionModal({
+export default function SpeechToTransactionModal({
   visible,
-  value,
-  onChangeText,
   onClose,
   onParsed,
-}: TextToTransactionModalProps) {
+}: SpeechToTransactionModalProps) {
   const colorScheme = useColorScheme();
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const widgetBackgroundColor = useThemeColor({}, "card");
+
+  const [value, setValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState<string | null>(null);
+
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingTimeoutRef = useRef<any>(null);
+
+  const resetState = () => {
+    setValue("");
+    setIsLoading(false);
+    setErrorMessage(null);
+    setIsRecording(false);
+    setRecordingStatus(null);
+  };
+
+  const handleClose = () => {
+    // Make sure any recording is stopped when closing
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+    if (recordingRef.current) {
+      try {
+        recordingRef.current.stopAndUnloadAsync();
+      } catch {
+        // ignore
+      }
+      recordingRef.current = null;
+    }
+    resetState();
+    onClose();
+  };
+
+  const startRecording = async () => {
+    if (isRecording) return;
+
+    try {
+      setErrorMessage(null);
+      setRecordingStatus("Requesting microphone permission...");
+
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        setRecordingStatus(null);
+        Alert.alert(
+          "Microphone permission required",
+          "Please enable microphone access in your device settings to record audio.",
+        );
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(
+        Audio.RecordingOptionsPresets.LOW_QUALITY,
+      );
+      await recording.startAsync();
+
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingStatus("Recording... (auto-stops after ~10s)");
+
+      // Auto-stop after ~10 seconds to keep file size small for Whisper
+      recordingTimeoutRef.current = setTimeout(() => {
+        if (recordingRef.current && isRecording) {
+          stopRecordingAndTranscribe();
+        }
+      }, 10_000);
+    } catch (error: any) {
+      console.error("startRecording error", error);
+      setIsRecording(false);
+      setRecordingStatus(null);
+      setErrorMessage(
+        error?.message || "Failed to start recording. Please try again.",
+      );
+    }
+  };
+
+  const stopRecordingAndTranscribe = async () => {
+    if (!recordingRef.current) return;
+
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+
+    const recording = recordingRef.current;
+    recordingRef.current = null;
+
+    try {
+      setIsRecording(false);
+      setRecordingStatus("Processing recording...");
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+
+      if (!uri) {
+        setRecordingStatus(null);
+        setErrorMessage("No audio URI available after recording.");
+        return;
+      }
+
+      setRecordingStatus("Uploading for transcription...");
+
+      const formData = new FormData();
+      formData.append(
+        "file",
+        {
+          uri,
+          name: "recording.m4a",
+          type: "audio/m4a",
+        } as any,
+      );
+
+      const response = await fetch(`${API_BASE_URL}/transcribe`, {
+        method: "POST",
+        // Let React Native set the multipart/form-data boundary automatically.
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        const message =
+          error?.error ||
+          "Failed to transcribe audio. Please try again with a shorter recording.";
+        throw new Error(message);
+      }
+
+      const data = (await response.json()) as { transcript?: string };
+      const text = data?.transcript?.trim();
+
+      if (!text) {
+        throw new Error("Transcription returned empty text.");
+      }
+
+      setValue(text);
+      setRecordingStatus("Transcription complete. You can edit the text below.");
+    } catch (error: any) {
+      console.error("stopRecordingAndTranscribe error", error);
+      setRecordingStatus(null);
+      setErrorMessage(
+        error?.message ||
+          "Something went wrong while processing the recording. Please try again.",
+      );
+    }
+  };
 
   const handleCreate = async () => {
     if (!value.trim() || isLoading) return;
@@ -57,8 +208,7 @@ export default function TextToTransactionModal({
 
       const parsed: ParsedTransactionFromText = await response.json();
 
-      // KIỂM TRA ĐẦY ĐỦ tất cả các fields trước khi chuyển trang
-      // Validate ALL fields before proceeding to add-transaction page
+      // Reuse the same validation rules as TextToTransactionModal
       if (!parsed) {
         throw new Error("Invalid transaction data received from server");
       }
@@ -87,37 +237,24 @@ export default function TextToTransactionModal({
         throw new Error("Invalid createdAt in parsed transaction");
       }
 
-      // Validate createdAt is a valid date
       const dateCheck = new Date(parsed.createdAt);
       if (isNaN(dateCheck.getTime())) {
         throw new Error("Invalid date format in parsed transaction");
       }
 
-      // CHỈ KHI TẤT CẢ CHECK ĐỀU PASS mới chuyển trang
-      // Only navigate to add-transaction page after ALL validations pass
       if (onParsed) {
         onParsed(parsed);
       }
-      onClose();
+      handleClose();
     } catch (error: any) {
-      // Extract error message from backend
       const rawMessage =
         typeof error?.message === "string" ? error.message : undefined;
 
-      // Display backend error messages directly (they're already user-friendly)
-      // Examples:
-      // - "No number related to money was found in this text. Please include at least one amount (e.g. 25, 10.50, 100k) and try again."
-      // - "Could not extract a valid transaction from this text. Please include at least one clear money amount and enough details, then try again."
-      // - "Gemini API error: ..."
-      // - "Failed to parse Gemini response as JSON"
-      // - "Gemini response JSON is missing required fields"
       const userMessage =
         rawMessage ||
         "Invalid input. Please include at least one amount (e.g., $10, 25.50) and try again.";
 
       setErrorMessage(userMessage);
-      // KHÔNG gọi onParsed hoặc onClose khi có lỗi - giữ modal mở để người dùng sửa lại
-      // Do NOT call onParsed or onClose when there's an error - keep modal open for retry
     } finally {
       setIsLoading(false);
     }
@@ -128,12 +265,12 @@ export default function TextToTransactionModal({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={handleClose}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -147,11 +284,46 @@ export default function TextToTransactionModal({
               ]}
             >
               <Text style={[styles.modalHeading, { color: textColor }]}>
-                Text to Transaction
+                Speech to Transaction
               </Text>
               <Text style={[styles.modalInstruction, { color: textColor }]}>
-                Type something below. We'll try to turn it into a transaction.
+                Record your voice, review the recognized text, then we&apos;ll
+                turn it into a transaction.
               </Text>
+
+              <RNView style={styles.speechSection}>
+                <RNView style={styles.speechButtonsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.speechButton,
+                      {
+                        borderColor: isRecording ? "#e74c3c" : borderColor,
+                        backgroundColor: isRecording
+                          ? "#e74c3c22"
+                          : "transparent",
+                      },
+                    ]}
+                    onPress={
+                      isRecording
+                        ? stopRecordingAndTranscribe
+                        : startRecording
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.speechButtonText,
+                        { color: isRecording ? "#e74c3c" : textColor },
+                      ]}
+                    >
+                      {isRecording ? "Stop & Transcribe" : "Start Recording"}
+                    </Text>
+                  </TouchableOpacity>
+                </RNView>
+                {recordingStatus && (
+                  <Text style={styles.speechStatus}>{recordingStatus}</Text>
+                )}
+              </RNView>
+
               <TextInput
                 style={[
                   styles.modalInput,
@@ -161,30 +333,31 @@ export default function TextToTransactionModal({
                     backgroundColor: widgetBackgroundColor,
                   },
                 ]}
-                placeholder="e.g. Coffee $4.50, Lunch $12..."
+                placeholder="Recognized text will appear here. You can edit it before continuing."
                 placeholderTextColor={colorScheme === "dark" ? "#888" : "#999"}
                 value={value}
                 onChangeText={(text) => {
-                  onChangeText(text);
-                  // Clear error when user starts typing
+                  setValue(text);
                   if (errorMessage) setErrorMessage(null);
                 }}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
               />
+
               {errorMessage && (
                 <RNView style={styles.errorContainer}>
                   <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
                   <Text style={styles.errorHint}>
-                    Please adjust your text and try again.
+                    Please adjust your speech or the text and try again.
                   </Text>
                 </RNView>
               )}
+
               <RNView style={styles.modalButtons}>
                 <TouchableOpacity
                   style={[styles.modalCancelButton, { borderColor }]}
-                  onPress={onClose}
+                  onPress={handleClose}
                 >
                   <Text style={[styles.modalCancelText, { color: textColor }]}>
                     Cancel
@@ -199,10 +372,10 @@ export default function TextToTransactionModal({
                     },
                   ]}
                   onPress={handleCreate}
-                  disabled={isLoading}
+                  disabled={isLoading || !value.trim()}
                 >
                   <Text style={styles.modalCreateText}>
-                    {isLoading ? "Creating..." : "Create"}
+                    {isLoading ? "Creating..." : "Continue"}
                   </Text>
                 </TouchableOpacity>
               </RNView>
@@ -241,6 +414,30 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     marginBottom: 16,
     lineHeight: 20,
+  },
+  speechSection: {
+    marginBottom: 8,
+  },
+  speechButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  speechButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  speechButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  speechStatus: {
+    fontSize: 12,
+    opacity: 0.85,
+    marginBottom: 8,
   },
   modalInput: {
     borderWidth: 1,
@@ -292,3 +489,4 @@ const styles = StyleSheet.create({
     color: "#000",
   },
 });
+

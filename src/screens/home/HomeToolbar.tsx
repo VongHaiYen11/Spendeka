@@ -6,12 +6,14 @@ interface HomeToolbarProps {
   iconColor: string;
   onPressHistory: () => void;
   onPressText: () => void;
+  onPressVoice: () => void;
 }
 
 export default function HomeToolbar({
   iconColor,
   onPressHistory,
   onPressText,
+  onPressVoice,
 }: HomeToolbarProps) {
   return (
     <View style={styles.toolbarContainer}>
@@ -32,7 +34,7 @@ export default function HomeToolbar({
           <Ionicons name="text-outline" size={28} color={iconColor} />
           <Text style={styles.toolbarLabel}>Text</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolbarButton}>
+        <TouchableOpacity style={styles.toolbarButton} onPress={onPressVoice}>
           <Ionicons name="mic-outline" size={28} color={iconColor} />
           <Text style={styles.toolbarLabel}>Voice</Text>
         </TouchableOpacity>
