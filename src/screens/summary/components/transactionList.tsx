@@ -84,6 +84,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const router = useRouter();
   const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
   const textColor = useThemeColor({}, "text");
   const tintColor = useThemeColor({}, "tint");
   const isDark = backgroundColor === Colors.dark.background;
@@ -134,7 +135,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
         <View style={styles.header}>
           <Text style={styles.title}>Recent Transactions</Text>
         </View>
-        <View style={styles.emptyState}>
+        <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
           <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>
             No data
           </RNText>
