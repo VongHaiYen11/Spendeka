@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/config/api';
 import { ParsedTransactionFromText } from '@/types/textToTransaction';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 interface TextToTransactionModalProps {
   visible: boolean;
@@ -20,6 +21,7 @@ export default function TextToTransactionModal({
   onChangeText,
   onClose,
 }: TextToTransactionModalProps) {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
@@ -46,17 +48,20 @@ export default function TextToTransactionModal({
 
       const parsed: ParsedTransactionFromText = await response.json();
 
-      // For now, just log the parsed transaction.
-      // Later you can hook this into createAndSaveTransaction or pre-fill the add-transaction form.
-      console.log('Parsed transaction from Gemini:', parsed);
-
-      // Show parsed transaction to make the response visible on device
-      Alert.alert(
-        'Parsed transaction',
-        JSON.stringify(parsed, null, 2),
-      );
+      // Navigate to add-transaction screen with pre-filled fields
+      const params: Record<string, string> = {
+        caption: parsed.caption ?? '',
+        amount: String(parsed.amount ?? ''),
+        type: parsed.type ?? 'spent',
+        category: parsed.category ?? '',
+        createdAt: parsed.createdAt ?? '',
+      };
 
       onClose();
+      router.push({
+        pathname: '/add-transaction',
+        params,
+      } as any);
     } catch (error: any) {
       console.error('Failed to parse transaction text with Gemini:', error);
       Alert.alert(

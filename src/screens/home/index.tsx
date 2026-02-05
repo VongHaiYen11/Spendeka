@@ -6,19 +6,24 @@ import { Expense } from '@/models/Expense';
 import {
   getSavedAmountByDateRange,
   getSpentAmountByDateRange,
+  createAndSaveTransaction,
+  generateTransactionId,
 } from '@/services/TransactionService';
 import { formatDollar } from '@/utils/formatCurrency';
 import { getDateRange } from '@/utils/getDateRange';
 import { isSameDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StatusBar, StyleSheet, ScrollView } from 'react-native';
+import { Alert, StatusBar, StyleSheet, ScrollView } from 'react-native';
 import Overview from '@/screens/summary/components/overview';
 import ChartCategories from '@/screens/summary/components/chartCategories';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
 import TextToTransactionModal from './TextToTransactionModal';
+import ScanBillModal from './ScanBillModal';
 import TodaySummaryCard from './TodaySummaryCard';
+import { ParsedTransactionFromText } from '@/types/textToTransaction';
+import type { DatabaseTransaction } from '@/types/transaction';
 
 export default function Home() {
   const router = useRouter();
@@ -26,6 +31,7 @@ export default function Home() {
   const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
+  const [scanModalVisible, setScanModalVisible] = useState(false);
   const [totalIncomeToday, setTotalIncomeToday] = useState(0);
   const [totalSpentToday, setTotalSpentToday] = useState(0);
   const colorScheme = useColorScheme();
@@ -100,6 +106,36 @@ export default function Home() {
     setTextInputValue('');
   };
 
+  const openScanModal = () => setScanModalVisible(true);
+  const closeScanModal = () => {
+    setScanModalVisible(false);
+  };
+
+  const handleParsedFromScan = async (parsed: ParsedTransactionFromText) => {
+    try {
+      const tx: DatabaseTransaction = {
+        id: generateTransactionId(),
+        caption: parsed.caption,
+        amount: parsed.amount,
+        // Parsed category is already aligned with TransactionCategory union
+        // used on the frontend.
+        category: parsed.category as any,
+        type: parsed.type,
+        createdAt: new Date(parsed.createdAt),
+      };
+
+      await createAndSaveTransaction(tx);
+      await reloadTransactions();
+      closeScanModal();
+    } catch (error: any) {
+      console.error('Failed to create transaction from scanned bill:', error);
+      Alert.alert(
+        'Error',
+        error?.message || 'Could not create transaction from this bill.',
+      );
+    }
+  };
+
   const handleOpenCameraFromToday = () => {
     router.push('/camera' as import('expo-router').Href);
   };
@@ -112,6 +148,7 @@ export default function Home() {
       <HomeToolbar
         iconColor={iconColor}
         onPressHistory={handleGoHistory}
+        onPressScan={openScanModal}
         onPressText={openTextModal}
       />
 
@@ -150,6 +187,13 @@ export default function Home() {
         value={textInputValue}
         onChangeText={setTextInputValue}
         onClose={closeTextModal}
+      />
+
+      {/* Scan Bill Modal */}
+      <ScanBillModal
+        visible={scanModalVisible}
+        onClose={closeScanModal}
+        onParsed={handleParsedFromScan}
       />
     </SafeView>
   );
