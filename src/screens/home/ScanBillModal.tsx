@@ -373,13 +373,13 @@ const styles = StyleSheet.create({
   modalInstruction: {
     fontSize: 14,
     opacity: 0.85,
-    marginBottom: 16,
+    marginBottom: 24,
     lineHeight: 20,
   },
   uploadButton: {
     borderWidth: 1,
     borderRadius: 12,
-    paddingVertical: 24,
+    paddingVertical: 60,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -442,6 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+    marginTop: 12,
   },
   modalCancelButton: {
     paddingVertical: 12,

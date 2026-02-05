@@ -95,7 +95,7 @@ export default function TextToTransactionModal({
                 Text to Transaction
               </Text>
               <Text style={[styles.modalInstruction, { color: textColor }]}>
-                Type something below. We'll try to turn it into a transaction.
+              Describe your expense or income.
               </Text>
               <TextInput
                 style={[
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   modalInstruction: {
     fontSize: 14,
     opacity: 0.85,
-    marginBottom: 16,
+    marginBottom: 24,
     lineHeight: 20,
   },
   modalInput: {
@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+    marginTop: 12,
   },
   modalCancelButton: {
     paddingVertical: 12,
