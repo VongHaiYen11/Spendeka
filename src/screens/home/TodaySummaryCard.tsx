@@ -1,8 +1,8 @@
 import { Text } from '@/components/Themed';
-import { Expense } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, View as RNView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Expense } from '@/models/Expense';
 
 interface TodaySummaryCardProps {
   colorScheme: 'light' | 'dark' | null;
@@ -11,7 +11,7 @@ interface TodaySummaryCardProps {
   todayExpenses: Expense[];
   totalIncomeToday: number;
   totalSpentToday: number;
-  onOpenExpense: (expense: Expense) => void;
+  onOpenCamera: () => void;
   formatAmount: (value: number) => string;
 }
 
@@ -22,7 +22,7 @@ export default function TodaySummaryCard({
   todayExpenses,
   totalIncomeToday,
   totalSpentToday,
-  onOpenExpense,
+  onOpenCamera,
   formatAmount,
 }: TodaySummaryCardProps) {
   return (
@@ -32,13 +32,8 @@ export default function TodaySummaryCard({
         {/* Left: today's latest photo */}
         <TouchableOpacity
           style={styles.todayImagesContainer}
-          activeOpacity={todayExpenses.length ? 0.8 : 1}
-          disabled={!todayExpenses.length}
-          onPress={() => {
-            if (todayExpenses.length) {
-              onOpenExpense(todayExpenses[0]);
-            }
-          }}
+          activeOpacity={0.8}
+          onPress={onOpenCamera}
         >
           {todayExpenses.length ? (
             <Image
@@ -93,8 +88,8 @@ export default function TodaySummaryCard({
 
 const styles = StyleSheet.create({
   todayCardWrapper: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   todayLabelText: {
     fontSize: 16,
@@ -103,13 +98,13 @@ const styles = StyleSheet.create({
   },
   todayCard: {
     flexDirection: 'row',
-    borderRadius: 24,
+    borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 3,
   },
   // Left image container: square, takes left half
   todayImagesContainer: {

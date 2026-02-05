@@ -1,3 +1,5 @@
+import { formatDollar } from '@/utils/formatCurrency';
+
 // Expense model (used for both expense and income transactions when converted from DB)
 export interface Expense {
   id: string;
@@ -115,11 +117,7 @@ export const getCategoryDisplayInfo = (
   return { label: "Other", icon: "ellipsis-horizontal", color: "#AEB6BF" };
 };
 
-// Format amount
+// Format amount in USD (shared across camera/history views)
 export const formatAmount = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatDollar(amount);
 };

@@ -8,10 +8,13 @@ import {
   getSpentAmountByDateRange,
 } from '@/services/TransactionService';
 import { formatDollar } from '@/utils/formatCurrency';
+import { getDateRange } from '@/utils/getDateRange';
 import { isSameDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
+import { StatusBar, StyleSheet, ScrollView } from 'react-native';
+import Overview from '@/screens/summary/components/overview';
+import ChartCategories from '@/screens/summary/components/chartCategories';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
 import TextToTransactionModal from './TextToTransactionModal';
@@ -29,6 +32,13 @@ export default function Home() {
   const iconColor = Colors[colorScheme ?? 'light'].text;
   const textColor = useThemeColor({}, 'text');
   const todayCardBackground = colorScheme === 'dark' ? '#1a1a1a' : '#ffffff';
+
+  // Range for embedded Summary charts on Home (fixed to "day")
+  const homeRange: 'day' = 'day';
+  const homeCurrentDate = new Date();
+  const { start: homeStart, end: homeEnd } = getDateRange(homeRange, homeCurrentDate);
+  const homeStartDate = homeStart || new Date();
+  const homeEndDate = homeEnd || new Date();
 
   const expenses = useMemo<Expense[]>(() => {
     return transactions
@@ -80,10 +90,6 @@ export default function Home() {
 
   const formatAmount = (value: number) => formatDollar(value);
 
-  const handleDump = () => {
-    router.push('/add-transaction' as import('expo-router').Href);
-  };
-
   const handleGoHistory = () => {
     router.push('/history' as import('expo-router').Href);
   };
@@ -94,11 +100,8 @@ export default function Home() {
     setTextInputValue('');
   };
 
-  const handleOpenTodayExpenseDetail = (expense: Expense) => {
-    router.push({
-      pathname: '/camera',
-      params: { openExpenseId: expense.id },
-    } as import('expo-router').Href);
+  const handleOpenCameraFromToday = () => {
+    router.push('/camera' as import('expo-router').Href);
   };
 
   return (
@@ -112,16 +115,34 @@ export default function Home() {
         onPressText={openTextModal}
       />
 
-      <TodaySummaryCard
-        colorScheme={colorScheme}
-        textColor={textColor}
-        backgroundColor={todayCardBackground}
-        todayExpenses={todayExpenses}
-        totalIncomeToday={totalIncomeToday}
-        totalSpentToday={totalSpentToday}
-        onOpenExpense={handleOpenTodayExpenseDetail}
-        formatAmount={formatAmount}
-      />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <TodaySummaryCard
+          colorScheme={colorScheme}
+          textColor={textColor}
+          backgroundColor={todayCardBackground}
+          todayExpenses={todayExpenses}
+          totalIncomeToday={totalIncomeToday}
+          totalSpentToday={totalSpentToday}
+          onOpenCamera={handleOpenCameraFromToday}
+          formatAmount={formatAmount}
+        />
+
+        {/* Summary-style sections: Overview & Categories (same layout as Summary tab) */}
+        <Overview
+          startDate={homeStartDate}
+          endDate={homeEndDate}
+          range={homeRange}
+        />
+        <ChartCategories
+          startDate={homeStartDate}
+          endDate={homeEndDate}
+          range={homeRange}
+        />
+      </ScrollView>
 
       {/* Text to Transaction Modal */}
       <TextToTransactionModal
@@ -137,6 +158,12 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
 });
 
