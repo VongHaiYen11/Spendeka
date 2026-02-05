@@ -1,6 +1,16 @@
 import { DatabaseTransaction } from "@/types/transaction";
 import { format } from "date-fns";
 
+function isDateInRange(date: Date, startDate: Date, endDate: Date): boolean {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+  return d >= start && d <= end;
+}
+
 // Group transactions by month
 export const groupTransactionsByMonth = (
   transactions: DatabaseTransaction[],
@@ -9,7 +19,6 @@ export const groupTransactionsByMonth = (
 
   transactions.forEach((transaction) => {
     const date = transaction.createdAt;
-    // Format as "MMMM yyyy" (e.g., "January 2026")
     const monthKey = format(date, "MMMM yyyy");
 
     if (!groups[monthKey]) {
@@ -18,7 +27,6 @@ export const groupTransactionsByMonth = (
     groups[monthKey].push(transaction);
   });
 
-  // Sort transactions within each group by date (newest first)
   Object.keys(groups).forEach((key) => {
     groups[key].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   });
@@ -26,19 +34,62 @@ export const groupTransactionsByMonth = (
   return groups;
 };
 
-// Sort month groups by date (newest first)
+// Group transactions by year
+export const groupTransactionsByYear = (
+  transactions: DatabaseTransaction[],
+) => {
+  const groups: Record<string, DatabaseTransaction[]> = {};
+
+  transactions.forEach((transaction) => {
+    const date = transaction.createdAt;
+    const yearKey = format(date, "yyyy");
+
+    if (!groups[yearKey]) {
+      groups[yearKey] = [];
+    }
+    groups[yearKey].push(transaction);
+  });
+
+  Object.keys(groups).forEach((key) => {
+    groups[key].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  });
+
+  return groups;
+};
+
+// Single group key for "none" (flat list)
+export const FLAT_GROUP_KEY = "All";
+
+export const groupTransactionsFlat = (
+  transactions: DatabaseTransaction[],
+): Record<string, DatabaseTransaction[]> => {
+  const sorted = [...transactions].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  );
+  return { [FLAT_GROUP_KEY]: sorted };
+};
+
+// Sort month keys like "January 2026" (newest first)
 export const sortMonthKeys = (monthKeys: string[]): string[] => {
-  return monthKeys.sort((a, b) => {
-    // Parse "MMMM yyyy" format back to dates for comparison
-    // Create dates from the month strings (e.g., "January 2026" -> Date)
-    const dateA = new Date(a + " 1"); // Add day 1 to make it a valid date
+  return [...monthKeys].sort((a, b) => {
+    const dateA = new Date(a + " 1");
     const dateB = new Date(b + " 1");
-    // Compare in reverse (newest first)
     return dateB.getTime() - dateA.getTime();
   });
 };
 
-// Filter transactions by search query and filters
+// Sort group keys: "All", or "2026"/"2025" (year), or "January 2026" (month)
+export const sortGroupKeys = (keys: string[]): string[] => {
+  if (keys.length <= 1) return keys;
+  if (keys.includes(FLAT_GROUP_KEY)) return keys;
+  const isYearFormat = keys.every((k) => /^\d{4}$/.test(k));
+  if (isYearFormat) {
+    return [...keys].sort((a, b) => Number(b) - Number(a));
+  }
+  return sortMonthKeys(keys);
+};
+
+// Filter transactions by search query and filters (includes optional date range)
 export const filterTransactions = (
   transactions: DatabaseTransaction[],
   searchQuery: string,
@@ -47,20 +98,29 @@ export const filterTransactions = (
     categories?: string[];
     minAmount?: string;
     maxAmount?: string;
+    startDate?: Date | null;
+    endDate?: Date | null;
   },
 ): DatabaseTransaction[] => {
   let filtered = transactions;
 
-  // Filter by transaction type
-  if (filters?.transactionType && filters.transactionType !== "all") {
-    filtered = filtered.filter((t) => {
-      return t.type === filters.transactionType;
-    });
+  // Filter by date range first
+  if (filters?.startDate && filters?.endDate) {
+    filtered = filtered.filter((t) =>
+      isDateInRange(t.createdAt, filters.startDate!, filters.endDate!),
+    );
   }
 
-  // Filter by categories
+  // Filter by transaction type
+  if (filters?.transactionType && filters.transactionType !== "all") {
+    filtered = filtered.filter((t) => t.type === filters.transactionType);
+  }
+
+  // Filter by categories (category values, e.g. "food", "transport")
   if (filters?.categories && filters.categories.length > 0) {
-    filtered = filtered.filter((t) => filters.categories!.includes(t.category));
+    filtered = filtered.filter((t) =>
+      filters.categories!.includes(t.category),
+    );
   }
 
   // Filter by amount range

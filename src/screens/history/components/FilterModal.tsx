@@ -1,9 +1,12 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import Colors from "@/constants/Colors";
-import { format } from "date-fns";
-import React, { useState } from "react";
+import Colors, { PRIMARY_COLOR } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { format, isToday } from "date-fns";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Calendar, DateData } from "react-native-calendars";
 
 export type TransactionType = "all" | "income" | "spent";
 export type GroupBy = "none" | "month" | "year";
@@ -26,11 +28,19 @@ export interface FilterState {
   groupBy: GroupBy;
 }
 
+export interface CategoryOption {
+  value: string;
+  label: string;
+}
+
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
   onApply?: (filters: FilterState) => void;
-  availableCategories?: string[];
+  /** Current filters to show when modal opens (syncs modal state when visible) */
+  initialFilters?: FilterState | null;
+  /** Category options with value (e.g. "food") and label (e.g. "Food") */
+  availableCategories?: CategoryOption[];
 }
 
 const TRANSACTION_TYPE_OPTIONS: Array<{
@@ -42,14 +52,13 @@ const TRANSACTION_TYPE_OPTIONS: Array<{
   { value: "spent", label: "Spent" },
 ];
 
-const DEFAULT_CATEGORIES = [
-  "Food",
-  "Transport",
-  "Shopping",
-  "Rent",
-  "Salary",
-  "Bonus",
-  "Freelance",
+const DEFAULT_CATEGORY_OPTIONS: CategoryOption[] = [
+  { value: "food", label: "Food" },
+  { value: "transport", label: "Transport" },
+  { value: "shopping", label: "Shopping" },
+  { value: "salary", label: "Salary" },
+  { value: "freelance", label: "Freelance" },
+  { value: "other", label: "Other" },
 ];
 
 const GROUP_BY_OPTIONS: Array<{ value: GroupBy; label: string }> = [
@@ -62,13 +71,15 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   visible,
   onClose,
   onApply,
-  availableCategories = DEFAULT_CATEGORIES,
+  initialFilters = null,
+  availableCategories = DEFAULT_CATEGORY_OPTIONS,
 }) => {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const isDark = backgroundColor === Colors.dark.background;
+  const colorScheme = useColorScheme();
+  const themeVariant = colorScheme === "dark" ? "dark" : "light";
 
-  // UI-only state - no data logic
   const [transactionType, setTransactionType] =
     useState<TransactionType>("all");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -77,20 +88,35 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [groupBy, setGroupBy] = useState<GroupBy>("month");
-  const [showStartCalendar, setShowStartCalendar] = useState(false);
-  const [showEndCalendar, setShowEndCalendar] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const prevVisibleRef = useRef(false);
+  useEffect(() => {
+    const justOpened = visible && !prevVisibleRef.current;
+    prevVisibleRef.current = visible;
+    if (justOpened && initialFilters) {
+      setTransactionType(initialFilters.transactionType);
+      setSelectedCategories(initialFilters.categories ?? []);
+      setMinAmount(initialFilters.minAmount ?? "");
+      setMaxAmount(initialFilters.maxAmount ?? "");
+      setStartDate(initialFilters.startDate ?? null);
+      setEndDate(initialFilters.endDate ?? null);
+      setGroupBy(initialFilters.groupBy ?? "month");
+    }
+  }, [visible, initialFilters]);
 
   // UI-only handlers - no data processing
   const handleTransactionTypeChange = (type: TransactionType) => {
     setTransactionType(type);
   };
 
-  const handleCategoryToggle = (category: string) => {
+  const handleCategoryToggle = (value: string) => {
     setSelectedCategories((prev) => {
-      const isSelected = prev.includes(category);
+      const isSelected = prev.includes(value);
       return isSelected
-        ? prev.filter((c) => c !== category)
-        : [...prev, category];
+        ? prev.filter((c) => c !== value)
+        : [...prev, value];
     });
   };
 
@@ -102,14 +128,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     setMaxAmount(value);
   };
 
-  const handleStartDateSelect = (day: DateData) => {
-    setStartDate(new Date(day.timestamp));
-    setShowStartCalendar(false);
+  const handleStartDateChange = (date: Date) => {
+    setStartDate(date);
   };
 
-  const handleEndDateSelect = (day: DateData) => {
-    setEndDate(new Date(day.timestamp));
-    setShowEndCalendar(false);
+  const handleEndDateChange = (date: Date) => {
+    setEndDate(date);
   };
 
   const handleGroupByChange = (value: GroupBy) => {
@@ -194,8 +218,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
           <ScrollView
             style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             contentContainerStyle={styles.scrollContent}
+            bounces={true}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Transaction Type Section */}
             <View style={styles.section}>
@@ -248,12 +274,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 Select one or more categories
               </Text>
               <View style={styles.categoriesContainer}>
-                {availableCategories.map((category) => {
-                  const isSelected = selectedCategories.includes(category);
+                {availableCategories.map((opt) => {
+                  const isSelected = selectedCategories.includes(opt.value);
                   return (
                     <TouchableOpacity
-                      key={category}
-                      onPress={() => handleCategoryToggle(category)}
+                      key={opt.value}
+                      onPress={() => handleCategoryToggle(opt.value)}
                       style={[
                         styles.categoryChip,
                         {
@@ -271,7 +297,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                           },
                         ]}
                       >
-                        {category}
+                        {opt.label}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -359,10 +385,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     Start Date
                   </Text>
                   <TouchableOpacity
-                    onPress={() => {
-                      setShowEndCalendar(false);
-                      setShowStartCalendar(!showStartCalendar);
-                    }}
+                    onPress={() => setShowStartDatePicker(true)}
                     style={[
                       styles.dateButton,
                       {
@@ -384,7 +407,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       ]}
                     >
                       {startDate
-                        ? format(startDate, "MMM dd, yyyy")
+                        ? isToday(startDate)
+                          ? "Today"
+                          : format(startDate, "MMM d, yyyy")
                         : "Select start date"}
                     </Text>
                     {startDate && (
@@ -406,37 +431,32 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       </TouchableOpacity>
                     )}
                   </TouchableOpacity>
-                  {showStartCalendar && (
-                    <View style={styles.calendarContainer}>
-                      <Calendar
-                        current={
-                          startDate?.toISOString().split("T")[0] ||
-                          new Date().toISOString().split("T")[0]
-                        }
-                        onDayPress={handleStartDateSelect}
-                        markedDates={
-                          startDate
-                            ? {
-                                [startDate.toISOString().split("T")[0]]: {
-                                  selected: true,
-                                  selectedColor: themeColors.activeBg,
-                                },
-                              }
-                            : {}
-                        }
-                        theme={{
-                          backgroundColor: themeColors.bg,
-                          calendarBackground: themeColors.bg,
-                          textSectionTitleColor: isDark ? "#9ca3af" : "#6b7280",
-                          dayTextColor: themeColors.text,
-                          todayTextColor: themeColors.activeBg,
-                          selectedDayTextColor: "#ffffff",
-                          monthTextColor: themeColors.text,
-                          arrowColor: themeColors.text,
-                          textDisabledColor: isDark ? "#4b5563" : "#d1d5db",
+                  {showStartDatePicker && (
+                    <View style={styles.inlineDatePickerWrap}>
+                      <DateTimePicker
+                        value={startDate || new Date()}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={(_, date) => {
+                          if (date) {
+                            handleStartDateChange(date);
+                            if (Platform.OS === "android") setShowStartDatePicker(false);
+                          }
                         }}
-                        style={styles.calendar}
+                        maximumDate={new Date()}
+                        themeVariant={themeVariant}
+                        style={Platform.OS === "android" ? styles.androidDatePicker : undefined}
                       />
+                      {Platform.OS === "ios" && (
+                        <TouchableOpacity
+                          onPress={() => setShowStartDatePicker(false)}
+                          style={styles.inlineDatePickerDone}
+                        >
+                          <Text style={[styles.inlineDatePickerDoneText, { color: PRIMARY_COLOR }]}>
+                            Done
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -445,10 +465,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     End Date
                   </Text>
                   <TouchableOpacity
-                    onPress={() => {
-                      setShowStartCalendar(false);
-                      setShowEndCalendar(!showEndCalendar);
-                    }}
+                    onPress={() => setShowEndDatePicker(true)}
                     style={[
                       styles.dateButton,
                       {
@@ -470,7 +487,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       ]}
                     >
                       {endDate
-                        ? format(endDate, "MMM dd, yyyy")
+                        ? isToday(endDate)
+                          ? "Today"
+                          : format(endDate, "MMM d, yyyy")
                         : "Select end date"}
                     </Text>
                     {endDate && (
@@ -492,37 +511,32 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       </TouchableOpacity>
                     )}
                   </TouchableOpacity>
-                  {showEndCalendar && (
-                    <View style={styles.calendarContainer}>
-                      <Calendar
-                        current={
-                          endDate?.toISOString().split("T")[0] ||
-                          new Date().toISOString().split("T")[0]
-                        }
-                        onDayPress={handleEndDateSelect}
-                        markedDates={
-                          endDate
-                            ? {
-                                [endDate.toISOString().split("T")[0]]: {
-                                  selected: true,
-                                  selectedColor: themeColors.activeBg,
-                                },
-                              }
-                            : {}
-                        }
-                        theme={{
-                          backgroundColor: themeColors.bg,
-                          calendarBackground: themeColors.bg,
-                          textSectionTitleColor: isDark ? "#9ca3af" : "#6b7280",
-                          dayTextColor: themeColors.text,
-                          todayTextColor: themeColors.activeBg,
-                          selectedDayTextColor: "#ffffff",
-                          monthTextColor: themeColors.text,
-                          arrowColor: themeColors.text,
-                          textDisabledColor: isDark ? "#4b5563" : "#d1d5db",
+                  {showEndDatePicker && (
+                    <View style={styles.inlineDatePickerWrap}>
+                      <DateTimePicker
+                        value={endDate || new Date()}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={(_, date) => {
+                          if (date) {
+                            handleEndDateChange(date);
+                            if (Platform.OS === "android") setShowEndDatePicker(false);
+                          }
                         }}
-                        style={styles.calendar}
+                        maximumDate={new Date()}
+                        themeVariant={themeVariant}
+                        style={Platform.OS === "android" ? styles.androidDatePicker : undefined}
                       />
+                      {Platform.OS === "ios" && (
+                        <TouchableOpacity
+                          onPress={() => setShowEndDatePicker(false)}
+                          style={styles.inlineDatePickerDone}
+                        >
+                          <Text style={[styles.inlineDatePickerDoneText, { color: PRIMARY_COLOR }]}>
+                            Done
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -631,17 +645,17 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContainer: {
+    width: "100%",
+    height: "90%",
+    maxHeight: "90%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: "90%",
     flexDirection: "column",
+    overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 8,
     elevation: 5,
   },
   header: {
@@ -769,13 +783,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "300",
   },
-  calendarContainer: {
+  inlineDatePickerWrap: {
     marginTop: 8,
-    borderRadius: 8,
-    overflow: "hidden",
+    alignItems: "center",
   },
-  calendar: {
-    borderRadius: 8,
+  androidDatePicker: {
+    alignSelf: "center",
+  },
+  inlineDatePickerDone: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignSelf: "flex-end",
+  },
+  inlineDatePickerDoneText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   footer: {
     flexDirection: "row",

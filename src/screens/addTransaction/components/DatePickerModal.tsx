@@ -42,7 +42,7 @@ export default function DatePickerModal({
     DateTimePickerAndroid.open({
       value,
       mode: "date",
-      display: "calendar",
+      display: "default",
       maximumDate: new Date(),
       themeVariant,
       onChange: (event, selectedDate) => {

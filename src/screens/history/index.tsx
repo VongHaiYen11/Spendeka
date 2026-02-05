@@ -1,5 +1,9 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
+import {
+  EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
+} from "@/models/Expense";
 import { DatabaseTransaction } from "@/types/transaction";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -9,9 +13,11 @@ import FilterModal, { FilterState } from "./components/FilterModal";
 import Header from "./components/Header";
 import SearchBar from "./components/SearchBar";
 import {
-    filterTransactions,
-    groupTransactionsByMonth,
-    sortMonthKeys,
+  filterTransactions,
+  groupTransactionsByMonth,
+  groupTransactionsByYear,
+  groupTransactionsFlat,
+  sortGroupKeys,
 } from "./utils/transactionHelpers";
 
 export default function HistoryScreen() {
@@ -31,7 +37,6 @@ export default function HistoryScreen() {
     groupBy: "month",
   });
 
-  // Transaction History always shows all transactions (not filtered by date range)
   const { transactions: allTransactions } = useTransactions();
 
   const filteredTransactions = useMemo(() => {
@@ -40,18 +45,32 @@ export default function HistoryScreen() {
       categories: filters.categories,
       minAmount: filters.minAmount,
       maxAmount: filters.maxAmount,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
     });
   }, [allTransactions, searchQuery, filters]);
 
-  // Group by month
   const groupedTransactions = useMemo(() => {
+    if (filters.groupBy === "year") {
+      return groupTransactionsByYear(filteredTransactions);
+    }
+    if (filters.groupBy === "none") {
+      return groupTransactionsFlat(filteredTransactions);
+    }
     return groupTransactionsByMonth(filteredTransactions);
-  }, [filteredTransactions]);
+  }, [filteredTransactions, filters.groupBy]);
 
-  // Sort month groups (newest first)
-  const sortedMonthKeys = useMemo(() => {
-    return sortMonthKeys(Object.keys(groupedTransactions));
+  const sortedGroupKeys = useMemo(() => {
+    return sortGroupKeys(Object.keys(groupedTransactions));
   }, [groupedTransactions]);
+
+  const categoryOptions = useMemo(
+    () => [
+      ...EXPENSE_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
+      ...INCOME_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
+    ],
+    [],
+  );
 
   return (
     <SafeView style={styles.container}>
@@ -67,6 +86,8 @@ export default function HistoryScreen() {
       <FilterModal
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
+        initialFilters={filters}
+        availableCategories={categoryOptions}
         onApply={(newFilters) => {
           setFilters(newFilters);
         }}
@@ -78,18 +99,18 @@ export default function HistoryScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {sortedMonthKeys.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyText, { color: textColor }]}>
               No transactions found
             </Text>
           </View>
         ) : (
-          sortedMonthKeys.map((monthKey) => (
+          sortedGroupKeys.map((groupKey) => (
             <DateGroup
-              key={monthKey}
-              dateKey={monthKey}
-              transactions={groupedTransactions[monthKey]}
+              key={groupKey}
+              dateKey={groupKey}
+              transactions={groupedTransactions[groupKey] ?? []}
             />
           ))
         )}
