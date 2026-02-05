@@ -4,9 +4,9 @@ import {
   EXPENSE_CATEGORIES_EN,
   INCOME_CATEGORIES_EN,
 } from "@/models/Expense";
-import { DatabaseTransaction } from "@/types/transaction";
-import React, { useMemo, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import DateGroup from "./components/DateGroup";
 import FilterButton from "./components/FilterButton";
 import FilterModal, { FilterState } from "./components/FilterModal";
@@ -37,7 +37,18 @@ export default function HistoryScreen() {
     groupBy: "month",
   });
 
-  const { transactions: allTransactions } = useTransactions();
+  const {
+    transactions: allTransactions,
+    isLoading,
+    refreshTransactions,
+  } = useTransactions();
+
+  // Refresh transactions when user navigates to this screen (e.g. from Home toolbar)
+  useFocusEffect(
+    useCallback(() => {
+      refreshTransactions();
+    }, [refreshTransactions])
+  );
 
   const filteredTransactions = useMemo(() => {
     return filterTransactions(allTransactions, searchQuery, {
@@ -64,11 +75,14 @@ export default function HistoryScreen() {
     return sortGroupKeys(Object.keys(groupedTransactions));
   }, [groupedTransactions]);
 
-  const categoryOptions = useMemo(
-    () => [
-      ...EXPENSE_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
-      ...INCOME_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
-    ],
+  const expenseCategoryOptions = useMemo(
+    () =>
+      EXPENSE_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
+    [],
+  );
+  const incomeCategoryOptions = useMemo(
+    () =>
+      INCOME_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
     [],
   );
 
@@ -87,7 +101,8 @@ export default function HistoryScreen() {
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         initialFilters={filters}
-        availableCategories={categoryOptions}
+        expenseCategoryOptions={expenseCategoryOptions}
+        incomeCategoryOptions={incomeCategoryOptions}
         onApply={(newFilters) => {
           setFilters(newFilters);
         }}
@@ -99,7 +114,14 @@ export default function HistoryScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredTransactions.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={textColor} />
+            <Text style={[styles.emptyText, { color: textColor }]}>
+              Loading...
+            </Text>
+          </View>
+        ) : filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyText, { color: textColor }]}>
               No transactions found

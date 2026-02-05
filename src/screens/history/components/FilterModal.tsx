@@ -3,7 +3,7 @@ import Colors, { PRIMARY_COLOR } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { format, isToday } from "date-fns";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -39,8 +39,10 @@ interface FilterModalProps {
   onApply?: (filters: FilterState) => void;
   /** Current filters to show when modal opens (syncs modal state when visible) */
   initialFilters?: FilterState | null;
-  /** Category options with value (e.g. "food") and label (e.g. "Food") */
-  availableCategories?: CategoryOption[];
+  /** Expense category options (shown when type is "spent") */
+  expenseCategoryOptions?: CategoryOption[];
+  /** Income category options (shown when type is "income") */
+  incomeCategoryOptions?: CategoryOption[];
 }
 
 const TRANSACTION_TYPE_OPTIONS: Array<{
@@ -52,13 +54,17 @@ const TRANSACTION_TYPE_OPTIONS: Array<{
   { value: "spent", label: "Spent" },
 ];
 
-const DEFAULT_CATEGORY_OPTIONS: CategoryOption[] = [
+const DEFAULT_EXPENSE_OPTIONS: CategoryOption[] = [
   { value: "food", label: "Food" },
   { value: "transport", label: "Transport" },
   { value: "shopping", label: "Shopping" },
+  { value: "other", label: "Other" },
+];
+
+const DEFAULT_INCOME_OPTIONS: CategoryOption[] = [
   { value: "salary", label: "Salary" },
   { value: "freelance", label: "Freelance" },
-  { value: "other", label: "Other" },
+  { value: "other_income", label: "Other" },
 ];
 
 const GROUP_BY_OPTIONS: Array<{ value: GroupBy; label: string }> = [
@@ -72,7 +78,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   onClose,
   onApply,
   initialFilters = null,
-  availableCategories = DEFAULT_CATEGORY_OPTIONS,
+  expenseCategoryOptions = DEFAULT_EXPENSE_OPTIONS,
+  incomeCategoryOptions = DEFAULT_INCOME_OPTIONS,
 }) => {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
@@ -106,9 +113,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     }
   }, [visible, initialFilters]);
 
-  // UI-only handlers - no data processing
+  // Categories to show based on selected transaction type
+  const displayedCategories = useMemo(() => {
+    if (transactionType === "spent") return expenseCategoryOptions;
+    if (transactionType === "income") return incomeCategoryOptions;
+    return [...expenseCategoryOptions, ...incomeCategoryOptions];
+  }, [transactionType, expenseCategoryOptions, incomeCategoryOptions]);
+
+  // When transaction type changes, keep only selected categories that are in the new list
   const handleTransactionTypeChange = (type: TransactionType) => {
     setTransactionType(type);
+    setSelectedCategories((prev) => {
+      const nextList =
+        type === "spent"
+          ? expenseCategoryOptions
+          : type === "income"
+            ? incomeCategoryOptions
+            : [...expenseCategoryOptions, ...incomeCategoryOptions];
+      const values = new Set(nextList.map((o) => o.value));
+      return prev.filter((c) => values.has(c));
+    });
   };
 
   const handleCategoryToggle = (value: string) => {
@@ -274,7 +298,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 Select one or more categories
               </Text>
               <View style={styles.categoriesContainer}>
-                {availableCategories.map((opt) => {
+                {displayedCategories.map((opt) => {
                   const isSelected = selectedCategories.includes(opt.value);
                   return (
                     <TouchableOpacity
