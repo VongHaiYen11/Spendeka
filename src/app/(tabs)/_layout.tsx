@@ -1,6 +1,8 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs, usePathname } from 'expo-router';
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { Tabs, usePathname, useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
+import { TouchableOpacity, View, Text } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -16,6 +18,7 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Dark nav only when on camera tab (opening detail from Home navigates to Camera)
   const isDarkNav = useMemo(() => {
@@ -70,6 +73,57 @@ export default function TabLayout() {
         options={{
           title: 'Summary',
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="dump"
+        options={{
+          title: '',
+          tabBarLabel: () => null,
+          tabBarIcon: () => null,
+          // Custom center floating button
+          tabBarButton: (props: BottomTabBarButtonProps) => (
+            <TouchableOpacity
+              onPress={() =>
+                router.push('/add-transaction' as import('expo-router').Href)
+              }
+              activeOpacity={0.9}
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                top: -20,
+              }}
+            >
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: Colors.primary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  // Shadow for iOS
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  // Elevation for Android
+                  elevation: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 30,
+                    fontWeight: '400',
+                    color: '#000',
+                    lineHeight: 30,
+                  }}
+                >
+                  +
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ),
         }}
       />
       <Tabs.Screen

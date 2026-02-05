@@ -122,15 +122,6 @@ export default function Home() {
         onOpenExpense={handleOpenTodayExpenseDetail}
         formatAmount={formatAmount}
       />
-      
-      {/* Main Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>Home</Text>
-        <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-        <TouchableOpacity style={styles.dumpButton} onPress={handleDump}>
-          <Text style={[styles.dumpButtonText, { color: iconColor }]}>Dump</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Text to Transaction Modal */}
       <TextToTransactionModal
@@ -146,31 +137,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-  dumpButton: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: 'rgba(128,128,128,0.3)',
-  },
-  dumpButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
 

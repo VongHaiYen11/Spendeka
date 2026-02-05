@@ -1,8 +1,8 @@
 import { Text } from '@/components/Themed';
 import { Expense } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
-import { Image, View as RNView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image, View as RNView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface TodaySummaryCardProps {
   colorScheme: 'light' | 'dark' | null;
