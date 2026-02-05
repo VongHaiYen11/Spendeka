@@ -3,27 +3,27 @@ import { PRIMARY_COLOR } from "@/constants/Colors";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { Expense } from "@/models/Expense";
 import {
-    ExpenseCalendarView,
-    ExpenseDetailScreen,
-    ExpensePreviewScreen,
+  ExpenseCalendarView,
+  ExpenseDetailScreen,
+  ExpensePreviewScreen,
 } from "@/screens/camera";
 import { deleteExpense } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { Camera, CameraView, FlashMode } from "expo-camera";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    BackHandler,
-    Dimensions,
-    View as RNView,
-    StatusBar,
-    StyleSheet,
-    TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  BackHandler,
+  Dimensions,
+  View as RNView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -435,13 +435,13 @@ const styles = StyleSheet.create({
   // Camera Page
   cameraPage: {
     flex: 1,
-    justifyContent: "space-between",
-    paddingBottom: 40,
+    justifyContent: "flex-start",
+    paddingBottom: 24,
   },
   cameraWrapper: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 60,
   },
   cameraContainer: {
     width: CAMERA_SIZE,
@@ -449,6 +449,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     overflow: "hidden",
     backgroundColor: "#1a1a1a",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
   },
   camera: {
     width: "100%",
@@ -461,7 +463,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 40,
-    marginTop: 30,
+    marginTop: 60,
   },
   controlButton: {
     width: 50,

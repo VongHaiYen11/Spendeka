@@ -1,5 +1,5 @@
 import { StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useThemeColor } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 
 interface HomeToolbarProps {
@@ -13,13 +13,11 @@ export default function HomeToolbar({
   onPressHistory,
   onPressText,
 }: HomeToolbarProps) {
+  const cardColor = useThemeColor({}, 'card');
+
   return (
     <View style={styles.toolbarContainer}>
-      <View
-        style={styles.toolbar}
-        lightColor="#ffffff"
-        darkColor="rgba(255,255,255,0.1)"
-      >
+      <View style={[styles.toolbar, { backgroundColor: cardColor }]}>
         <TouchableOpacity style={styles.toolbarButton} onPress={onPressHistory}>
           <Ionicons name="time-outline" size={28} color={iconColor} />
           <Text style={styles.toolbarLabel}>History</Text>
