@@ -7,12 +7,14 @@ import {
 import {
   createAndSaveTransaction,
   generateTransactionId,
+  updateDatabaseTransaction,
+  uploadImageToCloudinary,
 } from "@/services/TransactionService";
 import { DatabaseTransaction, TransactionCategory } from "@/types/transaction";
 import { useRouter } from "expo-router";
 import { format, isToday } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -32,12 +34,21 @@ import {
   TypeSwitcher,
 } from "./components";
 
-export default function AddTransactionScreen() {
+interface AddTransactionScreenProps {
+  /** When provided, screen is in edit mode: pre-filled form and "Update" button */
+  initialTransaction?: DatabaseTransaction | null;
+}
+
+export default function AddTransactionScreen({
+  initialTransaction,
+}: AddTransactionScreenProps = {}) {
   const router = useRouter();
   const {
     addTransactionOptimistic,
     removeOptimisticTransaction,
   } = useTransactions();
+
+  const isEditMode = Boolean(initialTransaction?.id);
 
   const [amount, setAmount] = useState("");
   const [transactionType, setTransactionType] = useState<"income" | "spent">(
@@ -50,6 +61,25 @@ export default function AddTransactionScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!initialTransaction) return;
+    setAmount(String(initialTransaction.amount));
+    setTransactionType(initialTransaction.type);
+    setCategory(initialTransaction.category);
+    setCaption(initialTransaction.caption || "");
+    setSelectedDate(
+      initialTransaction.createdAt instanceof Date
+        ? initialTransaction.createdAt
+        : new Date(initialTransaction.createdAt)
+    );
+    setImageUri(
+      initialTransaction.imageUrl
+        ? initialTransaction.imageUrl
+        : null
+    );
+  }, [initialTransaction]);
 
   const backgroundColor = useThemeColor({}, "background");
   const selectedCategoryInfo =
@@ -93,16 +123,50 @@ export default function AddTransactionScreen() {
     }
   };
 
-  const handleCreateTransaction = () => {
+  const handleSubmit = () => {
     const amountValue = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (!amountValue || amountValue <= 0) {
       Alert.alert("Invalid amount", "Please enter a valid amount.");
       return;
     }
 
+    if (isEditMode && initialTransaction) {
+      (async () => {
+        setIsSubmitting(true);
+        try {
+          let imageUrl: string | undefined = initialTransaction.imageUrl;
+          if (imageUri) {
+            imageUrl =
+              imageUri.startsWith("http")
+                ? imageUri
+                : await uploadImageToCloudinary(imageUri);
+          }
+          const updated: DatabaseTransaction = {
+            ...initialTransaction,
+            caption: caption.trim() || category,
+            amount: Math.abs(amountValue),
+            category,
+            type: transactionType,
+            createdAt: selectedDate,
+            imageUrl,
+          };
+          await updateDatabaseTransaction(updated);
+          router.back();
+        } catch {
+          Alert.alert(
+            "Could not update",
+            "The transaction was not updated. Please try again."
+          );
+        } finally {
+          setIsSubmitting(false);
+        }
+      })();
+      return;
+    }
+
     const newTransaction: DatabaseTransaction = {
       id: generateTransactionId(),
-      imageUrl: undefined, // filled in after background upload
+      imageUrl: undefined,
       caption: caption.trim() || category,
       amount: Math.abs(amountValue),
       category,
@@ -113,7 +177,6 @@ export default function AddTransactionScreen() {
     addTransactionOptimistic(newTransaction);
     router.back();
 
-    // Save to DB in background (single function: upload image if any, then persist)
     (async () => {
       try {
         await createAndSaveTransaction(newTransaction, imageUri);
@@ -149,7 +212,9 @@ export default function AddTransactionScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <AddTransactionHeader />
+        <AddTransactionHeader
+          title={isEditMode ? "Edit Transaction" : "Add Transaction"}
+        />
 
         <ScrollView
           style={styles.scroll}
@@ -184,8 +249,10 @@ export default function AddTransactionScreen() {
         </ScrollView>
 
         <CreateButtonFooter
-          onPress={handleCreateTransaction}
-          isLoading={false}
+          onPress={handleSubmit}
+          isLoading={isSubmitting}
+          label={isEditMode ? "Update" : "Create Transaction"}
+          icon={isEditMode ? "checkmark" : "add"}
         />
       </KeyboardAvoidingView>
 

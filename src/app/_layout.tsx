@@ -9,6 +9,8 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet } from "react-native";
 
 import { TransactionProvider } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -54,20 +56,26 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <TransactionProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="history"
-            options={{ headerShown: false, presentation: "card" }}
-          />
-          <Stack.Screen
-            name="add-transaction"
-            options={{ headerShown: false, presentation: "card" }}
-          />
-        </Stack>
-      </ThemeProvider>
-    </TransactionProvider>
+    <GestureHandlerRootView style={StyleSheet.absoluteFill}>
+      <TransactionProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="history"
+              options={{ headerShown: false, presentation: "card" }}
+            />
+            <Stack.Screen
+              name="add-transaction"
+              options={{ headerShown: false, presentation: "card" }}
+            />
+            <Stack.Screen
+              name="edit-transaction"
+              options={{ headerShown: false, presentation: "card" }}
+            />
+          </Stack>
+        </ThemeProvider>
+      </TransactionProvider>
+    </GestureHandlerRootView>
   );
 }

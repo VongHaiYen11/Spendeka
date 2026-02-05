@@ -1,9 +1,6 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { DatabaseTransaction } from "@/types/transaction";
-import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
-import { parseISO } from "date-fns";
-import { useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import DateGroup from "./components/DateGroup";
@@ -18,59 +15,33 @@ import {
 } from "./utils/transactionHelpers";
 
 export default function HistoryScreen() {
-  const params = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
 
-  // Get date range from params or use default
-  const startDate = useMemo(() => {
-    return params.startDate
-      ? parseISO(params.startDate as string)
-      : new Date(2000, 0, 1);
-  }, [params.startDate]);
-
-  const endDate = useMemo(() => {
-    return params.endDate ? parseISO(params.endDate as string) : new Date();
-  }, [params.endDate]);
-
   const [filters, setFilters] = useState<FilterState>({
     transactionType: "all",
     categories: [],
     minAmount: "",
     maxAmount: "",
-    startDate: startDate,
-    endDate: endDate,
+    startDate: null,
+    endDate: null,
     groupBy: "month",
   });
 
-  // Update filters when date range changes
-  React.useEffect(() => {
-    setFilters((prev) => ({
-      ...prev,
-      startDate: startDate,
-      endDate: endDate,
-    }));
-  }, [startDate, endDate]);
-
-  // Get transactions from global state and filter by date range
+  // Transaction History always shows all transactions (not filtered by date range)
   const { transactions: allTransactions } = useTransactions();
 
-  const filteredByDateRange = useMemo(
-    () => filterTransactionsByDateRange(allTransactions, startDate, endDate),
-    [allTransactions, startDate, endDate],
-  );
-
   const filteredTransactions = useMemo(() => {
-    return filterTransactions(filteredByDateRange, searchQuery, {
+    return filterTransactions(allTransactions, searchQuery, {
       transactionType: filters.transactionType,
       categories: filters.categories,
       minAmount: filters.minAmount,
       maxAmount: filters.maxAmount,
     });
-  }, [filteredByDateRange, searchQuery, filters]);
+  }, [allTransactions, searchQuery, filters]);
 
   // Group by month
   const groupedTransactions = useMemo(() => {

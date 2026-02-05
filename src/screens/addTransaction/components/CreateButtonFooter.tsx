@@ -12,11 +12,17 @@ import {
 interface CreateButtonFooterProps {
   onPress: () => void;
   isLoading: boolean;
+  /** Default "Create Transaction". Use "Update" for edit mode. */
+  label?: string;
+  /** Icon name. Default "add" for create, use "checkmark" for update. */
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
 export default function CreateButtonFooter({
   onPress,
   isLoading,
+  label = "Create Transaction",
+  icon = "add",
 }: CreateButtonFooterProps) {
   const backgroundColor = useThemeColor({}, "background");
 
@@ -32,9 +38,9 @@ export default function CreateButtonFooter({
         ) : (
           <>
             <Text style={[styles.createButtonText, { color: "#000" }]}>
-              Create Transaction
+              {label}
             </Text>
-            <Ionicons name="add" size={24} color="#000" />
+            <Ionicons name={icon} size={24} color="#000" />
           </>
         )}
       </TouchableOpacity>

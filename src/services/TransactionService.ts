@@ -17,6 +17,7 @@ import {
     orderBy,
     query,
     Timestamp,
+    updateDoc,
 } from "firebase/firestore";
 
 // Helper function to compare dates (ignoring time)
@@ -243,31 +244,58 @@ export const getExpenseById = async (id: string): Promise<Expense | null> => {
 };
 
 /**
+ * Find Firestore document id by transaction id (stored in document field "id")
+ */
+const getFirestoreDocIdByTransactionId = async (
+  transactionId: string,
+): Promise<string | null> => {
+  if (!transactionId) return null;
+  const expensesRef = collection(db, EXPENSES_COLLECTION);
+  const q = query(expensesRef);
+  const querySnapshot = await getDocs(q);
+  let docId: string | null = null;
+  const idStr = String(transactionId);
+  querySnapshot.forEach((docSnapshot) => {
+    const data = docSnapshot.data();
+    const docIdField = data?.id;
+    if (docIdField != null && String(docIdField) === idStr) {
+      docId = docSnapshot.id;
+    }
+  });
+  return docId;
+};
+
+/**
+ * Update an existing transaction in Firestore
+ */
+export const updateDatabaseTransaction = async (
+  transaction: DatabaseTransaction,
+): Promise<void> => {
+  const docId = await getFirestoreDocIdByTransactionId(transaction.id);
+  if (!docId) {
+    throw new Error("Transaction not found");
+  }
+  await updateDoc(doc(db, EXPENSES_COLLECTION, docId), {
+    caption: transaction.caption,
+    amount: transaction.amount,
+    category: transaction.category,
+    type: transaction.type,
+    createdAt: Timestamp.fromDate(transaction.createdAt),
+    ...(transaction.imageUrl !== undefined && { imageUrl: transaction.imageUrl ?? "" }),
+  });
+  transactionEventEmitter.emit();
+};
+
+/**
  * Xóa expense từ Firestore
  */
 export const deleteExpense = async (id: string): Promise<void> => {
-  try {
-    const expensesRef = collection(db, EXPENSES_COLLECTION);
-    const q = query(expensesRef);
-    const querySnapshot = await getDocs(q);
-
-    let expenseDocId: string | null = null;
-    querySnapshot.forEach((docSnapshot) => {
-      if (docSnapshot.data().id === id) {
-        expenseDocId = docSnapshot.id;
-      }
-    });
-
-    if (expenseDocId) {
-      await deleteDoc(doc(db, EXPENSES_COLLECTION, expenseDocId));
-      // Notify all listeners that transactions have changed
-      transactionEventEmitter.emit();
-    } else {
-      throw new Error("Expense not found");
-    }
-  } catch (error) {
-    throw error;
+  const expenseDocId = await getFirestoreDocIdByTransactionId(id);
+  if (!expenseDocId) {
+    throw new Error("Expense not found");
   }
+  await deleteDoc(doc(db, EXPENSES_COLLECTION, expenseDocId));
+  transactionEventEmitter.emit();
 };
 
 /**
