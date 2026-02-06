@@ -8,6 +8,11 @@ import { TYPE_OPTIONS } from "../constants";
 import { ChartType, OverviewProps, ThemeColors } from "../types";
 import { aggregateTransactions, buildChartData } from "../utils/chartDataUtils";
 
+export interface AllTimeDateRange {
+  start: Date | null;
+  end: Date | null;
+}
+
 export interface UseOverviewReturn {
   chartType: ChartType;
   setChartType: (type: ChartType) => void;
@@ -16,6 +21,7 @@ export interface UseOverviewReturn {
   items: typeof TYPE_OPTIONS;
   setItems: React.Dispatch<React.SetStateAction<typeof TYPE_OPTIONS>>;
   themeColors: ThemeColors;
+  allTimeDateRange: AllTimeDateRange;
   chartData: ReturnType<typeof buildChartData>;
   chartWidth: number;
   chartHeight: number;
@@ -84,6 +90,25 @@ export const useOverview = ({
     () => buildChartData(buckets, chartType, range),
     [buckets, chartType, range],
   );
+
+  // For "all time" range: date range of data filtered by chart type (income / spent / all)
+  const allTimeDateRange = useMemo((): AllTimeDateRange => {
+    if (range !== "all" || rawTransactions.length === 0) {
+      return { start: null, end: null };
+    }
+    const filtered =
+      chartType === "income"
+        ? rawTransactions.filter((tx) => tx.type === "income")
+        : chartType === "spent"
+          ? rawTransactions.filter((tx) => tx.type === "spent")
+          : rawTransactions;
+    if (filtered.length === 0) return { start: null, end: null };
+    const dates = filtered.map((tx) => new Date(tx.createdAt).getTime());
+    return {
+      start: new Date(Math.min(...dates)),
+      end: new Date(Math.max(...dates)),
+    };
+  }, [range, chartType, rawTransactions]);
 
   const barPercentage = useMemo(() => {
     const count = buckets.length;
@@ -178,6 +203,7 @@ export const useOverview = ({
     items,
     setItems,
     themeColors,
+    allTimeDateRange,
     chartData,
     chartWidth,
     chartHeight,

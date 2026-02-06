@@ -1,11 +1,11 @@
 import { Text } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { CAMERA_PRIMARY } from "@/constants/AccentColors";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { Expense } from "@/models/Expense";
 import {
-  ExpenseCalendarView,
-  ExpenseDetailScreen,
-  ExpensePreviewScreen,
+    ExpenseCalendarView,
+    ExpenseDetailScreen,
+    ExpensePreviewScreen,
 } from "@/screens/camera";
 import { deleteExpense } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
@@ -13,17 +13,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Camera, CameraView, FlashMode } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  BackHandler,
-  Dimensions,
-  View as RNView,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    BackHandler,
+    Dimensions,
+    View as RNView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -220,7 +226,7 @@ export default function CameraScreen() {
     return (
       <RNView style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <ActivityIndicator size="large" color={CAMERA_PRIMARY} />
         <Text style={styles.loadingText}>Requesting camera permission...</Text>
       </RNView>
     );
@@ -242,7 +248,11 @@ export default function CameraScreen() {
   if (selectedExpense) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="#000"
+          translucent={false}
+        />
         <ExpenseDetailScreen
           expenses={expenses}
           initialExpenseId={selectedExpense.id}
@@ -279,7 +289,7 @@ export default function CameraScreen() {
             <Ionicons
               name="camera"
               size={20}
-              color={activeTab === "camera" ? PRIMARY_COLOR : "#999"}
+              color={activeTab === "camera" ? CAMERA_PRIMARY : "#999"}
             />
             <Text
               style={[
@@ -298,7 +308,7 @@ export default function CameraScreen() {
             <Ionicons
               name="receipt"
               size={20}
-              color={activeTab === "history" ? PRIMARY_COLOR : "#999"}
+              color={activeTab === "history" ? CAMERA_PRIMARY : "#999"}
             />
             <Text
               style={[
@@ -334,7 +344,7 @@ export default function CameraScreen() {
               <Ionicons
                 name={flash === "on" ? "flash" : "flash-off"}
                 size={24}
-                color={flash === "on" ? PRIMARY_COLOR : "#fff"}
+                color={flash === "on" ? CAMERA_PRIMARY : "#fff"}
               />
             </TouchableOpacity>
 
@@ -429,7 +439,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   activeTabText: {
-    color: PRIMARY_COLOR,
+    color: CAMERA_PRIMARY,
   },
 
   // Camera Page
@@ -477,10 +487,10 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: PRIMARY_COLOR,
+    backgroundColor: CAMERA_PRIMARY,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: PRIMARY_COLOR,
+    shadowColor: CAMERA_PRIMARY,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -490,7 +500,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: PRIMARY_COLOR,
+    backgroundColor: CAMERA_PRIMARY,
     borderWidth: 4,
     borderColor: "#000",
     justifyContent: "center",
