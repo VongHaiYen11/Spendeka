@@ -20,6 +20,7 @@ import {
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { auth } from "@/config/firebaseConfig";
+import { SafeView } from "@/components/Themed";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -98,19 +99,17 @@ export default function LoginScreen() {
   const isDark = colorScheme === "dark";
 
   return (
-    <KeyboardAvoidingView
-      style={[
-        styles.container,
-        { backgroundColor: theme.background },
-      ]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeView style={[styles.container, { backgroundColor: theme.background }]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             {/* Logo mark cách điệu đơn giản cho Spendeka */}
@@ -292,12 +291,16 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
     paddingHorizontal: 24,
   },

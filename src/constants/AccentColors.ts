@@ -35,7 +35,7 @@ export const ACCENT_OPTIONS: AccentOption[] = [
   {
     id: "yellow",
     name: "Yellow",
-    light: "#F4C430", // warm gold (better than pastel yellow)
+    light: "#FAB95B", // vibrant yellow for better visibility on light backgrounds
     dark: "#FFE066",
   },
   {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -12,7 +13,10 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  AndroidNativeProps,
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
 import {
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
@@ -26,6 +30,7 @@ import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { auth, db } from "@/config/firebaseConfig";
 import { uploadAvatarImageToCloudinary } from "@/services/ImageService";
+import { SafeView } from "@/components/Themed";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -121,6 +126,32 @@ export default function RegisterScreen() {
     setError(null);
   };
 
+  const handleDobDone = () => {
+    setShowDobPicker(false);
+  };
+
+  // Handle Android date picker
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (!showDobPicker) return;
+
+    DateTimePickerAndroid.open({
+      value: dobDate ?? new Date(2000, 0, 1),
+      mode: "date",
+      display: "default",
+      maximumDate: new Date(),
+      themeVariant: colorScheme === "dark" ? "dark" : "light",
+      onChange: (event, selectedDate) => {
+        if (event.type === "set" && selectedDate) {
+          setDobDate(selectedDate);
+          setDob(formatDob(selectedDate));
+          setError(null);
+        }
+        setShowDobPicker(false);
+      },
+    } as AndroidNativeProps);
+  }, [showDobPicker, dobDate, colorScheme]);
+
   const handleRegister = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
       setError("Please fill in all required fields.");
@@ -196,16 +227,17 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeView style={[styles.container, { backgroundColor: theme.background }]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <View
@@ -332,14 +364,46 @@ export default function RegisterScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {showDobPicker ? (
-                <DateTimePicker
-                  value={dobDate ?? new Date(2000, 0, 1)}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  maximumDate={new Date()}
-                  onChange={handleDobChange}
-                />
+              {Platform.OS === "android" ? null : showDobPicker ? (
+                <Modal
+                  visible={showDobPicker}
+                  transparent
+                  animationType="slide"
+                  onRequestClose={handleDobDone}
+                >
+                  <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={handleDobDone}
+                  >
+                    <View
+                      style={[styles.dateModalContent, { backgroundColor: theme.background }]}
+                      onStartShouldSetResponder={() => true}
+                    >
+                      <View style={styles.dateModalHeader}>
+                        <Text style={[styles.modalTitle, { color: theme.text }]}>
+                          Select date of birth
+                        </Text>
+                        <TouchableOpacity
+                          onPress={handleDobDone}
+                          style={styles.dateModalDoneButton}
+                        >
+                          <Text style={[styles.modalDoneText, { color: Colors.primary }]}>
+                            Done
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={dobDate ?? new Date(2000, 0, 1)}
+                        mode="date"
+                        display="spinner"
+                        maximumDate={new Date()}
+                        onChange={handleDobChange}
+                        themeVariant={colorScheme === "dark" ? "dark" : "light"}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
               ) : null}
             </View>
 
@@ -495,12 +559,16 @@ export default function RegisterScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
     paddingHorizontal: 24,
   },
@@ -671,6 +739,35 @@ const styles = StyleSheet.create({
   bottomLink: {
     fontSize: 12,
     color: Colors.primary,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "flex-end",
+  },
+  dateModalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  dateModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  dateModalDoneButton: {
+    padding: 8,
+  },
+  modalDoneText: {
+    fontSize: 16,
     fontWeight: "600",
   },
 });
