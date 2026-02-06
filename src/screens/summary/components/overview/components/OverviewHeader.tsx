@@ -1,10 +1,10 @@
-import { Text } from '@/components/Themed';
-import React from 'react';
-import { View } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
-import { TYPE_OPTIONS } from '../constants';
-import { styles } from '../styles';
-import { ChartType, ThemeColors } from '../types';
+import { Text } from "@/components/Themed";
+import React from "react";
+import { View } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
+import { TYPE_OPTIONS } from "../constants";
+import { styles } from "../styles";
+import { ChartType, ThemeColors } from "../types";
 
 interface OverviewHeaderProps {
   chartType: ChartType;
@@ -36,8 +36,18 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
           setOpen={setDropdownOpen}
           setValue={setChartType as any}
           setItems={setItems}
-          style={[styles.dropdown, { backgroundColor: themeColors.pickerBg, borderColor: themeColors.border }]}
-          textStyle={{ color: themeColors.text, fontSize: 13, fontWeight: '500' }}
+          style={[
+            styles.dropdown,
+            {
+              backgroundColor: themeColors.pickerBg,
+              borderColor: themeColors.border,
+            },
+          ]}
+          textStyle={{
+            color: themeColors.text,
+            fontSize: 13,
+            fontWeight: "500",
+          }}
           dropDownContainerStyle={{
             backgroundColor: themeColors.pickerBg,
             borderColor: themeColors.border,
