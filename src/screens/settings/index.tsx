@@ -15,7 +15,14 @@ import {
 import AccentColorPickerModal from "./components/AccentColorPickerModal";
 
 export default function SettingsScreen() {
-  const { isDarkMode, toggleDarkMode, accentKey, setAccentKey } = useTheme();
+  const {
+    isDarkMode,
+    toggleDarkMode,
+    accentKey,
+    setAccentKey,
+    languageKey,
+    setLanguageKey,
+  } = useTheme();
   const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
   const { reloadTransactions } = useTransactions();
@@ -235,13 +242,68 @@ export default function SettingsScreen() {
             Language & Region
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
-            <SettingItem
-              icon="globe-outline"
-              iconColor={iconBg.language}
-              title="App Language"
-              hasArrow
-              onPress={() => {}}
-            />
+            <View
+              style={[styles.settingItem, styles.languageRow, { backgroundColor: itemBg }]}
+            >
+              <View
+                style={[styles.iconContainer, { backgroundColor: iconBg.language }]}
+              >
+                <Ionicons name="globe-outline" size={20} color="#fff" />
+              </View>
+              <Text style={[styles.settingTitle, { color: textColor }]}>
+                Language
+              </Text>
+              <View style={styles.languageToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    languageKey === "vie" && {
+                      backgroundColor: primaryColor,
+                    },
+                    languageKey !== "vie" && {
+                      backgroundColor:
+                        colorScheme === "dark" ? "#374151" : "#e5e7ea",
+                    },
+                  ]}
+                  onPress={() => setLanguageKey("vie")}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      {
+                        color: languageKey === "vie" ? "#fff" : textColor,
+                      },
+                    ]}
+                  >
+                    VIE
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    languageKey === "eng" && {
+                      backgroundColor: primaryColor,
+                    },
+                    languageKey !== "eng" && {
+                      backgroundColor:
+                        colorScheme === "dark" ? "#374151" : "#e5e7ea",
+                    },
+                  ]}
+                  onPress={() => setLanguageKey("eng")}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      {
+                        color: languageKey === "eng" ? "#fff" : textColor,
+                      },
+                    ]}
+                  >
+                    ENG
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -351,6 +413,26 @@ const styles = StyleSheet.create({
   },
   rightContent: {
     backgroundColor: "transparent",
+  },
+  languageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  languageToggle: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  languageOption: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 44,
+    alignItems: "center",
+  },
+  languageOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   separator: {
     height: 1,

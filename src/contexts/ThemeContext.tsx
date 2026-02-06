@@ -9,6 +9,7 @@ import { useColorScheme as useDeviceColorScheme } from "react-native";
 
 type ThemeMode = "auto" | "light" | "dark";
 type ColorScheme = "light" | "dark";
+export type LanguageKey = "vie" | "eng";
 
 interface ThemeContextType {
   themeMode: ThemeMode;
@@ -19,12 +20,15 @@ interface ThemeContextType {
   accentKey: AccentKey;
   setAccentKey: (key: AccentKey) => Promise<void>;
   primaryColor: string;
+  languageKey: LanguageKey;
+  setLanguageKey: (key: LanguageKey) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_STORAGE_KEY = "@spendeka_theme_mode";
 const ACCENT_STORAGE_KEY = "@spendeka_accent_key";
+const LANGUAGE_STORAGE_KEY = "@spendeka_language";
 
 const VALID_ACCENT_KEYS: AccentKey[] = [
   "yellow",
@@ -40,18 +44,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>("auto");
   const [accentKey, setAccentKeyState] =
     useState<AccentKey>(DEFAULT_ACCENT_KEY);
+  const [languageKey, setLanguageKeyState] =
+    useState<LanguageKey>("eng");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load theme and accent preferences from storage
+  // Load theme, accent and language preferences from storage
   useEffect(() => {
     loadPreferences();
   }, []);
 
   const loadPreferences = async () => {
     try {
-      const [savedTheme, savedAccent] = await Promise.all([
+      const [savedTheme, savedAccent, savedLanguage] = await Promise.all([
         AsyncStorage.getItem(THEME_STORAGE_KEY),
         AsyncStorage.getItem(ACCENT_STORAGE_KEY),
+        AsyncStorage.getItem(LANGUAGE_STORAGE_KEY),
       ]);
       if (
         savedTheme === "light" ||
@@ -62,6 +69,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
       if (savedAccent && VALID_ACCENT_KEYS.includes(savedAccent as AccentKey)) {
         setAccentKeyState(savedAccent as AccentKey);
+      }
+      if (savedLanguage === "vie" || savedLanguage === "eng") {
+        setLanguageKeyState(savedLanguage);
       }
     } catch (error) {
       console.error("Failed to load preferences:", error);
@@ -99,6 +109,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setLanguageKey = async (key: LanguageKey) => {
+    try {
+      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, key);
+      setLanguageKeyState(key);
+    } catch (error) {
+      console.error("Failed to save language preference:", error);
+    }
+  };
+
   const primaryColor = getAccentPrimary(accentKey, colorScheme);
 
   // Don't render children until theme is loaded to prevent flash
@@ -117,6 +136,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         accentKey,
         setAccentKey,
         primaryColor,
+        languageKey,
+        setLanguageKey,
       }}
     >
       {children}
