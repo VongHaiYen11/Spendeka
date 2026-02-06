@@ -1,13 +1,20 @@
 import { Text, View } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface HomeHeaderProps {
   userName: string;
+  avatarUrl?: string | null;
   iconColor: string;
+  onPressProfile: () => void;
 }
 
-export default function HomeHeader({ userName, iconColor }: HomeHeaderProps) {
+export default function HomeHeader({
+  userName,
+  avatarUrl,
+  iconColor,
+  onPressProfile,
+}: HomeHeaderProps) {
   return (
     <View style={styles.header}>
       <Text style={styles.welcomeText}>Welcome, {userName}!</Text>
@@ -15,8 +22,16 @@ export default function HomeHeader({ userName, iconColor }: HomeHeaderProps) {
         <TouchableOpacity style={styles.iconButton}>
           <Ionicons name="notifications-outline" size={24} color={iconColor} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="person-circle-outline" size={24} color={iconColor} />
+        <TouchableOpacity style={styles.iconButton} onPress={onPressProfile}>
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person-circle-outline" size={24} color={iconColor} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -43,6 +58,12 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 5,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.06)',
   },
 });
 

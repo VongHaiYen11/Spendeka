@@ -4,21 +4,21 @@ import {
 } from "@/config/cloudinaryConfig";
 import { auth, db } from "@/config/firebaseConfig";
 import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
-import { Expense, ExpenseCategory } from "@/models/Expense";
+import { createExpense, Expense, ExpenseCategory } from "@/models/Expense";
 import { DatabaseTransaction } from "@/types/transaction";
 import { getCategoryIconEmoji } from "@/utils/getCategoryIcon";
 import { getDateRange, RangeType } from "@/utils/getDateRange";
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    orderBy,
-    query,
-    Timestamp,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 
 // Helper function to compare dates (ignoring time)
@@ -192,102 +192,39 @@ export const saveDatabaseTransaction = async (
 export const getDatabaseTransactions = async (): Promise<
   DatabaseTransaction[]
 > => {
-  const userId = getCurrentUserId();
-  if (!userId) {
-    return [];
-  }
-
-  const expensesRef = collection(db, EXPENSES_COLLECTION);
-
-  // Helper to map Firestore docs to DatabaseTransaction[]
-  const mapSnapshotToTransactions = (
-    querySnapshot: any,
-  ): DatabaseTransaction[] => {
-    const transactions: DatabaseTransaction[] = [];
-    querySnapshot.forEach((docSnapshot: any) => {
-      try {
-        const data = docSnapshot.data();
-
-        // Safely normalize createdAt from different possible shapes
-        const rawCreatedAt =
-          data?.createdAt ?? data?.date ?? data?.timestamp ?? null;
-
-        let createdAt: Date | null = null;
-
-        if (rawCreatedAt instanceof Timestamp) {
-          createdAt = rawCreatedAt.toDate();
-        } else if (rawCreatedAt instanceof Date) {
-          createdAt = rawCreatedAt;
-        } else if (
-          rawCreatedAt &&
-          typeof (rawCreatedAt as any).toDate === "function"
-        ) {
-          // Some Firestore SDKs return Timestamp-like objects
-          createdAt = (rawCreatedAt as any).toDate();
-        } else if (
-          typeof rawCreatedAt === "string" ||
-          typeof rawCreatedAt === "number"
-        ) {
-          const parsed = new Date(rawCreatedAt);
-          if (!Number.isNaN(parsed.getTime())) {
-            createdAt = parsed;
-          }
-        }
-
-        // If we still don't have a valid createdAt, skip this document
-        if (!createdAt) {
-          return;
-        }
-
-        transactions.push({
-          id: data.id,
-          userId: data.userId,
-          imageUrl: data.imageUrl || "", // Default to empty string if missing
-          caption: data.caption ?? "",
-          amount: Number(data.amount) || 0,
-          category: data.category,
-          type: data.type || "spent", // Default to 'spent' for backward compatibility
-          createdAt,
-        });
-      } catch {
-        // Skip malformed document instead of failing the whole list
-      }
-    });
-    return transactions;
-  };
-
   try {
-    // Prefer querying with server-side ordering by createdAt (newest first)
-    const q = query(
-      expensesRef,
-      where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
-    );
-    const querySnapshot = await getDocs(q);
-    return mapSnapshotToTransactions(querySnapshot);
-  } catch (error: any) {
-    // If Firestore requires a composite index for where+orderBy (failed-precondition),
-    // fall back to filtering only by userId and sort on the client.
-    const message: string | undefined = error?.message;
-    const code: string | undefined = error?.code;
-    if (
-      code === "failed-precondition" ||
-      (typeof message === "string" && message.includes("requires an index"))
-    ) {
-      try {
-        const qFallback = query(expensesRef, where("userId", "==", userId));
-        const snapshotFallback = await getDocs(qFallback);
-        const txs = mapSnapshotToTransactions(snapshotFallback);
-        // Sort by createdAt desc on client
-        txs.sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-        );
-        return txs;
-      } catch {
-        return [];
-      }
+    const userId = getCurrentUserId();
+    if (!userId) {
+      return [];
     }
 
+    const expensesRef = collection(db, EXPENSES_COLLECTION);
+    const q = query(expensesRef, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+
+    const transactions: DatabaseTransaction[] = [];
+    querySnapshot.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+      if (!data.createdAt) return;
+      transactions.push({
+        id: data.id,
+        userId: data.userId,
+        imageUrl: data.imageUrl || "", // Default to empty string if missing
+        caption: data.caption,
+        amount: data.amount,
+        category: data.category,
+        type: data.type || "spent", // Default to 'spent' for backward compatibility
+        createdAt: data.createdAt.toDate(),
+      });
+    });
+
+    // Sort newest first on client to avoid composite index requirement
+    transactions.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+
+    return transactions;
+  } catch (error) {
     return [];
   }
 };
