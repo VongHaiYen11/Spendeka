@@ -56,8 +56,6 @@ const styles = StyleSheet.create({
   groupTotal: {
     paddingTop: 12,
     marginTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(0,0,0,0.1)",
     alignItems: "flex-end",
   },
   totalLabel: {

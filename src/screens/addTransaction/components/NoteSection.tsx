@@ -1,5 +1,5 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TextInput, View } from "react-native";
@@ -10,6 +10,7 @@ interface NoteSectionProps {
 }
 
 export default function NoteSection({ value, onChangeText }: NoteSectionProps) {
+  const primaryColor = usePrimaryColor();
   const textColor = useThemeColor({}, "text");
   const cardColor = useThemeColor({}, "card");
   const placeholderColor = useThemeColor({}, "placeholder");
@@ -17,11 +18,7 @@ export default function NoteSection({ value, onChangeText }: NoteSectionProps) {
   return (
     <View style={[styles.noteSection, { backgroundColor: cardColor }]}>
       <View style={styles.noteLabelRow}>
-        <Ionicons
-          name="document-text-outline"
-          size={22}
-          color={PRIMARY_COLOR}
-        />
+        <Ionicons name="document-text-outline" size={22} color={primaryColor} />
         <Text style={[styles.rowLabel, { color: textColor }]}>Note</Text>
       </View>
       <TextInput

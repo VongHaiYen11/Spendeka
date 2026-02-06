@@ -4,19 +4,22 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  title?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ title = "Add Transaction" }) => {
   const router = useRouter();
   const textColor = useThemeColor({}, 'text');
   const backgroundColor = useThemeColor({}, 'background');
-  const borderColor = useThemeColor({}, 'border');
 
   return (
-    <View style={[styles.header, { backgroundColor, borderBottomColor: borderColor }]}>
+    <View style={[styles.header, { backgroundColor }]}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <ChevronLeft size={24} color={textColor} />
       </TouchableOpacity>
       <Text style={[styles.headerTitle, { color: textColor }]}>
-        Transaction History
+        {title}
       </Text>
       <View style={styles.headerSpacer} />
     </View>
@@ -31,6 +34,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   backButton: {
     width: 40,

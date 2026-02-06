@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
   },
   dropdownWrapper: {
-    width: 100,
+    width: 105,
   },
   dropdown: {
     borderRadius: 8,

@@ -1,86 +1,91 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
-import { DatabaseTransaction } from "@/types/transaction";
-import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
-import { parseISO } from "date-fns";
-import { useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import {
+  EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
+} from "@/models/Expense";
+import React, { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import DateGroup from "./components/DateGroup";
 import FilterButton from "./components/FilterButton";
 import FilterModal, { FilterState } from "./components/FilterModal";
 import Header from "./components/Header";
 import SearchBar from "./components/SearchBar";
+import { format, parseISO } from "date-fns";
 import {
-    filterTransactions,
-    groupTransactionsByMonth,
-    sortMonthKeys,
+  filterTransactions,
+  groupTransactionsByDay,
+  groupTransactionsByMonth,
+  groupTransactionsByYear,
+  sortGroupKeys,
 } from "./utils/transactionHelpers";
 
 export default function HistoryScreen() {
-  const params = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
 
-  // Get date range from params or use default
-  const startDate = useMemo(() => {
-    return params.startDate
-      ? parseISO(params.startDate as string)
-      : new Date(2000, 0, 1);
-  }, [params.startDate]);
-
-  const endDate = useMemo(() => {
-    return params.endDate ? parseISO(params.endDate as string) : new Date();
-  }, [params.endDate]);
-
   const [filters, setFilters] = useState<FilterState>({
     transactionType: "all",
     categories: [],
     minAmount: "",
     maxAmount: "",
-    startDate: startDate,
-    endDate: endDate,
+    startDate: null,
+    endDate: null,
     groupBy: "month",
   });
 
-  // Update filters when date range changes
-  React.useEffect(() => {
-    setFilters((prev) => ({
-      ...prev,
-      startDate: startDate,
-      endDate: endDate,
-    }));
-  }, [startDate, endDate]);
+  const {
+    transactions: allTransactions,
+    isLoading,
+    refreshTransactions,
+  } = useTransactions();
 
-  // Get transactions from global state and filter by date range
-  const { transactions: allTransactions } = useTransactions();
-
-  const filteredByDateRange = useMemo(
-    () => filterTransactionsByDateRange(allTransactions, startDate, endDate),
-    [allTransactions, startDate, endDate],
+  // Refresh transactions when user navigates to this screen (e.g. from Home toolbar)
+  useFocusEffect(
+    useCallback(() => {
+      refreshTransactions();
+    }, [refreshTransactions])
   );
 
   const filteredTransactions = useMemo(() => {
-    return filterTransactions(filteredByDateRange, searchQuery, {
+    return filterTransactions(allTransactions, searchQuery, {
       transactionType: filters.transactionType,
       categories: filters.categories,
       minAmount: filters.minAmount,
       maxAmount: filters.maxAmount,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
     });
-  }, [filteredByDateRange, searchQuery, filters]);
+  }, [allTransactions, searchQuery, filters]);
 
-  // Group by month
   const groupedTransactions = useMemo(() => {
+    if (filters.groupBy === "year") {
+      return groupTransactionsByYear(filteredTransactions);
+    }
+    if (filters.groupBy === "day") {
+      return groupTransactionsByDay(filteredTransactions);
+    }
     return groupTransactionsByMonth(filteredTransactions);
-  }, [filteredTransactions]);
+  }, [filteredTransactions, filters.groupBy]);
 
-  // Sort month groups (newest first)
-  const sortedMonthKeys = useMemo(() => {
-    return sortMonthKeys(Object.keys(groupedTransactions));
+  const sortedGroupKeys = useMemo(() => {
+    return sortGroupKeys(Object.keys(groupedTransactions));
   }, [groupedTransactions]);
+
+  const expenseCategoryOptions = useMemo(
+    () =>
+      EXPENSE_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
+    [],
+  );
+  const incomeCategoryOptions = useMemo(
+    () =>
+      INCOME_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
+    [],
+  );
 
   return (
     <SafeView style={styles.container}>
@@ -96,6 +101,9 @@ export default function HistoryScreen() {
       <FilterModal
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
+        initialFilters={filters}
+        expenseCategoryOptions={expenseCategoryOptions}
+        incomeCategoryOptions={incomeCategoryOptions}
         onApply={(newFilters) => {
           setFilters(newFilters);
         }}
@@ -107,20 +115,33 @@ export default function HistoryScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {sortedMonthKeys.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={textColor} />
+            <Text style={[styles.emptyText, { color: textColor }]}>
+              Loading...
+            </Text>
+          </View>
+        ) : filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyText, { color: textColor }]}>
               No transactions found
             </Text>
           </View>
         ) : (
-          sortedMonthKeys.map((monthKey) => (
-            <DateGroup
-              key={monthKey}
-              dateKey={monthKey}
-              transactions={groupedTransactions[monthKey]}
-            />
-          ))
+          sortedGroupKeys.map((groupKey) => {
+            const displayKey =
+              /^\d{4}-\d{2}-\d{2}$/.test(groupKey)
+                ? format(parseISO(groupKey), "MMM d, yyyy")
+                : groupKey;
+            return (
+              <DateGroup
+                key={groupKey}
+                dateKey={displayKey}
+                transactions={groupedTransactions[groupKey] ?? []}
+              />
+            );
+          })
         )}
       </ScrollView>
     </SafeView>

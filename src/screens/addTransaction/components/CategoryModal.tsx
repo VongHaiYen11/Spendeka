@@ -1,19 +1,16 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
-import {
-  EXPENSE_CATEGORIES_EN,
-  INCOME_CATEGORIES_EN,
-} from "@/models/Expense";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { EXPENSE_CATEGORIES_EN, INCOME_CATEGORIES_EN } from "@/models/Expense";
 import { TransactionCategory } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface CategoryModalProps {
@@ -40,6 +37,7 @@ export default function CategoryModal({
   onSelectCategory,
   onSearchChange,
 }: CategoryModalProps) {
+  const primaryColor = usePrimaryColor();
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const cardColor = useThemeColor({}, "card");
@@ -49,7 +47,7 @@ export default function CategoryModal({
   const categories = categoryLists[transactionType];
   const filteredCategories = searchQuery.trim()
     ? categories.filter((cat) =>
-        cat.label.toLowerCase().includes(searchQuery.toLowerCase())
+        cat.label.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : categories;
 
@@ -70,7 +68,9 @@ export default function CategoryModal({
               <Ionicons name="close" size={24} color={textColor} />
             </TouchableOpacity>
           </View>
-          <View style={[styles.searchContainer, { backgroundColor: cardColor }]}>
+          <View
+            style={[styles.searchContainer, { backgroundColor: cardColor }]}
+          >
             <Ionicons name="search" size={20} color={placeholderColor} />
             <TextInput
               style={[styles.searchInput, { color: textColor }]}
@@ -89,15 +89,18 @@ export default function CategoryModal({
                   selectedCategory === item.value &&
                     styles.categoryItemSelected,
                 ]}
-                onPress={() => onSelectCategory(item.value as TransactionCategory)}
+                onPress={() =>
+                  onSelectCategory(item.value as TransactionCategory)
+                }
               >
                 <View
-                  style={[
-                    styles.categoryIcon,
-                    { backgroundColor: item.color },
-                  ]}
+                  style={[styles.categoryIcon, { backgroundColor: item.color }]}
                 >
-                  <Ionicons name={item.icon as any} size={20} color={iconOnColorBg} />
+                  <Ionicons
+                    name={item.icon as any}
+                    size={20}
+                    color={iconOnColorBg}
+                  />
                 </View>
                 <Text
                   style={[
@@ -112,7 +115,7 @@ export default function CategoryModal({
                   {item.label}
                 </Text>
                 {selectedCategory === item.value && (
-                  <Ionicons name="checkmark" size={20} color={PRIMARY_COLOR} />
+                  <Ionicons name="checkmark" size={20} color={primaryColor} />
                 )}
               </TouchableOpacity>
             ))}

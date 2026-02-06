@@ -25,7 +25,7 @@ export default {
     tabIconSelected: tintColorDark,
     primary: PRIMARY_COLOR,
     border: "#374151",
-    card: "rgba(255,255,255,0.08)",
+    card: "#1C1C1E",
     placeholder: "#9CA3AF",
   },
   general: {

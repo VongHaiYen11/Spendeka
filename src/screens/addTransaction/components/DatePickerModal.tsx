@@ -1,14 +1,17 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import React from "react";
+import DateTimePicker, {
+    AndroidNativeProps,
+    DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
+import React, { useEffect } from "react";
 import {
-  Modal,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface DatePickerModalProps {
@@ -26,8 +29,37 @@ export default function DatePickerModal({
 }: DatePickerModalProps) {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
+  const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
   const themeVariant = colorScheme === "dark" ? "dark" : "light";
+
+  // On Android, use the native dialog API instead of our custom Modal.
+  // This avoids the bug where users have to tap the OK button many times
+  // for the selected date to be applied.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (!visible) return;
+
+    DateTimePickerAndroid.open({
+      value,
+      mode: "date",
+      display: "default",
+      maximumDate: new Date(),
+      themeVariant,
+      onChange: (event, selectedDate) => {
+        if (event.type === "set" && selectedDate) {
+          onChange(selectedDate);
+        }
+        // Close the wrapper modal state regardless of confirm/cancel
+        onClose();
+      },
+    } as AndroidNativeProps);
+  }, [visible, value, onChange, onClose, themeVariant]);
+
+  // Android dialog is handled via DateTimePickerAndroid above
+  if (Platform.OS === "android") {
+    return null;
+  }
 
   return (
     <Modal
@@ -53,7 +85,7 @@ export default function DatePickerModal({
               onPress={onClose}
               style={styles.dateModalDoneButton}
             >
-              <Text style={[styles.modalCloseText, { color: PRIMARY_COLOR }]}>
+              <Text style={[styles.modalCloseText, { color: primaryColor }]}>
                 Done
               </Text>
             </TouchableOpacity>
@@ -61,15 +93,12 @@ export default function DatePickerModal({
           <DateTimePicker
             value={value}
             mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "calendar"}
+            display="spinner"
             onChange={(_, date) => {
               if (date) onChange(date);
             }}
             maximumDate={new Date()}
             themeVariant={themeVariant}
-            style={
-              Platform.OS === "android" ? styles.datePickerAndroid : undefined
-            }
           />
         </View>
       </TouchableOpacity>

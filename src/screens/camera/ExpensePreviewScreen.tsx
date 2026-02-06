@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { CAMERA_PRIMARY } from "@/constants/AccentColors";
 import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
 import {
   createAndSaveTransaction,
@@ -63,15 +63,15 @@ export default function ExpensePreviewScreen({
   }, [categorySearch]);
 
   const formatAmountInput = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, "");
-    if (numericValue) {
-      const formatted = new Intl.NumberFormat("en-US").format(
-        parseInt(numericValue),
-      );
-      setAmount(formatted);
-    } else {
-      setAmount("");
+    const numericValue = text.replace(/[^0-9.]/g, "");
+    if (numericValue === "" || numericValue === ".") {
+      setAmount(numericValue);
+      return;
     }
+    const parts = numericValue.split(".");
+    if (parts.length > 2) return;
+    if (parts[1]?.length > 2) return;
+    setAmount(numericValue);
   };
 
   const handleCaptionChange = (text: string) => {
@@ -87,7 +87,7 @@ export default function ExpensePreviewScreen({
   };
 
   const handleSave = async () => {
-    const amountValue = parseFloat(amount.replace(/[^0-9]/g, ""));
+    const amountValue = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (!amountValue || amountValue <= 0) {
       Alert.alert("Error", "Please enter a valid amount");
       return;
@@ -159,13 +159,13 @@ export default function ExpensePreviewScreen({
             <RNView style={styles.amountInputContainer}>
               <TextInput
                 style={styles.amountInput}
-                placeholder="0"
+                placeholder="0.00"
                 placeholderTextColor="#666"
                 value={amount}
                 onChangeText={formatAmountInput}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
               />
-              <Text style={styles.currencyText}>VND</Text>
+              <Text style={styles.currencyText}>USD</Text>
             </RNView>
           </RNView>
 
@@ -203,9 +203,10 @@ export default function ExpensePreviewScreen({
             {/** Derived from current amount string */}
             {/** Keep validation in handleSave as safety */}
             {(() => {
-              const numeric = amount.replace(/[^0-9]/g, "");
+              const numeric = amount.replace(/[^0-9.]/g, "");
+              const numericValue = parseFloat(numeric);
               const isAmountValid =
-                numeric.length > 0 && parseInt(numeric, 10) > 0;
+                !Number.isNaN(numericValue) && numericValue > 0;
               const isDisabled = isSaving || !isAmountValid;
 
               return (
@@ -291,7 +292,11 @@ export default function ExpensePreviewScreen({
                       { backgroundColor: item.color },
                     ]}
                   >
-                    <Ionicons name={item.icon as any} size={20} color={iconOnColorBg} />
+                    <Ionicons
+                      name={item.icon as any}
+                      size={20}
+                      color={iconOnColorBg}
+                    />
                   </RNView>
                   <Text
                     style={[
@@ -306,7 +311,7 @@ export default function ExpensePreviewScreen({
                     <Ionicons
                       name="checkmark"
                       size={20}
-                      color={PRIMARY_COLOR}
+                      color={CAMERA_PRIMARY}
                     />
                   )}
                 </TouchableOpacity>
@@ -470,7 +475,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: PRIMARY_COLOR,
+    backgroundColor: CAMERA_PRIMARY,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,

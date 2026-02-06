@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
@@ -7,18 +7,23 @@ export const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
     zIndex: 2000,
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dropdownWrapper: {
-    width: 100,
+    width: 105,
+  },
+  allTimeRangeText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 4,
   },
   dropdown: {
     borderRadius: 8,
@@ -26,41 +31,41 @@ export const styles = StyleSheet.create({
     minHeight: 34,
   },
   chartContainer: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
     paddingTop: 20,
     paddingBottom: 20,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
   chartArea: {
-    justifyContent: 'center',
-    alignItems: 'center'
+    justifyContent: "center",
+    alignItems: "center",
   },
   chartWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   scrollContent: {
     paddingHorizontal: 8, // Ensure content isn't clipped at edges during scroll
   },
   chart: {
     borderRadius: 16,
-    alignSelf: 'center', // Explicitly center the chart horizontally
+    alignSelf: "center", // Explicitly center the chart horizontally
   },
   emptyState: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 16,
     paddingVertical: 20,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

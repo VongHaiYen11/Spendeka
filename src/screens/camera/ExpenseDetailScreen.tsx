@@ -1,22 +1,25 @@
-import { Text, useThemeColor, View } from '@/components/Themed';
-import { PRIMARY_COLOR } from '@/constants/Colors';
-import { Expense, formatAmount, getCategoryDisplayInfo } from '@/models/Expense';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Text, useThemeColor, View } from "@/components/Themed";
+import { CAMERA_PRIMARY } from "@/constants/AccentColors";
 import {
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-  View as RNView,
-} from 'react-native';
+    Expense,
+    formatAmount,
+    getCategoryDisplayInfo,
+} from "@/models/Expense";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+    Dimensions,
+    FlatList,
+    Image,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    View as RNView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const IMAGE_SIZE = width - 40;
 const HEADER_HEIGHT = 110;
 
@@ -39,8 +42,11 @@ export default function ExpenseDetailScreen({
   const [pageHeight, setPageHeight] = useState<number | null>(null);
 
   const sortedExpenses = useMemo(
-    () => [...expenses].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-    [expenses]
+    () =>
+      [...expenses].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      ),
+    [expenses],
   );
 
   const initialIndex = useMemo(() => {
@@ -55,7 +61,7 @@ export default function ExpenseDetailScreen({
   // Handle when expenses list changes (e.g., after deletion)
   useEffect(() => {
     const currentExpenseId = sortedExpenses[currentIndex]?.id;
-    
+
     // If current expense was deleted, navigate to next/previous or close
     if (sortedExpenses.length === 0) {
       // No expenses left, close the screen
@@ -64,7 +70,10 @@ export default function ExpenseDetailScreen({
     }
 
     // If current expense doesn't exist anymore, navigate to closest available
-    if (currentExpenseId && !sortedExpenses.find((e) => e.id === currentExpenseId)) {
+    if (
+      currentExpenseId &&
+      !sortedExpenses.find((e) => e.id === currentExpenseId)
+    ) {
       if (currentIndex >= sortedExpenses.length) {
         // Was viewing last item, go to previous
         const newIndex = Math.max(0, sortedExpenses.length - 1);
@@ -83,7 +92,9 @@ export default function ExpenseDetailScreen({
     }
   }, [sortedExpenses, currentIndex, onClose, pageHeight]);
 
-  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleMomentumScrollEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
     if (!pageHeight) return;
     const offsetY = event.nativeEvent.contentOffset.y;
     const index = Math.round(offsetY / pageHeight);
@@ -106,7 +117,9 @@ export default function ExpenseDetailScreen({
             </RNView>
           )}
           <RNView style={styles.dateBadge}>
-            <Text style={styles.dateText}>{item.createdAt.toLocaleString()}</Text>
+            <Text style={styles.dateText}>
+              {item.createdAt.toLocaleString()}
+            </Text>
           </RNView>
         </RNView>
 
@@ -128,7 +141,11 @@ export default function ExpenseDetailScreen({
                   },
                 ]}
               >
-                <Ionicons name={categoryInfo.icon as any} size={20} color={iconOnColorBg} />
+                <Ionicons
+                  name={categoryInfo.icon as any}
+                  size={20}
+                  color={iconOnColorBg}
+                />
               </RNView>
               <Text style={styles.categoryText}>{categoryInfo.label}</Text>
             </RNView>
@@ -163,7 +180,10 @@ export default function ExpenseDetailScreen({
       </RNView>
 
       {/* Paged content */}
-      <RNView style={styles.pagerContainer} onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}>
+      <RNView
+        style={styles.pagerContainer}
+        onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
+      >
         {pageHeight && (
           <FlatList
             ref={listRef}
@@ -184,7 +204,10 @@ export default function ExpenseDetailScreen({
               const wait = new Promise((resolve) => setTimeout(resolve, 500));
               wait.then(() => {
                 if (listRef.current) {
-                  listRef.current.scrollToIndex({ index: info.index, animated: false });
+                  listRef.current.scrollToIndex({
+                    index: info.index,
+                    animated: false,
+                  });
                 }
               });
             }}
@@ -198,7 +221,7 @@ export default function ExpenseDetailScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   pagerContainer: {
     flex: 1,
@@ -210,14 +233,14 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     height: HEADER_HEIGHT,
     paddingTop: 60,
     paddingHorizontal: 20,
@@ -227,105 +250,104 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   deleteButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,77,79,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,77,79,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 
   // Image
   imageContainer: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    alignSelf: 'center',
+    alignSelf: "center",
     borderRadius: 30,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   captionOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     left: 16,
     right: 16,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   captionText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
 
   // Info sections
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     marginTop: 24,
   },
   infoSection: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   infoLabel: {
-    color: '#999',
+    color: "#999",
     fontSize: 14,
     marginBottom: 8,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   amountText: {
-    color: PRIMARY_COLOR,
+    color: CAMERA_PRIMARY,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
   },
   categoryIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoryText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   dateBadge: {
-    position: 'absolute',
+    position: "absolute",
     left: 12,
     top: 12,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   dateText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 11,
   },
 });
-

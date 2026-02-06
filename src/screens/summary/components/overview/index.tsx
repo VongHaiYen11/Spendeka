@@ -1,10 +1,10 @@
-import React from 'react';
-import { View } from 'react-native';
-import { OverviewChart } from './components/OverviewChart';
-import { OverviewHeader } from './components/OverviewHeader';
-import { useOverview } from './hooks/useOverview';
-import { styles } from './styles';
-import { OverviewProps } from './types';
+import React from "react";
+import { View } from "react-native";
+import { OverviewChart } from "./components/OverviewChart";
+import { OverviewHeader } from "./components/OverviewHeader";
+import { useOverview } from "./hooks/useOverview";
+import { styles } from "./styles";
+import { OverviewProps } from "./types";
 
 const Overview: React.FC<OverviewProps> = (props) => {
   const {
@@ -15,6 +15,7 @@ const Overview: React.FC<OverviewProps> = (props) => {
     items,
     setItems,
     themeColors,
+    allTimeDateRange,
     hasData,
     isLineChart,
     barChartProps,
@@ -24,6 +25,8 @@ const Overview: React.FC<OverviewProps> = (props) => {
   return (
     <View style={styles.container}>
       <OverviewHeader
+        range={props.range}
+        allTimeDateRange={allTimeDateRange}
         chartType={chartType}
         setChartType={setChartType}
         dropdownOpen={dropdownOpen}

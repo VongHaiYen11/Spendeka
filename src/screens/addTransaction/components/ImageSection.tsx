@@ -1,13 +1,13 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-  Image,
-  LayoutChangeEvent,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Image,
+    LayoutChangeEvent,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface ImageSectionProps {
@@ -21,6 +21,7 @@ export default function ImageSection({
   onPickImage,
   onRemoveImage,
 }: ImageSectionProps) {
+  const primaryColor = usePrimaryColor();
   const textColor = useThemeColor({}, "text");
   const cardColor = useThemeColor({}, "card");
   const [previewWidth, setPreviewWidth] = useState<number>(0);
@@ -56,7 +57,7 @@ export default function ImageSection({
     <>
       <View style={[styles.imageRow, { backgroundColor: cardColor }]}>
         <View style={styles.rowLeft}>
-          <Ionicons name="image-outline" size={22} color={PRIMARY_COLOR} />
+          <Ionicons name="image-outline" size={22} color={primaryColor} />
           <Text style={[styles.rowLabel, { color: textColor }]}>Image</Text>
         </View>
         {imageUri ? (
@@ -70,7 +71,7 @@ export default function ImageSection({
             <Ionicons
               name="cloud-upload-outline"
               size={24}
-              color={PRIMARY_COLOR}
+              color={primaryColor}
             />
           </TouchableOpacity>
         )}
