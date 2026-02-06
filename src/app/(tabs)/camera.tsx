@@ -1,11 +1,12 @@
 import { Text } from "@/components/Themed";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
 import { Expense } from "@/models/Expense";
 import {
-    ExpenseCalendarView,
-    ExpenseDetailScreen,
-    ExpensePreviewScreen,
+  ExpenseCalendarView,
+  ExpenseDetailScreen,
+  ExpensePreviewScreen,
 } from "@/screens/camera";
 import { deleteExpense } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
@@ -14,22 +15,22 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Camera, CameraView, FlashMode } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    BackHandler,
-    Dimensions,
-    View as RNView,
-    StatusBar,
-    StyleSheet,
-    TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  BackHandler,
+  Dimensions,
+  View as RNView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -49,6 +50,7 @@ const databaseTransactionToExpense = (tx: DatabaseTransaction): Expense => ({
 });
 
 export default function CameraScreen() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useLocalSearchParams<{ openExpenseId?: string }>();
   const openExpenseId = params.openExpenseId;
@@ -72,11 +74,7 @@ export default function CameraScreen() {
   const expenses = useMemo(() => {
     return transactions
       .map(databaseTransactionToExpense)
-      .filter(
-        (expense) =>
-          expense.imageUrl &&
-          expense.imageUrl.trim() !== "",
-      );
+      .filter((expense) => expense.imageUrl && expense.imageUrl.trim() !== "");
   }, [transactions]);
 
   // Sync selectedExpense from openExpenseId (when opening detail from Home)
@@ -297,7 +295,7 @@ export default function CameraScreen() {
                 activeTab === "camera" && { color: primaryColor },
               ]}
             >
-              Camera
+              {t("nav.camera")}
             </Text>
           </TouchableOpacity>
 
@@ -316,7 +314,7 @@ export default function CameraScreen() {
                 activeTab === "history" && { color: primaryColor },
               ]}
             >
-              History
+              {t("nav.history")}
             </Text>
           </TouchableOpacity>
         </RNView>
@@ -344,7 +342,7 @@ export default function CameraScreen() {
               <Ionicons
                 name={flash === "on" ? "flash" : "flash-off"}
                 size={24}
-              color={flash === "on" ? primaryColor : "#fff"}
+                color={flash === "on" ? primaryColor : "#fff"}
               />
             </TouchableOpacity>
 

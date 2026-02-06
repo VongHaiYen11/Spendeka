@@ -1,12 +1,18 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
+import { getCategoryDisplayInfo } from "@/models/Expense";
 import { deleteExpense } from "@/services/TransactionService";
-import { DatabaseTransaction, getCategoryIconConfig } from "@/types/transaction";
+import {
+  DatabaseTransaction,
+  getCategoryIconConfig,
+} from "@/types/transaction";
 import { formatDollar } from "@/utils/formatCurrency";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
 import { format } from "date-fns";
+import { useRouter } from "expo-router";
 import React, { useCallback, useRef } from "react";
 import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
@@ -30,33 +36,42 @@ const formatCurrency = (amount: number, type: "income" | "spent") => {
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   const router = useRouter();
   const swipeableRef = useRef<Swipeable>(null);
-  const { removeOptimisticTransaction, refreshTransactions } = useTransactions();
+  const { removeOptimisticTransaction, refreshTransactions } =
+    useTransactions();
+  const { t } = useI18n();
+  const { languageKey } = useTheme();
   const isIncome = transaction.type === "income";
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const secondaryTextColor = useThemeColor({}, "text");
   const categoryIcon = getCategoryIconConfig(transaction.category);
+  const categoryInfo = getCategoryDisplayInfo(
+    transaction.category,
+    languageKey,
+  );
 
   // Close swipe when returning to history screen (e.g. after edit)
   useFocusEffect(
     useCallback(() => {
       swipeableRef.current?.close();
-    }, [])
+    }, []),
   );
 
   const handleEdit = () => {
     swipeableRef.current?.close();
-    (router.push as (href: string) => void)(`/edit-transaction?id=${transaction.id}`);
+    (router.push as (href: string) => void)(
+      `/edit-transaction?id=${transaction.id}`,
+    );
   };
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete transaction",
-      "Are you sure you want to delete this transaction?",
+      t("history.transaction.deleteTitle"),
+      t("history.transaction.deleteMessage"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("history.transaction.deleteCancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("history.transaction.deleteConfirm"),
           style: "destructive",
           onPress: () => {
             const id = transaction.id;
@@ -67,12 +82,13 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
               })
               .catch(async (err) => {
                 await refreshTransactions();
-                const message = err?.message ?? "Could not delete the transaction.";
-                Alert.alert("Error", message);
+                const message =
+                  err?.message ?? t("history.transaction.deleteError");
+                Alert.alert(t("add.error.invalidAmountTitle"), message);
               });
           },
         },
-      ]
+      ],
     );
   };
 
@@ -83,14 +99,16 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         onPress={handleEdit}
       >
         <Ionicons name="pencil" size={22} color="#fff" />
-        <Text style={styles.actionLabel}>Edit</Text>
+        <Text style={styles.actionLabel}>{t("history.transaction.edit")}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.actionBtn, styles.deleteBtn]}
         onPress={handleDelete}
       >
         <Ionicons name="trash" size={22} color="#fff" />
-        <Text style={styles.actionLabel}>Delete</Text>
+        <Text style={styles.actionLabel}>
+          {t("history.transaction.delete")}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -117,10 +135,10 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         </View>
         <View style={styles.transactionDetails}>
           <Text style={[styles.transactionName, { color: textColor }]}>
-            {transaction.caption || transaction.category}
+            {transaction.caption || categoryInfo.label}
           </Text>
           <Text style={[styles.transactionMeta, { color: secondaryTextColor }]}>
-            {transaction.category} — {format(transaction.createdAt, "HH:mm")}
+            {categoryInfo.label} — {format(transaction.createdAt, "HH:mm")}
           </Text>
         </View>
         <Text

@@ -1,6 +1,7 @@
-import { Text, View } from '@/components/Themed';
-import { Ionicons } from '@expo/vector-icons';
-import { Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, View } from "@/components/Themed";
+import { useI18n } from "@/i18n";
+import { Ionicons } from "@expo/vector-icons";
+import { Image, StyleSheet, TouchableOpacity } from "react-native";
 
 interface HomeHeaderProps {
   userName: string;
@@ -15,9 +16,12 @@ export default function HomeHeader({
   iconColor,
   onPressProfile,
 }: HomeHeaderProps) {
+  const { t } = useI18n();
   return (
     <View style={styles.header}>
-      <Text style={styles.welcomeText}>Welcome, {userName}!</Text>
+      <Text style={styles.welcomeText}>
+        {t("home.welcome", { name: userName })}
+      </Text>
       <View style={styles.headerIcons}>
         <TouchableOpacity style={styles.iconButton}>
           <Ionicons name="notifications-outline" size={24} color={iconColor} />
@@ -30,7 +34,11 @@ export default function HomeHeader({
               resizeMode="cover"
             />
           ) : (
-            <Ionicons name="person-circle-outline" size={24} color={iconColor} />
+            <Ionicons
+              name="person-circle-outline"
+              size={24}
+              color={iconColor}
+            />
           )}
         </TouchableOpacity>
       </View>
@@ -40,20 +48,20 @@ export default function HomeHeader({
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 30,
     paddingBottom: 25,
   },
   welcomeText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 15,
   },
   iconButton: {
@@ -63,7 +71,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: "rgba(0,0,0,0.06)",
   },
 });
-

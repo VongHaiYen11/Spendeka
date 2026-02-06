@@ -1,12 +1,19 @@
 import { SafeView, Text, View } from "@/components/Themed";
+import { auth, db } from "@/config/firebaseConfig";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { auth, db } from "@/config/firebaseConfig";
+import { useI18n } from "@/i18n";
 import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,12 +29,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import AccentColorPickerModal from "./components/AccentColorPickerModal";
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 
 export default function SettingsScreen() {
   const {
@@ -45,6 +46,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [accentModalVisible, setAccentModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { t } = useI18n();
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -67,7 +69,9 @@ export default function SettingsScreen() {
   const newPasswordMatchDebounceTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
-  const [newPasswordMatch, setNewPasswordMatch] = useState<boolean | null>(null);
+  const [newPasswordMatch, setNewPasswordMatch] = useState<boolean | null>(
+    null,
+  );
 
   const [profileName, setProfileName] = useState<string>("User");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
@@ -125,14 +129,14 @@ export default function SettingsScreen() {
             } catch (err) {
               Alert.alert(
                 "Error",
-                "Could not delete all data. Please try again."
+                "Could not delete all data. Please try again.",
               );
             } finally {
               setIsDeleting(false);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -173,29 +177,41 @@ export default function SettingsScreen() {
 
     if (!firebaseUser || !email) {
       Alert.alert(
-        "Error",
-        "Your account cannot change password right now. Please log in again."
+        t("settings.password.error.cannotChange"),
+        t("settings.password.error.cannotChangeMessage"),
       );
       return;
     }
 
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      Alert.alert("Missing info", "Please fill in all password fields.");
+      Alert.alert(
+        t("settings.password.error.missingInfo"),
+        t("settings.password.error.fillAllFields"),
+      );
       return;
     }
 
     if (currentPasswordValid !== true) {
-      Alert.alert("Error", "Please confirm your current password first.");
+      Alert.alert(
+        t("settings.password.error.cannotChange"),
+        t("settings.password.error.confirmFirst"),
+      );
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert("Invalid password", "New password must be at least 6 characters.");
+      Alert.alert(
+        t("settings.password.error.invalidPassword"),
+        t("settings.password.error.minLength"),
+      );
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      Alert.alert("Password mismatch", "New passwords do not match.");
+      Alert.alert(
+        t("settings.password.error.invalidPassword"),
+        t("settings.password.error.mismatch"),
+      );
       return;
     }
 
@@ -206,22 +222,37 @@ export default function SettingsScreen() {
       await reauthenticateWithCredential(firebaseUser, credential);
       await updatePassword(firebaseUser, newPassword);
 
-      Alert.alert("Success", "Password updated successfully.");
+      Alert.alert(
+        t("settings.password.success.title"),
+        t("settings.password.success.message"),
+      );
       setPasswordModalVisible(false);
       resetPasswordForm();
     } catch (e: any) {
       const code = e?.code as string | undefined;
-      if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
-        Alert.alert("Error", "Current password is incorrect.");
+      if (
+        code === "auth/invalid-credential" ||
+        code === "auth/wrong-password"
+      ) {
+        Alert.alert(
+          t("settings.password.error.cannotChange"),
+          t("settings.password.error.incorrect"),
+        );
       } else if (code === "auth/too-many-requests") {
         Alert.alert(
-          "Error",
-          "Too many attempts. Please wait a few minutes and try again."
+          t("settings.password.error.cannotChange"),
+          t("settings.password.error.tooManyAttempts"),
         );
       } else if (code === "auth/requires-recent-login") {
-        Alert.alert("Error", "Please log in again and retry changing password.");
+        Alert.alert(
+          t("settings.password.error.cannotChange"),
+          t("settings.password.error.retryLogin"),
+        );
       } else {
-        Alert.alert("Error", "Could not update password. Please try again.");
+        Alert.alert(
+          t("settings.password.error.cannotChange"),
+          t("settings.password.error.updateFailed"),
+        );
       }
     } finally {
       setIsChangingPassword(false);
@@ -240,7 +271,7 @@ export default function SettingsScreen() {
     const email = firebaseUser?.email ?? user?.email ?? null;
     if (!firebaseUser || !email) {
       setCurrentPasswordValid(false);
-      setCurrentPasswordError("Please log in again to verify password.");
+      setCurrentPasswordError(t("settings.password.error.loginRequired"));
       return;
     }
 
@@ -261,17 +292,18 @@ export default function SettingsScreen() {
       if (requestId !== checkCurrentPasswordRequestIdRef.current) return;
       const code = e?.code as string | undefined;
       lastCheckedCurrentPasswordRef.current = null;
-      if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
+      if (
+        code === "auth/invalid-credential" ||
+        code === "auth/wrong-password"
+      ) {
         setCurrentPasswordValid(false);
-        setCurrentPasswordError("Current password is incorrect.");
+        setCurrentPasswordError(t("settings.password.error.incorrect"));
       } else if (code === "auth/too-many-requests") {
         setCurrentPasswordValid(false);
-        setCurrentPasswordError(
-          "Too many attempts. Please wait a few minutes and try again."
-        );
+        setCurrentPasswordError(t("settings.password.error.tooManyAttempts"));
       } else {
         setCurrentPasswordValid(false);
-        setCurrentPasswordError("Could not verify current password.");
+        setCurrentPasswordError(t("settings.password.error.verifyFailed"));
       }
     } finally {
       if (requestId === checkCurrentPasswordRequestIdRef.current) {
@@ -341,28 +373,21 @@ export default function SettingsScreen() {
   }, [newPassword, confirmNewPassword, passwordModalVisible]);
 
   const handleSignOut = () => {
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await logout();
-              router.replace("/(auth)/login");
-            } catch (err) {
-              Alert.alert(
-                "Error",
-                "Could not sign out. Please try again."
-              );
-            }
-          },
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logout();
+            router.replace("/(auth)/login");
+          } catch (err) {
+            Alert.alert("Error", "Could not sign out. Please try again.");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Colors based on theme
@@ -373,7 +398,8 @@ export default function SettingsScreen() {
     colorScheme === "dark" ? "rgba(255,255,255,0.1)" : "#e5e5e5";
   const modalCardBg = colorScheme === "dark" ? "#111827" : "#fff";
   const inputBg = colorScheme === "dark" ? "#0b1220" : "#f3f4f6";
-  const inputBorder = colorScheme === "dark" ? "rgba(255,255,255,0.12)" : "#e5e7eb";
+  const inputBorder =
+    colorScheme === "dark" ? "rgba(255,255,255,0.12)" : "#e5e7eb";
   const errorRed = "#EF4444";
   const iconBg = {
     profile: "#4A90E2",
@@ -435,7 +461,9 @@ export default function SettingsScreen() {
 
   return (
     <SafeView style={styles.container}>
-      <Text style={[styles.header, { color: textColor }]}>Settings</Text>
+      <Text style={[styles.header, { color: textColor }]}>
+        {t("settings.title")}
+      </Text>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -478,17 +506,13 @@ export default function SettingsScreen() {
         {/* Account */}
         <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
-            Account
+            {t("settings.section.account")}
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
-            
-            <View
-              style={[styles.separator, { backgroundColor: separatorColor }]}
-            />
             <SettingItem
               icon="lock-closed-outline"
               iconColor={iconBg.password}
-              title="Password"
+              title={t("settings.item.password")}
               hasArrow
               onPress={openPasswordModal}
             />
@@ -498,7 +522,7 @@ export default function SettingsScreen() {
             <SettingItem
               icon="log-out-outline"
               iconColor={iconBg.signOut}
-              title="Sign Out"
+              title={t("settings.item.signOut")}
               hasArrow
               onPress={handleSignOut}
             />
@@ -508,13 +532,13 @@ export default function SettingsScreen() {
         {/* Appearance */}
         <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
-            Appearance
+            {t("settings.section.appearance")}
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
             <SettingItem
               icon="moon"
               iconColor="#4A5568"
-              title="Dark Mode"
+              title={t("settings.item.darkMode")}
               hasToggle
               toggleValue={isDarkMode}
               onToggle={toggleDarkMode}
@@ -525,7 +549,7 @@ export default function SettingsScreen() {
             <SettingItem
               icon="color-palette-outline"
               iconColor={iconBg.accent}
-              title="Accent Color"
+              title={t("settings.item.accentColor")}
               hasArrow
               onPress={() => setAccentModalVisible(true)}
             />
@@ -535,13 +559,13 @@ export default function SettingsScreen() {
         {/* Notifications */}
         <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
-            Notifications
+            {t("settings.section.notifications")}
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
             <SettingItem
               icon="notifications-outline"
               iconColor={iconBg.notification}
-              title="Push Notifications"
+              title={t("settings.item.pushNotifications")}
               hasToggle
               toggleValue={false}
               onToggle={() => {}}
@@ -552,19 +576,26 @@ export default function SettingsScreen() {
         {/* Language & Region */}
         <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
-            Language & Region
+            {t("settings.section.language")}
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
             <View
-              style={[styles.settingItem, styles.languageRow, { backgroundColor: itemBg }]}
+              style={[
+                styles.settingItem,
+                styles.languageRow,
+                { backgroundColor: itemBg },
+              ]}
             >
               <View
-                style={[styles.iconContainer, { backgroundColor: iconBg.language }]}
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: iconBg.language },
+                ]}
               >
                 <Ionicons name="globe-outline" size={20} color="#fff" />
               </View>
               <Text style={[styles.settingTitle, { color: textColor }]}>
-                Language
+                {t("settings.item.appLanguage")}
               </Text>
               <View style={styles.languageToggle}>
                 <TouchableOpacity
@@ -623,13 +654,17 @@ export default function SettingsScreen() {
         {/* Data */}
         <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
-            Data
+            {t("settings.section.data")}
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
             <SettingItem
               icon="trash-outline"
               iconColor="#FF3B30"
-              title={isDeleting ? "Deleting…" : "Delete All Data"}
+              title={
+                isDeleting
+                  ? `${t("settings.item.deleteAllData")}…`
+                  : t("settings.item.deleteAllData")
+              }
               hasArrow
               onPress={isDeleting ? undefined : handleDeleteAllData}
             />
@@ -658,11 +693,11 @@ export default function SettingsScreen() {
         >
           <View style={[styles.modalCard, { backgroundColor: modalCardBg }]}>
             <Text style={[styles.modalTitle, { color: textColor }]}>
-              Change password
+              {t("settings.password.title")}
             </Text>
 
             <Text style={[styles.modalLabel, { color: secondaryTextColor }]}>
-              Current password
+              {t("settings.password.currentPassword")}
             </Text>
             <View>
               <TextInput
@@ -675,7 +710,7 @@ export default function SettingsScreen() {
                 }}
                 secureTextEntry
                 editable={!isChangingPassword}
-                placeholder="Enter current password"
+                placeholder={t("settings.password.placeholder.current")}
                 placeholderTextColor={secondaryTextColor}
                 style={[
                   styles.modalInput,
@@ -705,14 +740,14 @@ export default function SettingsScreen() {
             ) : null}
 
             <Text style={[styles.modalLabel, { color: secondaryTextColor }]}>
-              New password
+              {t("settings.password.newPassword")}
             </Text>
             <TextInput
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
               editable={!isChangingPassword}
-              placeholder="Enter new password"
+              placeholder={t("settings.password.placeholder.new")}
               placeholderTextColor={secondaryTextColor}
               style={[
                 styles.modalInput,
@@ -725,14 +760,14 @@ export default function SettingsScreen() {
             />
 
             <Text style={[styles.modalLabel, { color: secondaryTextColor }]}>
-              Confirm new password
+              {t("settings.password.confirmPassword")}
             </Text>
             <TextInput
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
               secureTextEntry
               editable={!isChangingPassword}
-              placeholder="Re-enter new password"
+              placeholder={t("settings.password.placeholder.confirm")}
               placeholderTextColor={secondaryTextColor}
               style={[
                 styles.modalInput,
@@ -746,7 +781,7 @@ export default function SettingsScreen() {
 
             {newPasswordMatch === false ? (
               <Text style={[styles.modalErrorText, { color: errorRed }]}>
-                New passwords do not match.
+                {t("settings.password.error.mismatch")}
               </Text>
             ) : null}
 
@@ -758,7 +793,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.modalBtnText, { color: textColor }]}>
-                  Cancel
+                  {t("settings.password.button.cancel")}
                 </Text>
               </TouchableOpacity>
 
@@ -768,7 +803,9 @@ export default function SettingsScreen() {
                   {
                     backgroundColor: primaryColor,
                     opacity:
-                      isChangingPassword || currentPasswordValid !== true ? 0.6 : 1,
+                      isChangingPassword || currentPasswordValid !== true
+                        ? 0.6
+                        : 1,
                   },
                 ]}
                 onPress={handleChangePassword}
@@ -779,7 +816,7 @@ export default function SettingsScreen() {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={[styles.modalBtnText, { color: "#fff" }]}>
-                    Update
+                    {t("settings.password.button.update")}
                   </Text>
                 )}
               </TouchableOpacity>

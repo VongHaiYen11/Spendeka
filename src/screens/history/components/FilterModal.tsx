@@ -2,6 +2,7 @@ import { Text, useThemeColor } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { format, isToday } from "date-fns";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -46,14 +47,7 @@ interface FilterModalProps {
   incomeCategoryOptions?: CategoryOption[];
 }
 
-const TRANSACTION_TYPE_OPTIONS: Array<{
-  value: TransactionType;
-  label: string;
-}> = [
-  { value: "all", label: "All" },
-  { value: "income", label: "Income" },
-  { value: "spent", label: "Spent" },
-];
+// TRANSACTION_TYPE_OPTIONS will be created dynamically using translations
 
 const DEFAULT_EXPENSE_OPTIONS: CategoryOption[] = [
   { value: "food", label: "Food" },
@@ -68,11 +62,7 @@ const DEFAULT_INCOME_OPTIONS: CategoryOption[] = [
   { value: "other_income", label: "Other" },
 ];
 
-const GROUP_BY_OPTIONS: Array<{ value: GroupBy; label: string }> = [
-  { value: "day", label: "By Day" },
-  { value: "month", label: "By Month" },
-  { value: "year", label: "By Year" },
-];
+// GROUP_BY_OPTIONS will be created dynamically using translations
 
 export const FilterModal: React.FC<FilterModalProps> = ({
   visible,
@@ -85,9 +75,25 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const primaryColor = usePrimaryColor();
+  const { t } = useI18n();
   const isDark = backgroundColor === Colors.dark.background;
   const colorScheme = useColorScheme();
   const themeVariant = colorScheme === "dark" ? "dark" : "light";
+
+  const TRANSACTION_TYPE_OPTIONS: Array<{
+    value: TransactionType;
+    label: string;
+  }> = [
+    { value: "all", label: t("history.filter.type.all") },
+    { value: "income", label: t("history.filter.type.income") },
+    { value: "spent", label: t("history.filter.type.spent") },
+  ];
+
+  const GROUP_BY_OPTIONS: Array<{ value: GroupBy; label: string }> = [
+    { value: "day", label: t("history.filter.groupBy.day") },
+    { value: "month", label: t("history.filter.groupBy.month") },
+    { value: "year", label: t("history.filter.groupBy.year") },
+  ];
 
   const [transactionType, setTransactionType] =
     useState<TransactionType>("all");
@@ -229,7 +235,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             style={[styles.header, { borderBottomColor: themeColors.border }]}
           >
             <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-              Filter Transactions
+              {t("history.filter.title")}
             </Text>
             <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
               <Text
@@ -250,7 +256,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Transaction Type Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Transaction Type
+                {t("history.filter.transactionType")}
               </Text>
               <View style={styles.typeContainer}>
                 {TRANSACTION_TYPE_OPTIONS.map((option) => {
@@ -287,7 +293,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Categories Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Categories
+                {t("history.filter.categories")}
               </Text>
               <Text
                 style={[
@@ -295,7 +301,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   { color: themeColors.text, opacity: 0.6 },
                 ]}
               >
-                Select one or more categories
+                {t("history.filter.categoriesSubtitle")}
               </Text>
               <View style={styles.categoriesContainer}>
                 {displayedCategories.map((opt) => {
@@ -332,7 +338,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Amount Range Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Amount Range
+                {t("history.filter.amountRange")}
               </Text>
               <Text
                 style={[
@@ -340,14 +346,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   { color: themeColors.text, opacity: 0.6 },
                 ]}
               >
-                Optional: Set minimum and maximum amounts
+                {t("history.filter.amountRangeSubtitle")}
               </Text>
               <View style={styles.amountContainer}>
                 <View style={styles.amountInputWrapper}>
                   <Text
                     style={[styles.amountLabel, { color: themeColors.text }]}
                   >
-                    Min
+                    {t("history.filter.minAmount")}
                   </Text>
                   <TextInput
                     style={[
@@ -369,7 +375,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   <Text
                     style={[styles.amountLabel, { color: themeColors.text }]}
                   >
-                    Max
+                    {t("history.filter.maxAmount")}
                   </Text>
                   <TextInput
                     style={[
@@ -380,7 +386,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                         color: themeColors.text,
                       },
                     ]}
-                    placeholder="No limit"
+                    placeholder={t("history.filter.noLimit")}
                     placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                     value={maxAmount}
                     onChangeText={handleMaxAmountChange}
@@ -393,7 +399,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Date Range Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Date Range
+                {t("history.filter.dateRange")}
               </Text>
               <Text
                 style={[
@@ -401,12 +407,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   { color: themeColors.text, opacity: 0.6 },
                 ]}
               >
-                Optional: Filter by date range
+                {t("history.filter.dateRangeSubtitle")}
               </Text>
               <View style={styles.dateContainer}>
                 <View style={styles.dateInputWrapper}>
                   <Text style={[styles.dateLabel, { color: themeColors.text }]}>
-                    Start Date
+                    {t("history.filter.startDate")}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowStartDatePicker(true)}
@@ -432,9 +438,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     >
                       {startDate
                         ? isToday(startDate)
-                          ? "Today"
+                          ? t("history.filter.today")
                           : format(startDate, "MMM d, yyyy")
-                        : "Select start date"}
+                        : t("history.filter.selectStartDate")}
                     </Text>
                     {startDate && (
                       <TouchableOpacity
@@ -496,7 +502,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 </View>
                 <View style={styles.dateInputWrapper}>
                   <Text style={[styles.dateLabel, { color: themeColors.text }]}>
-                    End Date
+                    {t("history.filter.endDate")}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowEndDatePicker(true)}
@@ -522,9 +528,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     >
                       {endDate
                         ? isToday(endDate)
-                          ? "Today"
+                          ? t("history.filter.today")
                           : format(endDate, "MMM d, yyyy")
-                        : "Select end date"}
+                        : t("history.filter.selectEndDate")}
                     </Text>
                     {endDate && (
                       <TouchableOpacity
@@ -590,7 +596,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Group By Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Group By
+                {t("history.filter.groupBy")}
               </Text>
               <Text
                 style={[
@@ -598,7 +604,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   { color: themeColors.text, opacity: 0.6 },
                 ]}
               >
-                How to organize transactions
+                {t("history.filter.groupBySubtitle")}
               </Text>
               <View style={styles.typeContainer}>
                 {GROUP_BY_OPTIONS.map((option) => {
@@ -650,7 +656,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               <Text
                 style={[styles.resetButtonText, { color: themeColors.text }]}
               >
-                Reset
+                {t("history.filter.reset")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -663,7 +669,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               <Text
                 style={[styles.cancelButtonText, { color: themeColors.text }]}
               >
-                Cancel
+                {t("history.filter.cancel")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -673,7 +679,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 { backgroundColor: themeColors.activeBg },
               ]}
             >
-              <Text style={styles.applyButtonText}>Apply</Text>
+              <Text style={styles.applyButtonText}>
+                {t("history.filter.apply")}
+              </Text>
             </TouchableOpacity>
           </View>
         </Pressable>

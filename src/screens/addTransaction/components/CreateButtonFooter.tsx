@@ -1,5 +1,6 @@
 import { Text, useThemeColor } from "@/components/Themed";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -21,11 +22,13 @@ interface CreateButtonFooterProps {
 export default function CreateButtonFooter({
   onPress,
   isLoading,
-  label = "Create Transaction",
+  label,
   icon = "add",
 }: CreateButtonFooterProps) {
   const backgroundColor = useThemeColor({}, "background");
   const primaryColor = usePrimaryColor();
+  const { t } = useI18n();
+  const resolvedLabel = label ?? t("add.button.create");
 
   return (
     <View style={[styles.createButtonFooter, { backgroundColor }]}>
@@ -43,7 +46,7 @@ export default function CreateButtonFooter({
         ) : (
           <>
             <Text style={[styles.createButtonText, { color: "#000" }]}>
-              {label}
+              {resolvedLabel}
             </Text>
             <Ionicons name={icon} size={24} color="#000" />
           </>

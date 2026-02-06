@@ -114,6 +114,7 @@ export const filterTransactions = (
     maxAmount?: string;
     startDate?: Date | null;
     endDate?: Date | null;
+    categoryLabelMap?: Record<string, string>; // Map category value -> localized label
   },
 ): DatabaseTransaction[] => {
   let filtered = transactions;
@@ -132,9 +133,7 @@ export const filterTransactions = (
 
   // Filter by categories (category values, e.g. "food", "transport")
   if (filters?.categories && filters.categories.length > 0) {
-    filtered = filtered.filter((t) =>
-      filters.categories!.includes(t.category),
-    );
+    filtered = filtered.filter((t) => filters.categories!.includes(t.category));
   }
 
   // Filter by amount range
@@ -152,14 +151,23 @@ export const filterTransactions = (
     }
   }
 
-  // Filter by search query
+  // Filter by search query (searches category value, localized category label, and caption)
   if (searchQuery.trim()) {
     const query = searchQuery.toLowerCase();
-    filtered = filtered.filter(
-      (t) =>
-        t.category.toLowerCase().includes(query) ||
-        (t.caption && t.caption.toLowerCase().includes(query)),
-    );
+    filtered = filtered.filter((t) => {
+      // Search by category value (e.g. "food")
+      if (t.category.toLowerCase().includes(query)) return true;
+      // Search by localized category label (e.g. "Food" or "Ăn uống")
+      if (
+        filters?.categoryLabelMap &&
+        filters.categoryLabelMap[t.category]?.toLowerCase().includes(query)
+      ) {
+        return true;
+      }
+      // Search by caption
+      if (t.caption && t.caption.toLowerCase().includes(query)) return true;
+      return false;
+    });
   }
 
   return filtered;

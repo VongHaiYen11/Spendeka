@@ -1,37 +1,40 @@
 import { SafeView, View, useThemeColor } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
 import {
-  EXPENSE_CATEGORIES_EN,
-  INCOME_CATEGORIES_EN,
+    EXPENSE_CATEGORIES,
+    EXPENSE_CATEGORIES_EN,
+    INCOME_CATEGORIES_EN,
+    INCOME_CATEGORIES_VI,
 } from "@/models/Expense";
 import {
-  createAndSaveTransaction,
-  generateTransactionId,
-  updateDatabaseTransaction,
-  uploadImageToCloudinary,
+    createAndSaveTransaction,
+    generateTransactionId,
+    updateDatabaseTransaction,
+    uploadImageToCloudinary,
 } from "@/services/TransactionService";
 import { DatabaseTransaction, TransactionCategory } from "@/types/transaction";
-import { useRouter, useLocalSearchParams } from "expo-router";
 import { format, isToday } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState, useEffect, useRef } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
 } from "react-native";
 import {
-  AddTransactionHeader,
-  AmountInput,
-  CategoryModal,
-  CreateButtonFooter,
-  DatePickerModal,
-  DetailRow,
-  ImageSection,
-  NoteSection,
-  TypeSwitcher,
+    AddTransactionHeader,
+    AmountInput,
+    CategoryModal,
+    CreateButtonFooter,
+    DatePickerModal,
+    DetailRow,
+    ImageSection,
+    NoteSection,
+    TypeSwitcher,
 } from "./components";
 
 interface AddTransactionScreenProps {
@@ -51,16 +54,15 @@ export default function AddTransactionScreen({
     createdAt?: string;
     imageUri?: string;
   }>();
-  const {
-    addTransactionOptimistic,
-    removeOptimisticTransaction,
-  } = useTransactions();
+  const { addTransactionOptimistic, removeOptimisticTransaction } =
+    useTransactions();
+  const { t, languageKey } = useI18n();
 
   const isEditMode = Boolean(initialTransaction?.id);
 
   const [amount, setAmount] = useState("");
   const [transactionType, setTransactionType] = useState<"income" | "spent">(
-    "spent"
+    "spent",
   );
   const [category, setCategory] = useState<TransactionCategory>("food");
   const [caption, setCaption] = useState("");
@@ -76,9 +78,15 @@ export default function AddTransactionScreen({
   useEffect(() => {
     // Prevent infinite loops by only initializing once
     if (paramsInitialized.current) return;
-    
+
     // Check if any params exist to initialize
-    const hasParams = params.caption || params.amount || params.type || params.category || params.createdAt || params.imageUri;
+    const hasParams =
+      params.caption ||
+      params.amount ||
+      params.type ||
+      params.category ||
+      params.createdAt ||
+      params.imageUri;
     if (!hasParams) return;
 
     if (params.caption) {
@@ -104,15 +112,28 @@ export default function AddTransactionScreen({
     }
 
     paramsInitialized.current = true;
-  }, [params.caption, params.amount, params.type, params.category, params.createdAt, params.imageUri]);
+  }, [
+    params.caption,
+    params.amount,
+    params.type,
+    params.category,
+    params.createdAt,
+    params.imageUri,
+  ]);
 
   const backgroundColor = useThemeColor({}, "background");
   const selectedCategoryInfo =
     transactionType === "spent"
-      ? EXPENSE_CATEGORIES_EN.find((c) => c.value === category)
-      : INCOME_CATEGORIES_EN.find((c) => c.value === category);
+      ? (languageKey === "vie"
+          ? EXPENSE_CATEGORIES
+          : EXPENSE_CATEGORIES_EN
+        ).find((c) => c.value === category)
+      : (languageKey === "vie"
+          ? INCOME_CATEGORIES_VI
+          : INCOME_CATEGORIES_EN
+        ).find((c) => c.value === category);
   const dateLabel = isToday(selectedDate)
-    ? "Today"
+    ? t("add.date.today")
     : format(selectedDate, "MMM d, yyyy");
 
   const formatAmountInput = (text: string) => {
@@ -128,12 +149,11 @@ export default function AddTransactionScreen({
   };
 
   const handlePickImage = async () => {
-    const { status } =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permission needed",
-        "Please allow access to your photo library to attach an image."
+        t("add.error.permissionTitle"),
+        t("add.error.permissionMessage"),
       );
       return;
     }
@@ -151,7 +171,10 @@ export default function AddTransactionScreen({
   const handleSubmit = () => {
     const amountValue = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (!amountValue || amountValue <= 0) {
-      Alert.alert("Invalid amount", "Please enter a valid amount.");
+      Alert.alert(
+        t("add.error.invalidAmountTitle"),
+        t("add.error.invalidAmountMessage"),
+      );
       return;
     }
 
@@ -161,10 +184,9 @@ export default function AddTransactionScreen({
         try {
           let imageUrl: string | undefined = initialTransaction.imageUrl;
           if (imageUri) {
-            imageUrl =
-              imageUri.startsWith("http")
-                ? imageUri
-                : await uploadImageToCloudinary(imageUri);
+            imageUrl = imageUri.startsWith("http")
+              ? imageUri
+              : await uploadImageToCloudinary(imageUri);
           }
           const updated: DatabaseTransaction = {
             ...initialTransaction,
@@ -178,10 +200,7 @@ export default function AddTransactionScreen({
           await updateDatabaseTransaction(updated);
           router.back();
         } catch {
-          Alert.alert(
-            "Could not update",
-            "The transaction was not updated. Please try again."
-          );
+          Alert.alert(t("add.error.updateTitle"), t("add.error.updateMessage"));
         } finally {
           setIsSubmitting(false);
         }
@@ -207,10 +226,7 @@ export default function AddTransactionScreen({
         await createAndSaveTransaction(newTransaction, imageUri);
       } catch (error) {
         removeOptimisticTransaction(newTransaction.id);
-        Alert.alert(
-          "Could not save",
-          "The transaction was not saved. Please try again."
-        );
+        Alert.alert(t("add.error.saveTitle"), t("add.error.saveMessage"));
       }
     })();
   };
@@ -238,7 +254,7 @@ export default function AddTransactionScreen({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <AddTransactionHeader
-          title={isEditMode ? "Edit Transaction" : "Add Transaction"}
+          title={isEditMode ? t("add.title.edit") : t("add.title.add")}
         />
 
         <ScrollView
@@ -249,18 +265,24 @@ export default function AddTransactionScreen({
         >
           <AmountInput value={amount} onChangeText={formatAmountInput} />
 
-          <TypeSwitcher value={transactionType} onChange={handleTransactionTypeChange} />
+          <TypeSwitcher
+            value={transactionType}
+            onChange={handleTransactionTypeChange}
+          />
 
           <View style={styles.rowsContainer}>
             <DetailRow
               icon="grid-outline"
-              label="Category"
-              value={selectedCategoryInfo?.label ?? (transactionType === "spent" ? "Food" : "Salary")}
+              label={t("add.field.category")}
+              value={
+                selectedCategoryInfo?.label ??
+                (transactionType === "spent" ? "Food" : "Salary")
+              }
               onPress={() => setShowCategoryModal(true)}
             />
             <DetailRow
               icon="calendar-outline"
-              label="Date"
+              label={t("add.field.date")}
               value={dateLabel}
               onPress={() => setShowDateModal(true)}
             />
@@ -276,7 +298,7 @@ export default function AddTransactionScreen({
         <CreateButtonFooter
           onPress={handleSubmit}
           isLoading={isSubmitting}
-          label={isEditMode ? "Update" : "Create Transaction"}
+          label={isEditMode ? t("add.button.update") : t("add.button.create")}
           icon={isEditMode ? "checkmark" : "add"}
         />
       </KeyboardAvoidingView>

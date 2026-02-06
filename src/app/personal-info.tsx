@@ -24,6 +24,9 @@ import { updateProfile } from "firebase/auth";
 import { auth } from "@/config/firebaseConfig";
 import { useNavigation } from "@react-navigation/native";
 import { uploadAvatarImageToCloudinary } from "@/services/ImageService";
+import { useI18n } from "@/i18n";
+import { SafeView, useThemeColor } from "@/components/Themed";
+import { ChevronLeft } from "lucide-react-native";
 
 type UserProfileDoc = {
   fullName?: string;
@@ -54,9 +57,12 @@ export default function PersonalInfoScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { t } = useI18n();
   const primaryColor = usePrimaryColor();
   const scheme = useColorScheme();
   const theme = Colors[scheme];
+  const textColor = useThemeColor({}, "text");
+  const backgroundColor = useThemeColor({}, "background");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -241,28 +247,34 @@ export default function PersonalInfoScreen() {
   };
 
   return (
-    <View style={[styles.page, { backgroundColor: theme.background }]}>
-      <Stack.Screen
-        options={{
-          title: "Personal Info",
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => handleSave()}
-              disabled={!isDirty || saving}
-              activeOpacity={0.8}
-              style={[
-                styles.saveBtn,
-                {
-                  backgroundColor: primaryColor,
-                  opacity: !isDirty || saving ? 0.5 : 1,
-                },
-              ]}
-            >
-              <Text style={styles.saveBtnText}>{saving ? "Saving…" : "Save"}</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
+    <SafeView style={styles.page}>
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Custom Header */}
+      <View style={[styles.header, { backgroundColor }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ChevronLeft size={24} color={textColor} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: textColor }]}>
+          {t("settings.item.personalInfo")}
+        </Text>
+        <TouchableOpacity
+          onPress={() => handleSave()}
+          disabled={!isDirty || saving}
+          activeOpacity={0.8}
+          style={[
+            styles.saveBtn,
+            {
+              backgroundColor: primaryColor,
+              opacity: !isDirty || saving ? 0.5 : 1,
+            },
+          ]}
+        >
+          <Text style={styles.saveBtnText}>
+            {saving ? t("personalInfo.saving") : t("personalInfo.save")}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar} activeOpacity={0.85}>
@@ -325,12 +337,35 @@ export default function PersonalInfoScreen() {
           <Text style={[styles.helper, { color: Colors.general.gray600 }]}>Loading…</Text>
         ) : null}
       </ScrollView>
-    </View>
+    </SafeView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1 },
+  page: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   content: { paddingHorizontal: 20, paddingVertical: 18 },
   avatarWrap: {
     alignSelf: "center",
@@ -377,7 +412,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
+    minWidth: 60,
+    alignItems: "center",
   },
-  saveBtnText: { color: "#000", fontWeight: "800" },
+  saveBtnText: { color: "#000", fontWeight: "800", fontSize: 14 },
 });
 

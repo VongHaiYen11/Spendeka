@@ -1,5 +1,6 @@
-import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import MonthYearPicker from "@/screens/summary/components/MonthYearPicker";
 import { RangeType } from "@/utils/getDateRange";
 import { endOfWeek, startOfWeek } from "date-fns";
@@ -15,14 +16,6 @@ interface DateRangePickerModalProps {
   currentDate: Date;
 }
 
-const rangeOptions: { value: RangeType; label: string }[] = [
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-  { value: "all", label: "All" },
-];
-
 export default function DateRangePickerModal({
   visible,
   onClose,
@@ -30,9 +23,20 @@ export default function DateRangePickerModal({
   currentRange,
   currentDate,
 }: DateRangePickerModalProps) {
+  const { t } = useI18n();
+  const { languageKey } = useTheme();
   const colorScheme = useColorScheme();
   const primaryColor = usePrimaryColor();
   const isDark = colorScheme === "dark";
+  const locale = languageKey === "vie" ? "vi" : "en";
+
+  const rangeOptions: { value: RangeType; label: string }[] = [
+    { value: "day", label: t("summary.dateRange.day") },
+    { value: "week", label: t("summary.dateRange.week") },
+    { value: "month", label: t("summary.dateRange.month") },
+    { value: "year", label: t("summary.dateRange.year") },
+    { value: "all", label: t("summary.dateRange.all") },
+  ];
 
   const [selectedRange, setSelectedRange] = useState<RangeType>(currentRange);
   const [selectedDate, setSelectedDate] = useState<Date>(currentDate);
@@ -151,7 +155,7 @@ export default function DateRangePickerModal({
                 isDark ? "text-white" : "text-gray-900"
               }`}
             >
-              Select Date Range
+              {t("summary.dateRange.title")}
             </Text>
             <TouchableOpacity onPress={handleCancel}>
               <Text
@@ -171,8 +175,18 @@ export default function DateRangePickerModal({
                   key={option.value}
                   onPress={() => setSelectedRange(option.value)}
                   style={[
-                    { flex: 1, paddingVertical: 8, paddingHorizontal: 4, marginHorizontal: 2, borderRadius: 8 },
-                    isActive ? { backgroundColor: primaryColor } : isDark ? { backgroundColor: "#374151" } : { backgroundColor: "#f3f4f6" },
+                    {
+                      flex: 1,
+                      paddingVertical: 8,
+                      paddingHorizontal: 4,
+                      marginHorizontal: 2,
+                      borderRadius: 8,
+                    },
+                    isActive
+                      ? { backgroundColor: primaryColor }
+                      : isDark
+                        ? { backgroundColor: "#374151" }
+                        : { backgroundColor: "#f3f4f6" },
                   ]}
                 >
                   <Text
@@ -218,7 +232,10 @@ export default function DateRangePickerModal({
                 markingType={selectedRange === "week" ? "period" : undefined}
                 renderHeader={(date) => {
                   const d = new Date(date);
-                  const month = d.toLocaleString("default", { month: "long" });
+                  const month = d.toLocaleString(
+                    locale === "vi" ? "vi-VN" : "en-US",
+                    { month: "long" },
+                  );
                   const year = d.getFullYear();
 
                   return (
@@ -279,7 +296,7 @@ export default function DateRangePickerModal({
               <Text
                 className={`text-base ${isDark ? "text-gray-400" : "text-gray-600"}`}
               >
-                All time range selected
+                {t("summary.dateRange.allTimeSelected")}
               </Text>
             </View>
           )}
@@ -297,14 +314,19 @@ export default function DateRangePickerModal({
                   isDark ? "text-gray-200" : "text-gray-700"
                 }`}
               >
-                Cancel
+                {t("summary.dateRange.cancel")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleApply}
-              style={[{ flex: 1, paddingVertical: 12, borderRadius: 8 }, { backgroundColor: primaryColor }]}
+              style={[
+                { flex: 1, paddingVertical: 12, borderRadius: 8 },
+                { backgroundColor: primaryColor },
+              ]}
             >
-              <Text className="text-center font-medium text-white">Apply</Text>
+              <Text className="text-center font-medium text-white">
+                {t("summary.dateRange.apply")}
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

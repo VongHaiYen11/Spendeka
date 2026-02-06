@@ -1,7 +1,9 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
-import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
+import { getCategoryDisplayInfo } from "@/models/Expense";
 import {
   DatabaseTransaction,
   getCategoryIconConfig,
@@ -41,11 +43,16 @@ const TransactionItem: React.FC<{
   isDark: boolean;
   isLast?: boolean;
 }> = ({ transaction, tintColor, isDark, isLast = false }) => {
+  const { languageKey } = useTheme();
   const isIncome = transaction.type === "income";
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const secondaryTextColor = useThemeColor({}, "text");
   const categoryIcon = getCategoryIconConfig(transaction.category);
+  const categoryInfo = getCategoryDisplayInfo(
+    transaction.category,
+    languageKey,
+  );
 
   return (
     <View style={[styles.transactionItem, isLast && styles.lastItem]}>
@@ -60,10 +67,10 @@ const TransactionItem: React.FC<{
       </View>
       <View style={styles.transactionDetails}>
         <Text style={[styles.transactionName, { color: textColor }]}>
-          {transaction.caption || transaction.category}
+          {transaction.caption || categoryInfo.label}
         </Text>
         <Text style={[styles.transactionMeta, { color: secondaryTextColor }]}>
-          {transaction.category} — {format(transaction.createdAt, "HH:mm")}
+          {categoryInfo.label} — {format(transaction.createdAt, "HH:mm")}
         </Text>
       </View>
       <Text
@@ -83,6 +90,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   endDate,
   limit = 5,
 }) => {
+  const { t } = useI18n();
   const router = useRouter();
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
@@ -134,11 +142,11 @@ const TransactionList: React.FC<TransactionListProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Recent Transactions</Text>
+          <Text style={styles.title}>{t("summary.recentTransactions")}</Text>
         </View>
         <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
           <RNText style={[styles.emptyText, { color: themeColors.chartText }]}>
-            No data
+            {t("summary.chart.noData")}
           </RNText>
         </View>
       </View>
@@ -148,10 +156,10 @@ const TransactionList: React.FC<TransactionListProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Recent Transactions</Text>
+        <Text style={styles.title}>{t("summary.recentTransactions")}</Text>
         <TouchableOpacity onPress={handleSeeMore}>
           <Text style={[styles.seeMoreText, { color: primaryColor }]}>
-            See More
+            {t("summary.seeMore")}
           </Text>
         </TouchableOpacity>
       </View>

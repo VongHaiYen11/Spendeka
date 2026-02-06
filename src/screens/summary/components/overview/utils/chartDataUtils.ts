@@ -1,4 +1,5 @@
 import { DatabaseTransaction } from "@/types/transaction";
+import { TranslationKey } from "@/i18n";
 import { INCOME_COLOR, SPENT_COLOR } from "../constants";
 import { AggregatedBucket, ChartType, Range } from "../types";
 import { createBuckets, getBucketIndex, splitAmount } from "./bucketUtils";
@@ -8,8 +9,10 @@ export const aggregateTransactions = (
   range: Range,
   startDate: Date,
   endDate: Date,
+  t: (key: TranslationKey, params?: Record<string, string>) => string,
+  languageKey: "vie" | "eng" = "eng",
 ): AggregatedBucket[] => {
-  const buckets = createBuckets(range, startDate, endDate);
+  const buckets = createBuckets(range, startDate, endDate, t, languageKey);
   if (!buckets || buckets.length === 0) return [];
 
   transactions.forEach((tx) => {
@@ -52,6 +55,7 @@ export const buildChartData = (
   buckets: AggregatedBucket[],
   chartType: ChartType,
   range: Range,
+  t: (key: TranslationKey, params?: Record<string, string>) => string,
 ) => {
   let labels = buckets.map((b) => b.label);
 
@@ -80,7 +84,7 @@ export const buildChartData = (
 
   return {
     labels,
-    legend: ["Income", "Spent"],
+    legend: [t("summary.chart.legend.income"), t("summary.chart.legend.spent")],
     datasets: [
       { data: buckets.map((b) => b.income), color: () => INCOME_COLOR },
       { data: buckets.map((b) => b.spent), color: () => SPENT_COLOR },

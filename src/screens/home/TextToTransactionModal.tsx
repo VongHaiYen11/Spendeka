@@ -2,6 +2,7 @@ import { Text, useThemeColor, View } from "@/components/Themed";
 import { API_BASE_URL } from "@/config/api";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import { ParsedTransactionFromText } from "@/types/textToTransaction";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -9,9 +10,11 @@ import {
     Alert,
     KeyboardAvoidingView,
     Modal,
-    Platform, View as RNView, StyleSheet,
+    Platform,
+    View as RNView,
+    StyleSheet,
     TextInput,
-    TouchableOpacity
+    TouchableOpacity,
 } from "react-native";
 
 interface TextToTransactionModalProps {
@@ -33,6 +36,7 @@ export default function TextToTransactionModal({
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const widgetBackgroundColor = useThemeColor({}, "card");
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -70,9 +74,8 @@ export default function TextToTransactionModal({
       } as any);
     } catch (error: any) {
       Alert.alert(
-        "Unable to parse",
-        error?.message ||
-          "Could not understand this text. Please adjust it and try again.",
+        t("home.textModal.error.title"),
+        error?.message || t("home.textModal.error.message"),
       );
     } finally {
       setIsLoading(false);
@@ -103,10 +106,10 @@ export default function TextToTransactionModal({
               ]}
             >
               <Text style={[styles.modalHeading, { color: textColor }]}>
-                Text to Transaction
+                {t("home.textModal.title")}
               </Text>
               <Text style={[styles.modalInstruction, { color: textColor }]}>
-                Describe your expense or income.
+                {t("home.textModal.instruction")}
               </Text>
               <TextInput
                 style={[
@@ -117,7 +120,7 @@ export default function TextToTransactionModal({
                     backgroundColor: widgetBackgroundColor,
                   },
                 ]}
-                placeholder="e.g. Coffee $4.50, Lunch $12..."
+                placeholder={t("home.textModal.placeholder")}
                 placeholderTextColor={colorScheme === "dark" ? "#888" : "#999"}
                 value={value}
                 onChangeText={onChangeText}
@@ -131,7 +134,7 @@ export default function TextToTransactionModal({
                   onPress={onClose}
                 >
                   <Text style={[styles.modalCancelText, { color: textColor }]}>
-                    Cancel
+                    {t("home.textModal.cancel")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -146,7 +149,9 @@ export default function TextToTransactionModal({
                   disabled={isLoading}
                 >
                   <Text style={styles.modalCreateText}>
-                    {isLoading ? "Creating..." : "Create"}
+                    {isLoading
+                      ? t("home.textModal.creating")
+                      : t("home.textModal.create")}
                   </Text>
                 </TouchableOpacity>
               </RNView>
