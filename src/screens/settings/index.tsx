@@ -5,6 +5,10 @@ import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useI18n } from "@/i18n";
+import {
+  getReminderSettings,
+  updateReminderNotification,
+} from "@/services/NotificationService";
 import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -29,6 +33,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import AccentColorPickerModal from "./components/AccentColorPickerModal";
+import TimePickerModal from "./components/TimePickerModal";
 
 export default function SettingsScreen() {
   const {
@@ -52,6 +57,10 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderHour, setReminderHour] = useState(20);
+  const [reminderMinute, setReminderMinute] = useState(0);
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [isCheckingCurrentPassword, setIsCheckingCurrentPassword] =
     useState(false);
   const [currentPasswordValid, setCurrentPasswordValid] = useState<
@@ -110,6 +119,37 @@ export default function SettingsScreen() {
       cancelled = true;
     };
   }, [user?.uid, user?.displayName, user?.photoURL]);
+
+  // Load reminder settings
+  useEffect(() => {
+    const loadReminderSettings = async () => {
+      const settings = await getReminderSettings();
+      setReminderEnabled(settings.enabled);
+      setReminderHour(settings.hour);
+      setReminderMinute(settings.minute);
+    };
+    loadReminderSettings();
+  }, []);
+
+  const handleReminderToggle = async (enabled: boolean) => {
+    setReminderEnabled(enabled);
+    await updateReminderNotification(enabled, reminderHour, reminderMinute);
+  };
+
+  const handleTimeChange = async (hour: number, minute: number) => {
+    setReminderHour(hour);
+    setReminderMinute(minute);
+    if (reminderEnabled) {
+      await updateReminderNotification(true, hour, minute);
+    }
+  };
+
+  const formatTime = (hour: number, minute: number): string => {
+    const period = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const displayMinute = minute.toString().padStart(2, "0");
+    return `${displayHour}:${displayMinute} ${period}`;
+  };
 
   const handleDeleteAllData = () => {
     Alert.alert(
@@ -426,7 +466,7 @@ export default function SettingsScreen() {
     hasArrow?: boolean;
     hasToggle?: boolean;
     toggleValue?: boolean;
-    onToggle?: () => void;
+    onToggle?: (value: boolean) => void | Promise<void>;
     onPress?: () => void;
   }) => (
     <TouchableOpacity
@@ -541,7 +581,7 @@ export default function SettingsScreen() {
               title={t("settings.item.darkMode")}
               hasToggle
               toggleValue={isDarkMode}
-              onToggle={toggleDarkMode}
+              onToggle={(_value) => toggleDarkMode()}
             />
             <View
               style={[styles.separator, { backgroundColor: separatorColor }]}
@@ -565,11 +605,53 @@ export default function SettingsScreen() {
             <SettingItem
               icon="notifications-outline"
               iconColor={iconBg.notification}
-              title={t("settings.item.pushNotifications")}
+              title={t("settings.reminder.enabled")}
               hasToggle
-              toggleValue={false}
-              onToggle={() => {}}
+              toggleValue={reminderEnabled}
+              onToggle={handleReminderToggle}
             />
+            {reminderEnabled && (
+              <>
+                <View
+                  style={[
+                    styles.separator,
+                    { backgroundColor: separatorColor },
+                  ]}
+                />
+                <TouchableOpacity
+                  style={[styles.settingItem, { backgroundColor: itemBg }]}
+                  onPress={() => setTimePickerVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: iconBg.notification },
+                    ]}
+                  >
+                    <Ionicons name="time-outline" size={20} color="#fff" />
+                  </View>
+                  <View style={styles.settingContent}>
+                    <Text style={[styles.settingTitle, { color: textColor }]}>
+                      {t("settings.reminder.title")}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.settingSubtitle,
+                        { color: secondaryTextColor },
+                      ]}
+                    >
+                      {formatTime(reminderHour, reminderMinute)}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={secondaryTextColor}
+                  />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -679,6 +761,14 @@ export default function SettingsScreen() {
         currentAccentKey={accentKey}
         onClose={() => setAccentModalVisible(false)}
         onSelect={setAccentKey}
+      />
+
+      <TimePickerModal
+        visible={timePickerVisible}
+        hour={reminderHour}
+        minute={reminderMinute}
+        onClose={() => setTimePickerVisible(false)}
+        onConfirm={handleTimeChange}
       />
 
       <Modal
@@ -907,6 +997,14 @@ const styles = StyleSheet.create({
   settingTitle: {
     flex: 1,
     fontSize: 16,
+  },
+  settingContent: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  settingSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
   },
   rightContent: {
     backgroundColor: "transparent",

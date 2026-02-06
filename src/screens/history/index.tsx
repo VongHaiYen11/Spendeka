@@ -9,6 +9,7 @@ import {
 } from "@/models/Expense";
 import { useFocusEffect } from "@react-navigation/native";
 import { format, parseISO } from "date-fns";
+import { enUS, vi } from "date-fns/locale";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet } from "react-native";
 import DateGroup from "./components/DateGroup";
@@ -80,6 +81,10 @@ export default function HistoryScreen() {
     });
   }, [allTransactions, searchQuery, filters, categoryLabelMap]);
 
+  const dateLocale = useMemo(() => {
+    return languageKey === "vie" ? vi : enUS;
+  }, [languageKey]);
+
   const groupedTransactions = useMemo(() => {
     if (filters.groupBy === "year") {
       return groupTransactionsByYear(filteredTransactions);
@@ -87,8 +92,8 @@ export default function HistoryScreen() {
     if (filters.groupBy === "day") {
       return groupTransactionsByDay(filteredTransactions);
     }
-    return groupTransactionsByMonth(filteredTransactions);
-  }, [filteredTransactions, filters.groupBy]);
+    return groupTransactionsByMonth(filteredTransactions, dateLocale);
+  }, [filteredTransactions, filters.groupBy, dateLocale]);
 
   const sortedGroupKeys = useMemo(() => {
     return sortGroupKeys(Object.keys(groupedTransactions));
@@ -148,9 +153,10 @@ export default function HistoryScreen() {
           </View>
         ) : (
           sortedGroupKeys.map((groupKey) => {
-            const displayKey = /^\d{4}-\d{2}-\d{2}$/.test(groupKey)
-              ? format(parseISO(groupKey), "MMM d, yyyy")
+            const formattedKey = /^\d{4}-\d{2}-\d{2}$/.test(groupKey)
+              ? format(parseISO(groupKey), "MMM d, yyyy", { locale: dateLocale })
               : groupKey;
+            const displayKey = formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
             return (
               <DateGroup
                 key={groupKey}

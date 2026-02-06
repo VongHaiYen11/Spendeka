@@ -1,5 +1,6 @@
 import { DatabaseTransaction } from "@/types/transaction";
 import { format } from "date-fns";
+import { Locale } from "date-fns";
 
 function isDateInRange(date: Date, startDate: Date, endDate: Date): boolean {
   const d = new Date(date);
@@ -14,12 +15,13 @@ function isDateInRange(date: Date, startDate: Date, endDate: Date): boolean {
 // Group transactions by month
 export const groupTransactionsByMonth = (
   transactions: DatabaseTransaction[],
+  locale?: Locale,
 ) => {
   const groups: Record<string, DatabaseTransaction[]> = {};
 
   transactions.forEach((transaction) => {
     const date = transaction.createdAt;
-    const monthKey = format(date, "MMMM yyyy");
+    const monthKey = format(date, "MMMM yyyy", locale ? { locale } : undefined);
 
     if (!groups[monthKey]) {
       groups[monthKey] = [];

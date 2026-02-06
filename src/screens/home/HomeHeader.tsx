@@ -23,9 +23,6 @@ export default function HomeHeader({
         {t("home.welcome", { name: userName })}
       </Text>
       <View style={styles.headerIcons}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={24} color={iconColor} />
-        </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton} onPress={onPressProfile}>
           {avatarUrl ? (
             <Image

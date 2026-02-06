@@ -1,5 +1,6 @@
 import { Text } from "@/components/Themed";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -12,6 +13,7 @@ interface TypeSwitcherProps {
 
 export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
   const primaryColor = usePrimaryColor();
+  const { t } = useI18n();
   return (
     <View style={[styles.typeContainer, { borderColor: primaryColor }]}>
       <TouchableOpacity
@@ -32,7 +34,7 @@ export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
               : [styles.typeButtonTextInactive, { color: primaryColor }],
           ]}
         >
-          Expense
+          {t("camera.preview.type.spent")}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -53,7 +55,7 @@ export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
               : [styles.typeButtonTextInactive, { color: primaryColor }],
           ]}
         >
-          Income
+          {t("camera.preview.type.income")}
         </Text>
       </TouchableOpacity>
     </View>

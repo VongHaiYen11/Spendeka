@@ -53,6 +53,12 @@ export type TranslationKey =
   | "settings.accentColor.red"
   | "settings.accentColor.orange"
   | "settings.item.pushNotifications"
+  | "settings.reminder.title"
+  | "settings.reminder.selectTime"
+  | "settings.reminder.selectedTime"
+  | "settings.reminder.cancel"
+  | "settings.reminder.confirm"
+  | "settings.reminder.enabled"
   | "settings.item.appLanguage"
   | "settings.item.deleteAllData"
   | "summary.recentTransactions"
@@ -117,6 +123,8 @@ export type TranslationKey =
   | "add.date.done"
   | "add.field.category"
   | "add.field.date"
+  | "add.field.image"
+  | "add.image.remove"
   | "add.note.label"
   | "add.note.placeholder"
   | "add.category.selectTitle"
@@ -322,6 +330,12 @@ const en: TranslationDict = {
   "settings.accentColor.red": "Red",
   "settings.accentColor.orange": "Orange",
   "settings.item.pushNotifications": "Push Notifications",
+  "settings.reminder.title": "Daily Reminder",
+  "settings.reminder.selectTime": "Select Reminder Time",
+  "settings.reminder.selectedTime": "Selected Time",
+  "settings.reminder.cancel": "Cancel",
+  "settings.reminder.confirm": "Confirm",
+  "settings.reminder.enabled": "Reminder",
   "settings.item.appLanguage": "App Language",
   "settings.item.deleteAllData": "Delete All Data",
 
@@ -389,6 +403,8 @@ const en: TranslationDict = {
   "add.date.done": "Done",
   "add.field.category": "Category",
   "add.field.date": "Date",
+  "add.field.image": "Image",
+  "add.image.remove": "Remove",
   "add.note.label": "Note",
   "add.note.placeholder": "Add a note...",
   "add.category.selectTitle": "Select Category",
@@ -608,6 +624,12 @@ const vi: TranslationDict = {
   "settings.accentColor.red": "Đỏ",
   "settings.accentColor.orange": "Cam",
   "settings.item.pushNotifications": "Thông báo đẩy",
+  "settings.reminder.title": "Nhắc nhở hàng ngày",
+  "settings.reminder.selectTime": "Chọn thời gian nhắc nhở",
+  "settings.reminder.selectedTime": "Thời gian đã chọn",
+  "settings.reminder.cancel": "Hủy",
+  "settings.reminder.confirm": "Xác nhận",
+  "settings.reminder.enabled": "Nhắc nhở",
   "settings.item.appLanguage": "Ngôn ngữ ứng dụng",
   "settings.item.deleteAllData": "Xóa toàn bộ dữ liệu",
 
@@ -675,6 +697,8 @@ const vi: TranslationDict = {
   "add.date.done": "Xong",
   "add.field.category": "Danh mục",
   "add.field.date": "Ngày",
+  "add.field.image": "Hình ảnh",
+  "add.image.remove": "Xóa",
   "add.note.label": "Ghi chú",
   "add.note.placeholder": "Thêm ghi chú...",
   "add.category.selectTitle": "Chọn danh mục",

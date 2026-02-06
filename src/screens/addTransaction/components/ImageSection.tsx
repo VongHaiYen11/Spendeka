@@ -1,5 +1,6 @@
 import { Text, useThemeColor } from "@/components/Themed";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -24,6 +25,7 @@ export default function ImageSection({
   const primaryColor = usePrimaryColor();
   const textColor = useThemeColor({}, "text");
   const cardColor = useThemeColor({}, "card");
+  const { t } = useI18n();
   const [previewWidth, setPreviewWidth] = useState<number>(0);
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
@@ -58,12 +60,16 @@ export default function ImageSection({
       <View style={[styles.imageRow, { backgroundColor: cardColor }]}>
         <View style={styles.rowLeft}>
           <Ionicons name="image-outline" size={22} color={primaryColor} />
-          <Text style={[styles.rowLabel, { color: textColor }]}>Image</Text>
+          <Text style={[styles.rowLabel, { color: textColor }]}>
+            {t("add.field.image")}
+          </Text>
         </View>
         {imageUri ? (
           <View style={styles.imageActions}>
             <TouchableOpacity onPress={onRemoveImage}>
-              <Text style={styles.removeImageText}>Remove</Text>
+              <Text style={styles.removeImageText}>
+                {t("add.image.remove")}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
