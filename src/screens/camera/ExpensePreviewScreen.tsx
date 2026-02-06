@@ -1,28 +1,33 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
-import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import {
-  createAndSaveTransaction,
-  generateTransactionId,
+    EXPENSE_CATEGORIES_EN,
+    INCOME_CATEGORIES_EN,
+    type ExpenseCategory,
+    type IncomeCategory,
+} from "@/models/Expense";
+import {
+    createAndSaveTransaction,
+    generateTransactionId,
 } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  View as RNView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    View as RNView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -42,25 +47,37 @@ export default function ExpensePreviewScreen({
 }: ExpensePreviewScreenProps) {
   const [caption, setCaption] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] =
-    useState<ExpenseCategory>("food");
+  const [transactionType, setTransactionType] = useState<"spent" | "income">(
+    "spent",
+  );
+  const [selectedCategory, setSelectedCategory] = useState<
+    ExpenseCategory | IncomeCategory
+  >("food");
   const [isSaving, setIsSaving] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
 
   const iconOnColorBg = useThemeColor({}, "background"); // inner icon on category color background
+  const primaryColor = usePrimaryColor();
+
+  const categorySource = useMemo(
+    () =>
+      transactionType === "spent" ? EXPENSE_CATEGORIES_EN : INCOME_CATEGORIES_EN,
+    [transactionType],
+  );
+
   const selectedCategoryInfo = useMemo(
-    () => EXPENSE_CATEGORIES_EN.find((c) => c.value === selectedCategory),
-    [selectedCategory],
+    () => categorySource.find((c) => c.value === selectedCategory),
+    [categorySource, selectedCategory],
   );
 
   const filteredCategories = useMemo(() => {
-    if (!categorySearch.trim()) return EXPENSE_CATEGORIES_EN;
+    if (!categorySearch.trim()) return categorySource;
     const search = categorySearch.toLowerCase();
-    return EXPENSE_CATEGORIES_EN.filter((cat) =>
+    return categorySource.filter((cat) =>
       cat.label.toLowerCase().includes(search),
     );
-  }, [categorySearch]);
+  }, [categorySource, categorySearch]);
 
   const formatAmountInput = (text: string) => {
     const numericValue = text.replace(/[^0-9.]/g, "");
@@ -80,10 +97,22 @@ export default function ExpensePreviewScreen({
     }
   };
 
-  const handleSelectCategory = (category: ExpenseCategory) => {
+  const handleSelectCategory = (category: ExpenseCategory | IncomeCategory) => {
     setSelectedCategory(category);
     setShowCategoryModal(false);
     setCategorySearch("");
+  };
+
+  const handleChangeType = (type: "spent" | "income") => {
+    if (type === transactionType) return;
+    setTransactionType(type);
+
+    // Ensure selected category is valid for the new type
+    setSelectedCategory((current) => {
+      const list = type === "spent" ? EXPENSE_CATEGORIES_EN : INCOME_CATEGORIES_EN;
+      const existsInNewList = list.some((c) => c.value === current);
+      return existsInNewList ? current : list[0]?.value ?? current;
+    });
   };
 
   const handleSave = async () => {
@@ -99,7 +128,7 @@ export default function ExpensePreviewScreen({
       caption,
       amount: amountValue,
       category: selectedCategory,
-      type: "spent",
+      type: transactionType,
       createdAt: new Date(),
     };
 
@@ -121,20 +150,22 @@ export default function ExpensePreviewScreen({
         style={styles.content}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        {/* Fixed header (không cuộn theo nội dung) */}
+        <RNView style={styles.header}>
+          <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            {transactionType === "income" ? "Add Income" : "Add Expense"}
+          </Text>
+          <RNView style={styles.placeholderButton} />
+        </RNView>
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <RNView style={styles.header}>
-            <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.title}>Add Expense</Text>
-            <RNView style={styles.placeholderButton} />
-          </RNView>
-
           {/* Image with Caption Overlay */}
           <RNView style={styles.imageContainer}>
             <Image source={{ uri: imageUri }} style={styles.image} />
@@ -153,8 +184,43 @@ export default function ExpensePreviewScreen({
             </RNView>
           </RNView>
 
-          {/* Amount Input */}
+          {/* Type selector + Amount Input */}
           <RNView style={styles.inputSection}>
+            <RNView style={styles.typeToggleRow}>
+              <TouchableOpacity
+                style={[
+                  styles.typeToggleButton,
+                  transactionType === "spent" && styles.typeToggleButtonActive,
+                ]}
+                onPress={() => handleChangeType("spent")}
+              >
+                <Text
+                  style={[
+                    styles.typeToggleText,
+                    transactionType === "spent" && styles.typeToggleTextActive,
+                  ]}
+                >
+                  Spent
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.typeToggleButton,
+                  transactionType === "income" && styles.typeToggleButtonActive,
+                ]}
+                onPress={() => handleChangeType("income")}
+              >
+                <Text
+                  style={[
+                    styles.typeToggleText,
+                    transactionType === "income" && styles.typeToggleTextActive,
+                  ]}
+                >
+                  Income
+                </Text>
+              </TouchableOpacity>
+            </RNView>
+
             <Text style={styles.inputLabel}>Amount</Text>
             <RNView style={styles.amountInputContainer}>
               <TextInput
@@ -213,6 +279,7 @@ export default function ExpensePreviewScreen({
                 <TouchableOpacity
                   style={[
                     styles.saveButton,
+                    { backgroundColor: primaryColor },
                     (isSaving || !isAmountValid) && styles.saveButtonDisabled,
                   ]}
                   onPress={handleSave}
@@ -308,11 +375,7 @@ export default function ExpensePreviewScreen({
                     {item.label}
                   </Text>
                   {selectedCategory === item.value && (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={CAMERA_PRIMARY}
-                    />
+                    <Ionicons name="checkmark" size={20} color={primaryColor} />
                   )}
                 </TouchableOpacity>
               )}
@@ -411,6 +474,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 20,
   },
+  typeToggleRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: 12,
+    gap: 4,
+  },
+  typeToggleButton: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeToggleButtonActive: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  typeToggleText: {
+    color: "#999",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  typeToggleTextActive: {
+    color: "#fff",
+  },
   inputLabel: {
     color: "#999",
     fontSize: 14,
@@ -475,7 +564,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: CAMERA_PRIMARY,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
