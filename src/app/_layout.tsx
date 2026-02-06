@@ -10,6 +10,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
+import { AuthProvider } from "@/contexts/AuthContext";
 import { TransactionProvider } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -20,7 +21,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: "(tabs)",
+  initialRouteName: "index",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -54,20 +55,24 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <TransactionProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="history"
-            options={{ headerShown: false, presentation: "card" }}
-          />
-          <Stack.Screen
-            name="add-transaction"
-            options={{ headerShown: false, presentation: "card" }}
-          />
-        </Stack>
-      </ThemeProvider>
-    </TransactionProvider>
+    <AuthProvider>
+      <TransactionProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="history"
+              options={{ headerShown: false, presentation: "card" }}
+            />
+            <Stack.Screen
+              name="add-transaction"
+              options={{ headerShown: false, presentation: "card" }}
+            />
+          </Stack>
+        </ThemeProvider>
+      </TransactionProvider>
+    </AuthProvider>
   );
 }
