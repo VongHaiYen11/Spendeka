@@ -1,35 +1,41 @@
-import { useColorScheme } from '@/hooks/useColorScheme';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useColorScheme } from "@/hooks/useColorScheme";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
-  LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+    LayoutChangeEvent,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
 interface MonthYearPickerProps {
-  type: 'month' | 'year' | 'combined';
+  type: "month" | "year" | "combined";
   selectedDate: Date;
   onSelect: (date: Date) => void;
 }
 
 const ITEM_HEIGHT = 50;
 const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // Memoized picker item component for better performance
@@ -53,10 +59,10 @@ const PickerItem = React.memo<PickerItemProps>(
           style={[
             styles.itemText,
             {
-              color: isDark ? '#f3f4f6' : '#111827',
+              color: isDark ? "#f3f4f6" : "#111827",
               opacity,
               fontSize: isSelected ? 20 : 16,
-              fontWeight: isSelected ? '700' : '400',
+              fontWeight: isSelected ? "700" : "400",
               transform: [{ scale }],
             },
           ]}
@@ -65,10 +71,10 @@ const PickerItem = React.memo<PickerItemProps>(
         </Text>
       </View>
     );
-  }
+  },
 );
 
-PickerItem.displayName = 'PickerItem';
+PickerItem.displayName = "PickerItem";
 
 export default function MonthYearPicker({
   type,
@@ -76,7 +82,7 @@ export default function MonthYearPicker({
   onSelect,
 }: MonthYearPickerProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   const monthScrollRef = useRef<ScrollView | null>(null);
   const yearScrollRef = useRef<ScrollView | null>(null);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -92,7 +98,7 @@ export default function MonthYearPicker({
   const selectedMonthIndex = selectedDate.getMonth();
   const selectedYearIndex = useMemo(
     () => years.indexOf(selectedDate.getFullYear()),
-    [years, selectedDate]
+    [years, selectedDate],
   );
 
   const scrollToIndex = useCallback(
@@ -102,22 +108,29 @@ export default function MonthYearPicker({
         scrollRef.current.scrollTo({ y: offset, animated: false });
       }
     },
-    [containerHeight]
+    [containerHeight],
   );
 
   useEffect(() => {
     if (containerHeight > 0 && !isScrolling) {
       scrollToIndex(monthScrollRef, selectedMonthIndex);
-      if (type === 'combined' || type === 'year') {
+      if (type === "combined" || type === "year") {
         scrollToIndex(yearScrollRef, selectedYearIndex);
       }
     }
-  }, [selectedMonthIndex, selectedYearIndex, containerHeight, isScrolling, type, scrollToIndex]);
+  }, [
+    selectedMonthIndex,
+    selectedYearIndex,
+    containerHeight,
+    isScrolling,
+    type,
+    scrollToIndex,
+  ]);
 
   const handleScroll = useCallback(
     (
       event: NativeSyntheticEvent<NativeScrollEvent>,
-      scrollType: 'month' | 'year'
+      scrollType: "month" | "year",
     ) => {
       const offsetY = event.nativeEvent.contentOffset.y;
       const index = Math.round(offsetY / ITEM_HEIGHT);
@@ -130,31 +143,35 @@ export default function MonthYearPicker({
       // Only update after scroll ends (debounced)
       scrollTimeoutRef.current = setTimeout(() => {
         const newDate = new Date(selectedDate);
-        
-        if (scrollType === 'month' && index >= 0 && index < MONTHS.length) {
+
+        if (scrollType === "month" && index >= 0 && index < MONTHS.length) {
           newDate.setMonth(index);
           onSelect(newDate);
-        } else if (scrollType === 'year' && index >= 0 && index < years.length) {
+        } else if (
+          scrollType === "year" &&
+          index >= 0 &&
+          index < years.length
+        ) {
           newDate.setFullYear(years[index]);
           onSelect(newDate);
         }
-        
+
         setIsScrolling(false);
       }, 150); // Wait 150ms after scroll stops
     },
-    [selectedDate, onSelect, years]
+    [selectedDate, onSelect, years],
   );
 
   const handleMomentumScrollEnd = useCallback(
     (
       event: NativeSyntheticEvent<NativeScrollEvent>,
-      scrollType: 'month' | 'year'
+      scrollType: "month" | "year",
     ) => {
       const offsetY = event.nativeEvent.contentOffset.y;
       const index = Math.round(offsetY / ITEM_HEIGHT);
-      
+
       // Snap to nearest item
-      const scrollRef = scrollType === 'month' ? monthScrollRef : yearScrollRef;
+      const scrollRef = scrollType === "month" ? monthScrollRef : yearScrollRef;
       if (scrollRef.current) {
         const targetOffset = index * ITEM_HEIGHT;
         scrollRef.current.scrollTo({ y: targetOffset, animated: true });
@@ -162,17 +179,17 @@ export default function MonthYearPicker({
 
       // Update immediately on momentum end
       const newDate = new Date(selectedDate);
-      if (scrollType === 'month' && index >= 0 && index < MONTHS.length) {
+      if (scrollType === "month" && index >= 0 && index < MONTHS.length) {
         newDate.setMonth(index);
         onSelect(newDate);
-      } else if (scrollType === 'year' && index >= 0 && index < years.length) {
+      } else if (scrollType === "year" && index >= 0 && index < years.length) {
         newDate.setFullYear(years[index]);
         onSelect(newDate);
       }
-      
+
       setIsScrolling(false);
     },
-    [selectedDate, onSelect, years]
+    [selectedDate, onSelect, years],
   );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
@@ -194,10 +211,10 @@ export default function MonthYearPicker({
       items: string[],
       selectedIndex: number,
       scrollRef: React.RefObject<ScrollView | null>,
-      scrollType: 'month' | 'year'
+      scrollType: "month" | "year",
     ) => {
       const paddingVertical = (containerHeight - ITEM_HEIGHT) / 2;
-      
+
       return (
         <ScrollView
           ref={scrollRef}
@@ -227,7 +244,13 @@ export default function MonthYearPicker({
         </ScrollView>
       );
     },
-    [containerHeight, handleScroll, handleScrollBeginDrag, handleMomentumScrollEnd, isDark]
+    [
+      containerHeight,
+      handleScroll,
+      handleScrollBeginDrag,
+      handleMomentumScrollEnd,
+      isDark,
+    ],
   );
 
   // Memoize years as strings to avoid recalculation
@@ -236,22 +259,22 @@ export default function MonthYearPicker({
   // Memoize overlay styles
   const overlayTop = useMemo(
     () => (containerHeight - ITEM_HEIGHT) / 2,
-    [containerHeight]
+    [containerHeight],
   );
 
   const overlayStyle = useMemo(
     () => ({
       top: overlayTop,
       backgroundColor: isDark
-        ? 'rgba(59, 130, 246, 0.1)'
-        : 'rgba(37, 99, 235, 0.1)',
-      borderTopColor: isDark ? '#3b82f6' : '#2563eb',
-      borderBottomColor: isDark ? '#3b82f6' : '#2563eb',
+        ? "rgba(59, 130, 246, 0.1)"
+        : "rgba(37, 99, 235, 0.1)",
+      borderTopColor: isDark ? "#3b82f6" : "#2563eb",
+      borderBottomColor: isDark ? "#3b82f6" : "#2563eb",
     }),
-    [overlayTop, isDark]
+    [overlayTop, isDark],
   );
 
-  if (type === 'combined') {
+  if (type === "combined") {
     return (
       <View style={styles.combinedContainer} onLayout={handleLayout}>
         {/* Selection indicator overlay */}
@@ -262,23 +285,29 @@ export default function MonthYearPicker({
 
         {/* Month Picker */}
         <View style={styles.pickerColumn}>
-          {renderPicker(MONTHS, selectedMonthIndex, monthScrollRef, 'month')}
+          {renderPicker(MONTHS, selectedMonthIndex, monthScrollRef, "month")}
         </View>
 
         {/* Year Picker */}
         <View style={styles.pickerColumn}>
-          {renderPicker(yearsAsStrings, selectedYearIndex, yearScrollRef, 'year')}
+          {renderPicker(
+            yearsAsStrings,
+            selectedYearIndex,
+            yearScrollRef,
+            "year",
+          )}
         </View>
       </View>
     );
   }
 
   const items = useMemo(
-    () => (type === 'month' ? MONTHS : yearsAsStrings),
-    [type, yearsAsStrings]
+    () => (type === "month" ? MONTHS : yearsAsStrings),
+    [type, yearsAsStrings],
   );
-  const selectedIndex = type === 'month' ? selectedMonthIndex : selectedYearIndex;
-  const scrollRef = type === 'month' ? monthScrollRef : yearScrollRef;
+  const selectedIndex =
+    type === "month" ? selectedMonthIndex : selectedYearIndex;
+  const scrollRef = type === "month" ? monthScrollRef : yearScrollRef;
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
@@ -296,21 +325,21 @@ export default function MonthYearPicker({
 const styles = StyleSheet.create({
   container: {
     height: 250,
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   combinedContainer: {
     height: 250,
-    position: 'relative',
-    overflow: 'hidden',
-    flexDirection: 'row',
+    position: "relative",
+    overflow: "hidden",
+    flexDirection: "row",
   },
   pickerColumn: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   selectionOverlay: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     height: ITEM_HEIGHT,
@@ -319,10 +348,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   item: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   itemText: {
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

@@ -1,19 +1,11 @@
-import MonthYearPicker from '@/screens/summary/components/MonthYearPicker';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { RangeType } from '@/utils/getDateRange';
-import {
-  endOfWeek,
-  startOfWeek
-} from 'date-fns';
-import { useEffect, useState } from 'react';
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Calendar, DateData } from 'react-native-calendars';
+import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import MonthYearPicker from "@/screens/summary/components/MonthYearPicker";
+import { RangeType } from "@/utils/getDateRange";
+import { endOfWeek, startOfWeek } from "date-fns";
+import { useEffect, useState } from "react";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Calendar, DateData } from "react-native-calendars";
 
 interface DateRangePickerModalProps {
   visible: boolean;
@@ -24,11 +16,11 @@ interface DateRangePickerModalProps {
 }
 
 const rangeOptions: { value: RangeType; label: string }[] = [
-  { value: 'day', label: 'Day' },
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-  { value: 'year', label: 'Year' },
-  { value: 'all', label: 'All' },
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+  { value: "all", label: "All" },
 ];
 
 export default function DateRangePickerModal({
@@ -39,13 +31,13 @@ export default function DateRangePickerModal({
   currentDate,
 }: DateRangePickerModalProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const primaryColor = usePrimaryColor();
+  const isDark = colorScheme === "dark";
 
   const [selectedRange, setSelectedRange] = useState<RangeType>(currentRange);
   const [selectedDate, setSelectedDate] = useState<Date>(currentDate);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [showQuickPicker, setShowQuickPicker] = useState<boolean>(false);
-
 
   // Initialize state when modal opens
   useEffect(() => {
@@ -63,7 +55,7 @@ export default function DateRangePickerModal({
   }, [selectedRange, selectedDate]);
 
   const updateMarkedDates = (range: RangeType, date: Date) => {
-    if (range === 'all' || range === 'month' || range === 'year') {
+    if (range === "all" || range === "month" || range === "year") {
       setMarkedDates({});
       return;
     }
@@ -72,11 +64,11 @@ export default function DateRangePickerModal({
     let end: Date;
 
     switch (range) {
-      case 'day':
+      case "day":
         start = date;
         end = date;
         break;
-      case 'week':
+      case "week":
         start = startOfWeek(date, { weekStartsOn: 1 });
         end = endOfWeek(date, { weekStartsOn: 1 });
         break;
@@ -89,11 +81,11 @@ export default function DateRangePickerModal({
     const current = new Date(start);
 
     while (current <= end) {
-      const dateString = current.toISOString().split('T')[0];
-      if (range === 'day') {
+      const dateString = current.toISOString().split("T")[0];
+      if (range === "day") {
         marked[dateString] = {
           selected: true,
-          selectedColor: isDark ? '#3b82f6' : '#2563eb',
+          selectedColor: primaryColor,
         };
       } else {
         const isStart = current.getTime() === start.getTime();
@@ -101,8 +93,8 @@ export default function DateRangePickerModal({
         marked[dateString] = {
           startingDay: isStart,
           endingDay: isEnd,
-          color: isDark ? '#3b82f6' : '#2563eb',
-          textColor: '#fff',
+          color: primaryColor,
+          textColor: "#fff",
         };
       }
       current.setDate(current.getDate() + 1);
@@ -151,18 +143,20 @@ export default function DateRangePickerModal({
           {/* Header */}
           <View
             className={`flex-row justify-between items-center pb-4 border-b ${
-              isDark ? 'border-gray-700' : 'border-gray-200'
+              isDark ? "border-gray-700" : "border-gray-200"
             }`}
           >
             <Text
               className={`text-xl font-semibold ${
-                isDark ? 'text-white' : 'text-gray-900'
+                isDark ? "text-white" : "text-gray-900"
               }`}
             >
               Select Date Range
             </Text>
             <TouchableOpacity onPress={handleCancel}>
-              <Text className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <Text
+                className={`text-lg ${isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 ✕
               </Text>
             </TouchableOpacity>
@@ -176,23 +170,18 @@ export default function DateRangePickerModal({
                 <TouchableOpacity
                   key={option.value}
                   onPress={() => setSelectedRange(option.value)}
-                  className={`flex-1 py-2 px-3 mx-1 rounded-lg ${
-                    isActive
-                      ? isDark
-                        ? 'bg-blue-600'
-                        : 'bg-blue-500'
-                      : isDark
-                      ? 'bg-gray-700'
-                      : 'bg-gray-100'
-                  }`}
+                  style={[
+                    { flex: 1, paddingVertical: 8, paddingHorizontal: 4, marginHorizontal: 2, borderRadius: 8 },
+                    isActive ? { backgroundColor: primaryColor } : isDark ? { backgroundColor: "#374151" } : { backgroundColor: "#f3f4f6" },
+                  ]}
                 >
                   <Text
                     className={`text-center text-sm font-medium ${
                       isActive
-                        ? 'text-white'
+                        ? "text-white"
                         : isDark
-                        ? 'text-gray-300'
-                        : 'text-gray-700'
+                          ? "text-gray-300"
+                          : "text-gray-700"
                     }`}
                   >
                     {option.label}
@@ -203,42 +192,44 @@ export default function DateRangePickerModal({
           </View>
 
           {/* Calendar for day and week */}
-          {(selectedRange === 'day' || selectedRange === 'week') && (
+          {(selectedRange === "day" || selectedRange === "week") && (
             <View className="mb-4">
               <Calendar
-                current={selectedDate.toISOString().split('T')[0]}
+                current={selectedDate.toISOString().split("T")[0]}
                 onDayPress={handleDateSelect}
                 markedDates={markedDates}
                 theme={{
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
-                  calendarBackground: isDark ? '#1f2937' : '#ffffff',
-              
-                  textSectionTitleColor: isDark ? '#9ca3af' : '#6b7280',
-                  dayTextColor: isDark ? '#e5e7eb' : '#111827',
-                  todayTextColor: '#3b82f6',
-                  selectedDayTextColor: '#ffffff',
-              
-                  monthTextColor: isDark ? '#ffffff' : '#111827',
-                  arrowColor: isDark ? '#ffffff' : '#111827',
-              
-                  textDisabledColor: isDark ? '#4b5563' : '#d1d5db',
-              
-                  dotColor: '#3b82f6',
-                  selectedDotColor: '#ffffff',
+                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                  calendarBackground: isDark ? "#1f2937" : "#ffffff",
+
+                  textSectionTitleColor: isDark ? "#9ca3af" : "#6b7280",
+                  dayTextColor: isDark ? "#e5e7eb" : "#111827",
+                  todayTextColor: primaryColor,
+                  selectedDayTextColor: "#ffffff",
+
+                  monthTextColor: isDark ? "#ffffff" : "#111827",
+                  arrowColor: isDark ? "#ffffff" : "#111827",
+
+                  textDisabledColor: isDark ? "#4b5563" : "#d1d5db",
+
+                  dotColor: primaryColor,
+                  selectedDotColor: "#ffffff",
                 }}
-                markingType={selectedRange === 'week' ? 'period' : undefined}
+                markingType={selectedRange === "week" ? "period" : undefined}
                 renderHeader={(date) => {
                   const d = new Date(date);
-                  const month = d.toLocaleString('default', { month: 'long' });
+                  const month = d.toLocaleString("default", { month: "long" });
                   const year = d.getFullYear();
-              
+
                   return (
                     <TouchableOpacity
                       onPress={() => setShowQuickPicker(!showQuickPicker)}
                       className="flex-row justify-center items-center py-2"
                       activeOpacity={0.7}
                     >
-                      <Text className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      <Text
+                        className={`text-base font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+                      >
                         {month} {year}
                       </Text>
                     </TouchableOpacity>
@@ -261,7 +252,7 @@ export default function DateRangePickerModal({
           )}
 
           {/* Month Picker */}
-          {selectedRange === 'month' && (
+          {selectedRange === "month" && (
             <View className="mb-4">
               <MonthYearPicker
                 type="combined"
@@ -272,7 +263,7 @@ export default function DateRangePickerModal({
           )}
 
           {/* Year Picker */}
-          {selectedRange === 'year' && (
+          {selectedRange === "year" && (
             <View className="mb-4">
               <MonthYearPicker
                 type="year"
@@ -283,9 +274,11 @@ export default function DateRangePickerModal({
           )}
 
           {/* All time message */}
-          {selectedRange === 'all' && (
+          {selectedRange === "all" && (
             <View className="mb-4 py-8 items-center">
-              <Text className={`text-base ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <Text
+                className={`text-base ${isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 All time range selected
               </Text>
             </View>
@@ -296,12 +289,12 @@ export default function DateRangePickerModal({
             <TouchableOpacity
               onPress={handleCancel}
               className={`flex-1 py-3 rounded-lg ${
-                isDark ? 'bg-gray-700' : 'bg-gray-100'
+                isDark ? "bg-gray-700" : "bg-gray-100"
               }`}
             >
               <Text
                 className={`text-center font-medium ${
-                  isDark ? 'text-gray-200' : 'text-gray-700'
+                  isDark ? "text-gray-200" : "text-gray-700"
                 }`}
               >
                 Cancel
@@ -309,9 +302,7 @@ export default function DateRangePickerModal({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleApply}
-              className={`flex-1 py-3 rounded-lg ${
-                isDark ? 'bg-blue-600' : 'bg-blue-500'
-              }`}
+              style={[{ flex: 1, paddingVertical: 12, borderRadius: 8 }, { backgroundColor: primaryColor }]}
             >
               <Text className="text-center font-medium text-white">Apply</Text>
             </TouchableOpacity>
@@ -325,16 +316,16 @@ export default function DateRangePickerModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
-    width: '90%',
+    width: "90%",
     maxWidth: 400,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -344,13 +335,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalContainerLight: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
   },
   modalContainerDark: {
-    backgroundColor: '#1f2937',
+    backgroundColor: "#1f2937",
   },
   calendar: {
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
 });

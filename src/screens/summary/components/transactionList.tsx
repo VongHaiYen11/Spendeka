@@ -1,13 +1,17 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
-import { DatabaseTransaction, getCategoryIconConfig } from "@/types/transaction";
-import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
+import {
+  DatabaseTransaction,
+  getCategoryIconConfig,
+} from "@/types/transaction";
 import { formatDollar } from "@/utils/formatCurrency";
+import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Text as RNText, StyleSheet, TouchableOpacity } from "react-native";
 
 type Range = "day" | "week" | "month" | "year" | "all";
@@ -46,10 +50,7 @@ const TransactionItem: React.FC<{
   return (
     <View style={[styles.transactionItem, isLast && styles.lastItem]}>
       <View
-        style={[
-          styles.iconContainer,
-          { backgroundColor: categoryIcon.color },
-        ]}
+        style={[styles.iconContainer, { backgroundColor: categoryIcon.color }]}
       >
         <Ionicons
           name={categoryIcon.icon as any}
@@ -86,7 +87,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const textColor = useThemeColor({}, "text");
-  const tintColor = useThemeColor({}, "tint");
+  const primaryColor = usePrimaryColor();
   const isDark = backgroundColor === Colors.dark.background;
 
   const themeColors = useMemo(
@@ -149,7 +150,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>Recent Transactions</Text>
         <TouchableOpacity onPress={handleSeeMore}>
-          <Text style={[styles.seeMoreText, { color: tintColor }]}>
+          <Text style={[styles.seeMoreText, { color: primaryColor }]}>
             See More
           </Text>
         </TouchableOpacity>
@@ -159,7 +160,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
           <TransactionItem
             key={transaction.id}
             transaction={transaction}
-            tintColor={tintColor}
+            tintColor={primaryColor}
             isDark={isDark}
             isLast={index === transactions.length - 1 && !hasMore}
           />

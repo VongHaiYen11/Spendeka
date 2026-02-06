@@ -206,9 +206,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     text: textColor,
     border: isDark ? "#374151" : Colors.general.gray200,
     pickerBg: isDark ? "#111827" : Colors.general.gray100,
-    activeBg: isDark ? "#3b82f6" : "#2563eb",
+    activeBg: primaryColor,
     inactiveBg: isDark ? "#374151" : Colors.general.gray100,
-    categorySelected: isDark ? "#3b82f6" : "#2563eb",
+    categorySelected: primaryColor,
     categoryUnselected: isDark ? "#374151" : Colors.general.gray200,
   };
 
