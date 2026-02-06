@@ -69,6 +69,7 @@ export default function AddTransactionScreen({
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const paramsInitialized = useRef(false);
 
   // Pre-fill form fields from route params (only once on mount)

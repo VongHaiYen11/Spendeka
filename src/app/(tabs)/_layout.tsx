@@ -1,15 +1,15 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
-import { Tabs, usePathname, useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import { TouchableOpacity, View, Text } from 'react-native';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
+import { Tabs, usePathname, useRouter } from "expo-router";
+import React, { useMemo } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import Colors from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
 }) {
   return <FontAwesome size={24} style={{ marginBottom: -1 }} {...props} />;
@@ -22,35 +22,35 @@ export default function TabLayout() {
 
   // Dark nav only when on camera tab (opening detail from Home navigates to Camera)
   const isDarkNav = useMemo(() => {
-    return pathname?.includes('/camera') ?? false;
+    return pathname?.includes("/camera") ?? false;
   }, [pathname]);
 
   // Tab bar style: dark when on camera or detail fullscreen, otherwise follow theme
   const tabBarStyle = useMemo(() => {
     if (isDarkNav) {
       return {
-        backgroundColor: '#000',
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: "#000",
+        borderTopColor: "rgba(255,255,255,0.1)",
       };
     }
     return {
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-      borderTopColor: Colors[colorScheme ?? 'light'].border,
+      backgroundColor: Colors[colorScheme ?? "light"].background,
+      borderTopColor: Colors[colorScheme ?? "light"].border,
     };
   }, [isDarkNav, colorScheme]);
 
   const tabBarInactiveTintColor = useMemo(() => {
     if (isDarkNav) {
-      return '#999';
+      return "#999";
     }
-    return Colors[colorScheme ?? 'light'].tabIconDefault;
+    return Colors[colorScheme ?? "light"].tabIconDefault;
   }, [isDarkNav, colorScheme]);
 
   const tabBarActiveTintColor = useMemo(() => {
     if (isDarkNav) {
       return Colors.dark.tint;
     }
-    return Colors[colorScheme ?? 'light'].tint;
+    return Colors[colorScheme ?? "light"].tint;
   }, [isDarkNav, colorScheme]);
 
   return (
@@ -60,39 +60,44 @@ export default function TabLayout() {
         tabBarInactiveTintColor,
         tabBarStyle,
         headerShown: false,
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="summary"
         options={{
-          title: 'Summary',
+          title: "Summary",
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
         }}
       />
       <Tabs.Screen
         name="dump"
         options={{
-          title: '',
+          title: "",
           tabBarLabel: () => null,
           tabBarIcon: () => null,
-          // Custom center floating button
+          // Custom center floating button – navigate to add-transaction (do not switch to dump tab)
           tabBarButton: (props: BottomTabBarButtonProps) => (
             <TouchableOpacity
-              onPress={() =>
-                router.push('/add-transaction' as import('expo-router').Href)
-              }
-              activeOpacity={0.9}
-              style={{
-                justifyContent: 'center',
-                alignItems: 'center',
-                top: -20,
+              {...props}
+              onPress={() => {
+                router.push({ pathname: "/add-transaction" });
               }}
+              activeOpacity={0.9}
+              style={[
+                props.style,
+                {
+                  justifyContent: "center",
+                  alignItems: "center",
+                  top: -20,
+                },
+              ]}
             >
               <View
                 style={{
@@ -100,10 +105,10 @@ export default function TabLayout() {
                   height: 60,
                   borderRadius: 30,
                   backgroundColor: Colors.primary,
-                  justifyContent: 'center',
-                  alignItems: 'center',
+                  justifyContent: "center",
+                  alignItems: "center",
                   // Shadow for iOS
-                  shadowColor: '#000',
+                  shadowColor: "#000",
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 6,
@@ -114,8 +119,8 @@ export default function TabLayout() {
                 <Text
                   style={{
                     fontSize: 30,
-                    fontWeight: '400',
-                    color: '#000',
+                    fontWeight: "400",
+                    color: "#000",
                     lineHeight: 30,
                   }}
                 >
@@ -129,14 +134,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="camera"
         options={{
-          title: 'Camera',
+          title: "Camera",
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: "Settings",
           tabBarIcon: ({ color }) => <TabBarIcon name="gear" color={color} />,
         }}
       />
