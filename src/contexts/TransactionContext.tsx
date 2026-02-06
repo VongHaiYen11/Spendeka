@@ -1,7 +1,14 @@
 import { getDatabaseTransactions } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+import { useAuth } from "./AuthContext";
 import { transactionEventEmitter } from "./TransactionEventEmitter";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 interface TransactionContextType {
   transactions: DatabaseTransaction[];
@@ -23,6 +30,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [transactions, setTransactions] = useState<DatabaseTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, initializing } = useAuth();
 
   const loadTransactions = useCallback(async () => {
     try {
@@ -59,10 +67,24 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({
     setTransactions((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // Load transactions on mount
+  // Load transactions when auth state is ready and user changes
   useEffect(() => {
+    if (initializing) {
+      // Đang kiểm tra trạng thái đăng nhập
+      setIsLoading(true);
+      return;
+    }
+
+    if (!user) {
+      // Không có user -> clear data, dừng loading
+      setTransactions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Có user hợp lệ -> load transactions cho user đó
     loadTransactions();
-  }, [loadTransactions]);
+  }, [initializing, user, loadTransactions]);
 
   // Subscribe to transaction updates
   useEffect(() => {

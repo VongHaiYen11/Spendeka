@@ -11,6 +11,8 @@ import {
  */
 export interface DatabaseTransaction {
   id: string;
+  /** Firebase Auth user ID who owns this transaction */
+  userId?: string;
   imageUrl?: string; // Optional; can be blank for transactions without image
   caption: string;
   amount: number;

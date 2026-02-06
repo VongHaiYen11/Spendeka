@@ -104,6 +104,8 @@ export default function ExpenseDetailScreen({
 
   const renderItem = ({ item }: { item: Expense }) => {
     const categoryInfo = getCategoryDisplayInfo(item.category);
+    const isIncome = item.type === "income";
+    const signedAmount = `${isIncome ? "+" : "-"}${formatAmount(item.amount)}`;
 
     return (
       <RNView style={[styles.page, pageHeight ? { height: pageHeight } : null]}>
@@ -129,7 +131,7 @@ export default function ExpenseDetailScreen({
           <RNView style={styles.infoSection}>
             <Text style={styles.infoLabel}>Amount</Text>
             <Text style={[styles.amountText, { color: primaryColor }]}>
-              {formatAmount(item.amount)}
+              {signedAmount}
             </Text>
           </RNView>
 
@@ -169,7 +171,9 @@ export default function ExpenseDetailScreen({
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Expense Detail</Text>
+        <Text style={styles.title}>
+          {currentExpense?.type === "income" ? "Income Detail" : "Expense Detail"}
+        </Text>
         <TouchableOpacity
           onPress={() => {
             if (currentExpense) {
