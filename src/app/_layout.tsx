@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
 
+import { AuthProvider } from "@/contexts/AuthContext";
 import { TransactionProvider } from "@/contexts/TransactionContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
@@ -22,7 +23,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: "(tabs)",
+  initialRouteName: "index",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -53,13 +54,16 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  // Giữ cấu trúc bọc của main nhưng thêm AuthProvider của bạn vào
   return (
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
-      <ThemeProvider>
-        <TransactionProvider>
-          <ThemedNavigationContainer />
-        </TransactionProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <TransactionProvider>
+            <ThemedNavigationContainer />
+          </TransactionProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }
@@ -70,6 +74,9 @@ function ThemedNavigationContainer() {
   return (
     <NavigationThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* Giữ các màn hình từ feature/auth (index, auth) và main (edit-transaction) */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="history"

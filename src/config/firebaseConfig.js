@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { Platform } from "react-native";
 
 // Your web app's Firebase configuration
@@ -12,16 +13,19 @@ const firebaseConfig = {
   storageBucket: "spendeka-97ad5.firebasestorage.app",
   messagingSenderId: "496121067471",
   appId: "1:496121067471:web:35aeb835374b940b2cc4ba",
-  measurementId: "G-JY3ZZ4707R"
+  measurementId: "G-JY3ZZ4707R",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Initialize Auth (no custom persistence to avoid RN bundler issues)
+const authInstance = getAuth(app);
+
 // Only initialize Analytics on web platform (not available in React Native)
 // Analytics requires DOM which doesn't exist in React Native
 let analytics = null;
-if (Platform.OS === 'web') {
+if (Platform.OS === "web") {
   try {
     const { getAnalytics } = require("firebase/analytics");
     analytics = getAnalytics(app);
@@ -31,3 +35,4 @@ if (Platform.OS === 'web') {
 }
 
 export const db = getFirestore(app);
+export const auth = authInstance;
