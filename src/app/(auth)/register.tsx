@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,20 +12,31 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   sendEmailVerification,
+  updateProfile,
 } from "firebase/auth";
+import * as ImagePicker from "expo-image-picker";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { auth } from "@/config/firebaseConfig";
+import { auth, db } from "@/config/firebaseConfig";
+import { uploadAvatarImageToCloudinary } from "@/services/ImageService";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme];
 
+  const [fullName, setFullName] = useState("");
+  const [dob, setDob] = useState<string>(""); // yyyy-mm-dd
+  const [dobDate, setDobDate] = useState<Date | null>(null);
+  const [showDobPicker, setShowDobPicker] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,10 +44,86 @@ export default function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
+  const [emailFieldError, setEmailFieldError] = useState<string | null>(null);
+  const passwordMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  // Debounce password match check while typing
+  useEffect(() => {
+    if (passwordMatchTimerRef.current) {
+      clearTimeout(passwordMatchTimerRef.current);
+      passwordMatchTimerRef.current = null;
+    }
+
+    if (!password && !confirmPassword) {
+      setPasswordMatch(null);
+      return;
+    }
+
+    passwordMatchTimerRef.current = setTimeout(() => {
+      if (!confirmPassword) {
+        setPasswordMatch(null);
+        return;
+      }
+      setPasswordMatch(password === confirmPassword);
+    }, 450);
+
+    return () => {
+      if (passwordMatchTimerRef.current) {
+        clearTimeout(passwordMatchTimerRef.current);
+        passwordMatchTimerRef.current = null;
+      }
+    };
+  }, [password, confirmPassword]);
+
+  const pickAvatar = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        setError("Permission to access photos is required to choose an avatar.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setAvatarUri(result.assets[0]?.uri ?? null);
+      }
+    } catch (e) {
+      setError("Could not open photo library. Please try again.");
+    }
+  };
+
+  const formatDob = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleDobChange = (_event: any, selected?: Date) => {
+    // Android fires "dismissed" with undefined date
+    if (Platform.OS === "android") {
+      setShowDobPicker(false);
+    }
+
+    if (!selected) return;
+    setDobDate(selected);
+    setDob(formatDob(selected));
+    setError(null);
+  };
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
-      setError("Please fill in all fields.");
+    if (!fullName || !email || !password || !confirmPassword) {
+      setError("Please fill in all required fields.");
       return;
     }
 
@@ -52,16 +140,52 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
       setError(null);
+      setEmailFieldError(null);
+
+      const trimmedEmail = email.trim().toLowerCase();
+      const methods = await fetchSignInMethodsForEmail(auth, trimmedEmail);
+      if (methods.length > 0) {
+        setEmailFieldError("This email is already in use.");
+        return;
+      }
+
       const { user } = await createUserWithEmailAndPassword(
         auth,
-        email.trim(),
+        trimmedEmail,
         password
       );
+
+      // Upload avatar (optional)
+      let avatarUrl: string | null = null;
+      if (avatarUri) {
+        avatarUrl = await uploadAvatarImageToCloudinary(avatarUri);
+      }
+
+      // Update Auth profile
+      await updateProfile(user, {
+        displayName: fullName.trim(),
+        photoURL: avatarUrl ?? undefined,
+      });
+
+      // Save user profile to Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        fullName: fullName.trim(),
+        dob: dob || null,
+        avatarUrl,
+        createdAt: serverTimestamp(),
+      });
+
       await sendEmailVerification(user);
       router.replace("/(auth)/verify-email?from=register");
     } catch (e: any) {
       console.log("Register error", e);
-      setError("Sign up failed. Please try again later.");
+      if (e?.code === "auth/email-already-in-use") {
+        setEmailFieldError("This email is already in use.");
+      } else {
+        setError("Sign up failed. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
@@ -118,10 +242,111 @@ export default function RegisterScreen() {
               Create an account to start tracking your spending
             </Text>
 
+            <TouchableOpacity
+              style={styles.avatarWrap}
+              onPress={pickAvatar}
+              activeOpacity={0.85}
+            >
+              <View
+                style={[
+                  styles.avatarCircle,
+                  { borderColor: theme.border, backgroundColor: theme.background },
+                ]}
+              >
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                ) : (
+                  <FontAwesome
+                    name="user"
+                    size={42}
+                    color={Colors.general.gray600}
+                  />
+                )}
+              </View>
+              <View style={[styles.avatarCameraBadge, { backgroundColor: Colors.primary }]}>
+                <FontAwesome name="camera" size={14} color="#000" />
+              </View>
+            </TouchableOpacity>
+
             {error && <Text style={styles.errorText}>{error}</Text>}
 
             <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>
+                Full name <Text style={styles.requiredStar}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                  },
+                ]}
+              >
+                <FontAwesome
+                  name="id-card-o"
+                  size={18}
+                  color={Colors.general.gray600}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  placeholder="Your name"
+                  placeholderTextColor={Colors[colorScheme].placeholder}
+                  value={fullName}
+                  onChangeText={(v) => {
+                    setFullName(v);
+                    setError(null);
+                  }}
+                />
+              </View>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Date of birth</Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setShowDobPicker(true)}
+                style={[
+                  styles.inputWrapper,
+                  {
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    paddingVertical: 10,
+                  },
+                ]}
+              >
+                <FontAwesome
+                  name="calendar"
+                  size={18}
+                  color={Colors.general.gray600}
+                  style={styles.inputIcon}
+                />
+                <Text
+                  style={[
+                    styles.input,
+                    { color: dob ? theme.text : Colors[colorScheme].placeholder },
+                  ]}
+                >
+                  {dob || "Select date of birth"}
+                </Text>
+              </TouchableOpacity>
+
+              {showDobPicker ? (
+                <DateTimePicker
+                  value={dobDate ?? new Date(2000, 0, 1)}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  maximumDate={new Date()}
+                  onChange={handleDobChange}
+                />
+              ) : null}
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>
+                Email <Text style={styles.requiredStar}>*</Text>
+              </Text>
               <View
                 style={[
                   styles.inputWrapper,
@@ -144,13 +369,22 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(v) => {
+                    setEmail(v);
+                    setEmailFieldError(null);
+                    setError(null);
+                  }}
                 />
               </View>
+              {emailFieldError ? (
+                <Text style={styles.inlineErrorText}>{emailFieldError}</Text>
+              ) : null}
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>
+                Password <Text style={styles.requiredStar}>*</Text>
+              </Text>
               <View
                 style={[
                   styles.inputWrapper,
@@ -172,7 +406,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={Colors[colorScheme].placeholder}
                   secureTextEntry={!showPassword}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(v) => {
+                    setPassword(v);
+                    setError(null);
+                  }}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword((prev) => !prev)}
@@ -188,7 +425,9 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Confirm password</Text>
+              <Text style={styles.label}>
+                Confirm password <Text style={styles.requiredStar}>*</Text>
+              </Text>
               <View
                 style={[
                   styles.inputWrapper,
@@ -210,7 +449,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={Colors[colorScheme].placeholder}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={(v) => {
+                    setConfirmPassword(v);
+                    setError(null);
+                  }}
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword((prev) => !prev)}
@@ -223,6 +465,11 @@ export default function RegisterScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              {passwordMatch === false ? (
+                <Text style={styles.inlineErrorText}>
+                  Passwords do not match.
+                </Text>
+              ) : null}
             </View>
 
             <TouchableOpacity
@@ -322,6 +569,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     color: Colors.general.gray700,
   },
+  requiredStar: {
+    color: "#ef4444",
+    fontWeight: "800",
+  },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -368,6 +619,44 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     marginBottom: 8,
     fontSize: 13,
+  },
+  inlineErrorText: {
+    color: "#ef4444",
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  avatarWrap: {
+    alignSelf: "center",
+    marginTop: 16,
+    marginBottom: 14,
+    width: 96,
+    height: 96,
+  },
+  avatarCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+  },
+  avatarCameraBadge: {
+    position: "absolute",
+    right: 2,
+    bottom: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   bottomRow: {
     marginTop: 16,

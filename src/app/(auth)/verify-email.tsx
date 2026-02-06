@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
 import { sendEmailVerification, signOut } from "firebase/auth";
 
 import Colors from "@/constants/Colors";
@@ -29,8 +29,7 @@ export default function VerifyEmailScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (!user) {
-    router.replace("/(auth)/login");
-    return null;
+    return <Redirect href="/(auth)/login" />;
   }
 
   const handleResend = async () => {
