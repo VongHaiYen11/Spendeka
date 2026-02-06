@@ -1,16 +1,55 @@
 import { SafeView, Text, View } from "@/components/Themed";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
+import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+} from "react-native";
 import AccentColorPickerModal from "./components/AccentColorPickerModal";
 
 export default function SettingsScreen() {
   const { isDarkMode, toggleDarkMode, accentKey, setAccentKey } = useTheme();
   const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
+  const { reloadTransactions } = useTransactions();
   const [accentModalVisible, setAccentModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAllData = () => {
+    Alert.alert(
+      "Delete All Data",
+      "This will permanently remove all your transactions. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await clearAllExpenses();
+              await reloadTransactions();
+              Alert.alert("Done", "All data has been deleted.");
+            } catch (err) {
+              Alert.alert(
+                "Error",
+                "Could not delete all data. Please try again."
+              );
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Colors based on theme
   const itemBg = colorScheme === "dark" ? "#1c1c1e" : "#fff";
@@ -206,6 +245,22 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Data */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
+            Data
+          </Text>
+          <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
+            <SettingItem
+              icon="trash-outline"
+              iconColor="#FF3B30"
+              title={isDeleting ? "Deleting…" : "Delete All Data"}
+              hasArrow
+              onPress={isDeleting ? undefined : handleDeleteAllData}
+            />
+          </View>
+        </View>
+
         <View style={styles.bottomPadding} />
       </ScrollView>
 
@@ -303,7 +358,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
   bottomPadding: {
-    height: 40,
+    height: 8,
     backgroundColor: "transparent",
   },
 });
