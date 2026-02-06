@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -32,6 +32,38 @@ export default function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
+  const passwordMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  // Debounce password match check while typing
+  useEffect(() => {
+    if (passwordMatchTimerRef.current) {
+      clearTimeout(passwordMatchTimerRef.current);
+      passwordMatchTimerRef.current = null;
+    }
+
+    if (!password && !confirmPassword) {
+      setPasswordMatch(null);
+      return;
+    }
+
+    passwordMatchTimerRef.current = setTimeout(() => {
+      if (!confirmPassword) {
+        setPasswordMatch(null);
+        return;
+      }
+      setPasswordMatch(password === confirmPassword);
+    }, 450);
+
+    return () => {
+      if (passwordMatchTimerRef.current) {
+        clearTimeout(passwordMatchTimerRef.current);
+        passwordMatchTimerRef.current = null;
+      }
+    };
+  }, [password, confirmPassword]);
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
@@ -172,7 +204,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={Colors[colorScheme].placeholder}
                   secureTextEntry={!showPassword}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(v) => {
+                    setPassword(v);
+                    setError(null);
+                  }}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword((prev) => !prev)}
@@ -210,7 +245,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={Colors[colorScheme].placeholder}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={(v) => {
+                    setConfirmPassword(v);
+                    setError(null);
+                  }}
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword((prev) => !prev)}
@@ -223,6 +261,11 @@ export default function RegisterScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              {passwordMatch === false ? (
+                <Text style={styles.inlineErrorText}>
+                  Passwords do not match.
+                </Text>
+              ) : null}
             </View>
 
             <TouchableOpacity
@@ -368,6 +411,12 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     marginBottom: 8,
     fontSize: 13,
+  },
+  inlineErrorText: {
+    color: "#ef4444",
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "600",
   },
   bottomRow: {
     marginTop: 16,

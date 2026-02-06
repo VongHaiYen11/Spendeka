@@ -3,18 +3,29 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { auth } from "@/config/firebaseConfig";
 import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
+  TextInput,
   TouchableOpacity,
 } from "react-native";
 import AccentColorPickerModal from "./components/AccentColorPickerModal";
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from "firebase/auth";
 
 export default function SettingsScreen() {
   const {
@@ -28,10 +39,33 @@ export default function SettingsScreen() {
   const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
   const { reloadTransactions } = useTransactions();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const router = useRouter();
   const [accentModalVisible, setAccentModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isCheckingCurrentPassword, setIsCheckingCurrentPassword] =
+    useState(false);
+  const [currentPasswordValid, setCurrentPasswordValid] = useState<
+    boolean | null
+  >(null);
+  const [currentPasswordError, setCurrentPasswordError] = useState<
+    string | null
+  >(null);
+  const [currentPasswordCheckSeq, setCurrentPasswordCheckSeq] = useState(0);
+  const lastCheckedCurrentPasswordRef = useRef<string | null>(null);
+  const checkCurrentPasswordRequestIdRef = useRef(0);
+  const currentPasswordDebounceTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const newPasswordMatchDebounceTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const [newPasswordMatch, setNewPasswordMatch] = useState<boolean | null>(null);
 
   const handleDeleteAllData = () => {
     Alert.alert(
@@ -61,6 +95,210 @@ export default function SettingsScreen() {
       ]
     );
   };
+
+  const resetPasswordForm = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setIsCheckingCurrentPassword(false);
+    setCurrentPasswordValid(null);
+    setCurrentPasswordError(null);
+    setCurrentPasswordCheckSeq(0);
+    setNewPasswordMatch(null);
+    lastCheckedCurrentPasswordRef.current = null;
+    if (currentPasswordDebounceTimerRef.current) {
+      clearTimeout(currentPasswordDebounceTimerRef.current);
+      currentPasswordDebounceTimerRef.current = null;
+    }
+    if (newPasswordMatchDebounceTimerRef.current) {
+      clearTimeout(newPasswordMatchDebounceTimerRef.current);
+      newPasswordMatchDebounceTimerRef.current = null;
+    }
+  };
+
+  const openPasswordModal = () => {
+    resetPasswordForm();
+    setPasswordModalVisible(true);
+  };
+
+  const closePasswordModal = () => {
+    if (isChangingPassword) return;
+    setPasswordModalVisible(false);
+    resetPasswordForm();
+  };
+
+  const handleChangePassword = async () => {
+    const firebaseUser = auth.currentUser;
+    const email = firebaseUser?.email ?? user?.email ?? null;
+
+    if (!firebaseUser || !email) {
+      Alert.alert(
+        "Error",
+        "Your account cannot change password right now. Please log in again."
+      );
+      return;
+    }
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      Alert.alert("Missing info", "Please fill in all password fields.");
+      return;
+    }
+
+    if (currentPasswordValid !== true) {
+      Alert.alert("Error", "Please confirm your current password first.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Invalid password", "New password must be at least 6 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert("Password mismatch", "New passwords do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      // We already reauthenticated on blur, but do it again for safety.
+      const credential = EmailAuthProvider.credential(email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await updatePassword(firebaseUser, newPassword);
+
+      Alert.alert("Success", "Password updated successfully.");
+      setPasswordModalVisible(false);
+      resetPasswordForm();
+    } catch (e: any) {
+      const code = e?.code as string | undefined;
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
+        Alert.alert("Error", "Current password is incorrect.");
+      } else if (code === "auth/too-many-requests") {
+        Alert.alert(
+          "Error",
+          "Too many attempts. Please wait a few minutes and try again."
+        );
+      } else if (code === "auth/requires-recent-login") {
+        Alert.alert("Error", "Please log in again and retry changing password.");
+      } else {
+        Alert.alert("Error", "Could not update password. Please try again.");
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const checkCurrentPasswordNow = async (passwordToCheck: string) => {
+    const trimmed = passwordToCheck;
+    if (!trimmed) return;
+
+    if (lastCheckedCurrentPasswordRef.current === trimmed) {
+      return;
+    }
+
+    const firebaseUser = auth.currentUser;
+    const email = firebaseUser?.email ?? user?.email ?? null;
+    if (!firebaseUser || !email) {
+      setCurrentPasswordValid(false);
+      setCurrentPasswordError("Please log in again to verify password.");
+      return;
+    }
+
+    const requestId = ++checkCurrentPasswordRequestIdRef.current;
+    setIsCheckingCurrentPassword(true);
+    setCurrentPasswordError(null);
+    setCurrentPasswordValid(null);
+    setCurrentPasswordCheckSeq((v) => v + 1);
+
+    try {
+      const credential = EmailAuthProvider.credential(email, trimmed);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      if (requestId !== checkCurrentPasswordRequestIdRef.current) return;
+      lastCheckedCurrentPasswordRef.current = trimmed;
+      setCurrentPasswordValid(true);
+      setCurrentPasswordError(null);
+    } catch (e: any) {
+      if (requestId !== checkCurrentPasswordRequestIdRef.current) return;
+      const code = e?.code as string | undefined;
+      lastCheckedCurrentPasswordRef.current = null;
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
+        setCurrentPasswordValid(false);
+        setCurrentPasswordError("Current password is incorrect.");
+      } else if (code === "auth/too-many-requests") {
+        setCurrentPasswordValid(false);
+        setCurrentPasswordError(
+          "Too many attempts. Please wait a few minutes and try again."
+        );
+      } else {
+        setCurrentPasswordValid(false);
+        setCurrentPasswordError("Could not verify current password.");
+      }
+    } finally {
+      if (requestId === checkCurrentPasswordRequestIdRef.current) {
+        setIsCheckingCurrentPassword(false);
+      }
+    }
+  };
+
+  // Debounce current password verification (wait user stops typing)
+  useEffect(() => {
+    if (!passwordModalVisible) return;
+
+    if (currentPasswordDebounceTimerRef.current) {
+      clearTimeout(currentPasswordDebounceTimerRef.current);
+      currentPasswordDebounceTimerRef.current = null;
+    }
+
+    if (!currentPassword) {
+      setCurrentPasswordValid(null);
+      setCurrentPasswordError(null);
+      lastCheckedCurrentPasswordRef.current = null;
+      return;
+    }
+
+    setIsCheckingCurrentPassword(true);
+    currentPasswordDebounceTimerRef.current = setTimeout(() => {
+      checkCurrentPasswordNow(currentPassword);
+    }, 650);
+
+    return () => {
+      if (currentPasswordDebounceTimerRef.current) {
+        clearTimeout(currentPasswordDebounceTimerRef.current);
+        currentPasswordDebounceTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPassword, passwordModalVisible]);
+
+  // Debounce "new password matches confirm" check
+  useEffect(() => {
+    if (!passwordModalVisible) return;
+
+    if (newPasswordMatchDebounceTimerRef.current) {
+      clearTimeout(newPasswordMatchDebounceTimerRef.current);
+      newPasswordMatchDebounceTimerRef.current = null;
+    }
+
+    if (!newPassword && !confirmNewPassword) {
+      setNewPasswordMatch(null);
+      return;
+    }
+
+    newPasswordMatchDebounceTimerRef.current = setTimeout(() => {
+      if (!confirmNewPassword) {
+        setNewPasswordMatch(null);
+        return;
+      }
+      setNewPasswordMatch(newPassword === confirmNewPassword);
+    }, 450);
+
+    return () => {
+      if (newPasswordMatchDebounceTimerRef.current) {
+        clearTimeout(newPasswordMatchDebounceTimerRef.current);
+        newPasswordMatchDebounceTimerRef.current = null;
+      }
+    };
+  }, [newPassword, confirmNewPassword, passwordModalVisible]);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -93,6 +331,10 @@ export default function SettingsScreen() {
   const secondaryTextColor = colorScheme === "dark" ? "#8e8e93" : "#666";
   const separatorColor =
     colorScheme === "dark" ? "rgba(255,255,255,0.1)" : "#e5e5e5";
+  const modalCardBg = colorScheme === "dark" ? "#111827" : "#fff";
+  const inputBg = colorScheme === "dark" ? "#0b1220" : "#f3f4f6";
+  const inputBorder = colorScheme === "dark" ? "rgba(255,255,255,0.12)" : "#e5e7eb";
+  const errorRed = "#EF4444";
   const iconBg = {
     profile: "#4A90E2",
     password: "#4A90E2",
@@ -206,7 +448,7 @@ export default function SettingsScreen() {
               iconColor={iconBg.password}
               title="Password"
               hasArrow
-              onPress={() => {}}
+              onPress={openPasswordModal}
             />
             <View
               style={[styles.separator, { backgroundColor: separatorColor }]}
@@ -361,6 +603,148 @@ export default function SettingsScreen() {
         onClose={() => setAccentModalVisible(false)}
         onSelect={setAccentKey}
       />
+
+      <Modal
+        visible={passwordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closePasswordModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalBackdrop}
+        >
+          <View style={[styles.modalCard, { backgroundColor: modalCardBg }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              Change password
+            </Text>
+
+            <Text style={[styles.modalLabel, { color: secondaryTextColor }]}>
+              Current password
+            </Text>
+            <View>
+              <TextInput
+                value={currentPassword}
+                onChangeText={(v) => {
+                  setCurrentPassword(v);
+                  setCurrentPasswordValid(null);
+                  setCurrentPasswordError(null);
+                  lastCheckedCurrentPasswordRef.current = null;
+                }}
+                secureTextEntry
+                editable={!isChangingPassword}
+                placeholder="Enter current password"
+                placeholderTextColor={secondaryTextColor}
+                style={[
+                  styles.modalInput,
+                  styles.modalInputWithIcon,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor:
+                      currentPasswordValid === false ? errorRed : inputBorder,
+                    color: textColor,
+                  },
+                ]}
+              />
+
+              <View style={styles.modalInputIconRight}>
+                {isCheckingCurrentPassword ? (
+                  <ActivityIndicator size="small" color={secondaryTextColor} />
+                ) : currentPasswordValid === true ? (
+                  <Ionicons name="checkmark-circle" size={20} color="#22C55E" />
+                ) : null}
+              </View>
+            </View>
+
+            {currentPasswordValid === false && currentPasswordError ? (
+              <Text style={[styles.modalErrorText, { color: errorRed }]}>
+                {currentPasswordError}
+              </Text>
+            ) : null}
+
+            <Text style={[styles.modalLabel, { color: secondaryTextColor }]}>
+              New password
+            </Text>
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              editable={!isChangingPassword}
+              placeholder="Enter new password"
+              placeholderTextColor={secondaryTextColor}
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: inputBg,
+                  borderColor: inputBorder,
+                  color: textColor,
+                },
+              ]}
+            />
+
+            <Text style={[styles.modalLabel, { color: secondaryTextColor }]}>
+              Confirm new password
+            </Text>
+            <TextInput
+              value={confirmNewPassword}
+              onChangeText={setConfirmNewPassword}
+              secureTextEntry
+              editable={!isChangingPassword}
+              placeholder="Re-enter new password"
+              placeholderTextColor={secondaryTextColor}
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: inputBg,
+                  borderColor: inputBorder,
+                  color: textColor,
+                },
+              ]}
+            />
+
+            {newPasswordMatch === false ? (
+              <Text style={[styles.modalErrorText, { color: errorRed }]}>
+                New passwords do not match.
+              </Text>
+            ) : null}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnSecondary]}
+                onPress={closePasswordModal}
+                disabled={isChangingPassword}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalBtnText, { color: textColor }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: primaryColor,
+                    opacity:
+                      isChangingPassword || currentPasswordValid !== true ? 0.6 : 1,
+                  },
+                ]}
+                onPress={handleChangePassword}
+                disabled={isChangingPassword || currentPasswordValid !== true}
+                activeOpacity={0.8}
+              >
+                {isChangingPassword ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={[styles.modalBtnText, { color: "#fff" }]}>
+                    Update
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeView>
   );
 }
@@ -471,5 +855,71 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 8,
     backgroundColor: "transparent",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 18,
+  },
+  modalCard: {
+    borderRadius: 14,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  modalLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  modalInputWithIcon: {
+    paddingRight: 40,
+  },
+  modalInputIconRight: {
+    position: "absolute",
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  modalErrorText: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+  },
+  modalBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBtnSecondary: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  modalBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
