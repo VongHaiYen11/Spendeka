@@ -6,6 +6,7 @@ import {
     type ExpenseCategory,
     type IncomeCategory,
 } from "@/models/Expense";
+import { generateAutoCaptionFromImage } from "@/services";
 import {
     createAndSaveTransaction,
     generateTransactionId,
@@ -56,6 +57,7 @@ export default function ExpensePreviewScreen({
   const [isSaving, setIsSaving] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
 
   const iconOnColorBg = useThemeColor({}, "background"); // inner icon on category color background
   const primaryColor = usePrimaryColor();
@@ -115,6 +117,25 @@ export default function ExpensePreviewScreen({
     });
   };
 
+  const handleAutoCaption = async () => {
+    if (isGeneratingCaption) return;
+
+    try {
+      setIsGeneratingCaption(true);
+      const result = await generateAutoCaptionFromImage(imageUri);
+      if (result?.caption) {
+        setCaption(result.caption.slice(0, MAX_NOTE_LENGTH));
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error?.message || "Could not generate caption from image",
+      );
+    } finally {
+      setIsGeneratingCaption(false);
+    }
+  };
+
   const handleSave = async () => {
     const amountValue = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (!amountValue || amountValue <= 0) {
@@ -170,14 +191,27 @@ export default function ExpensePreviewScreen({
           <RNView style={styles.imageContainer}>
             <Image source={{ uri: imageUri }} style={styles.image} />
             <RNView style={styles.captionOverlay}>
-              <TextInput
-                style={styles.captionInput}
-                placeholder="Add a note..."
-                placeholderTextColor="rgba(255,255,255,0.7)"
-                value={caption}
-                onChangeText={handleCaptionChange}
-                maxLength={MAX_NOTE_LENGTH}
-              />
+              <RNView style={styles.captionRow}>
+                <TextInput
+                  style={styles.captionInput}
+                  placeholder="Add a note..."
+                  placeholderTextColor="rgba(255,255,255,0.7)"
+                  value={caption}
+                  onChangeText={handleCaptionChange}
+                  maxLength={MAX_NOTE_LENGTH}
+                />
+                <TouchableOpacity
+                  style={styles.autoCaptionButton}
+                  onPress={handleAutoCaption}
+                  disabled={isGeneratingCaption}
+                >
+                  {isGeneratingCaption ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="sparkles-outline" size={18} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              </RNView>
               <Text style={styles.charCounter}>
                 {caption.length}/{MAX_NOTE_LENGTH}
               </Text>
@@ -457,10 +491,24 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
+  captionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 8,
+  },
   captionInput: {
+    flex: 1,
     color: "#fff",
     fontSize: 14,
     textAlign: "center",
+  },
+  autoCaptionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
   charCounter: {
     color: "rgba(255,255,255,0.5)",

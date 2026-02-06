@@ -4,9 +4,12 @@ import express from "express";
 // @ts-ignore - types are provided at runtime via node_modules
 import cors from "cors";
 // @ts-ignore - types are provided at runtime via node_modules
-import multer from "multer";
 import type { Request, Response } from "express";
+// @ts-ignore - types are provided at runtime via node_modules
+import multer from "multer";
+import fsPromises from "node:fs/promises";
 import { parseTextToTransaction } from "./services/gemini.js";
+import { generateCaptionFromImage } from "./services/imageCaption.js";
 import { scanBillAndParse } from "./services/scanBill.js";
 
 const app = express();
@@ -82,6 +85,36 @@ app.post(
       return res
         .status(500)
         .json({ error: error?.message || "Failed to scan bill" });
+    }
+  },
+);
+
+// Image caption endpoint: Gemini vision -> caption + items
+app.post(
+  "/image-caption",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
+
+    const { path, mimetype } = file;
+
+    try {
+      const result = await generateCaptionFromImage(path, mimetype || "image/jpeg");
+      return res.json(result);
+    } catch (error: any) {
+      return res
+        .status(500)
+        .json({ error: error?.message || "Failed to generate image caption" });
+    } finally {
+      try {
+        await fsPromises.unlink(path);
+      } catch {
+        // ignore
+      }
     }
   },
 );
