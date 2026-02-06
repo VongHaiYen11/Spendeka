@@ -51,3 +51,4 @@ app-example
 
 api/.env
 api/.env.*
+!api/.env.example

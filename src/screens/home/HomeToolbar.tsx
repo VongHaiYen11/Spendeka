@@ -5,12 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 interface HomeToolbarProps {
   iconColor: string;
   onPressHistory: () => void;
+  onPressScan: () => void;
   onPressText: () => void;
 }
 
 export default function HomeToolbar({
   iconColor,
   onPressHistory,
+  onPressScan,
   onPressText,
 }: HomeToolbarProps) {
   const cardColor = useThemeColor({}, 'card');
@@ -22,7 +24,7 @@ export default function HomeToolbar({
           <Ionicons name="time-outline" size={28} color={iconColor} />
           <Text style={styles.toolbarLabel}>History</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolbarButton}>
+        <TouchableOpacity style={styles.toolbarButton} onPress={onPressScan}>
           <Ionicons name="scan-outline" size={28} color={iconColor} />
           <Text style={styles.toolbarLabel}>Scan bill</Text>
         </TouchableOpacity>

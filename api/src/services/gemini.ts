@@ -21,8 +21,6 @@ function extractJsonObject(raw: string): string {
 export async function parseTextToTransaction(
   text: string,
 ): Promise<ParsedTransactionFromText> {
-  console.warn("[Gemini] Incoming text:", text);
-
   // Server reference time (used for today/yesterday fallback)
   const now = new Date();
   const nowIso = now.toISOString();
@@ -105,8 +103,7 @@ OUTPUT FORMAT:
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.warn("[Gemini] Error response:", errorText.slice(0, 500));
+    await response.text();
     throw new Error(
       `Gemini API error: ${response.status} ${response.statusText}`,
     );
@@ -118,11 +115,8 @@ OUTPUT FORMAT:
     data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!candidateText) {
-    console.warn("[Gemini] No candidate text:", JSON.stringify(data, null, 2));
     throw new Error("Gemini API did not return any content");
   }
-
-  console.warn("[Gemini] Raw output:", candidateText);
 
   let parsed: ParsedTransactionFromText;
 
@@ -131,7 +125,6 @@ OUTPUT FORMAT:
     const jsonOnly = extractJsonObject(candidateText);
     parsed = JSON.parse(jsonOnly);
   } catch (err) {
-    console.warn("[Gemini] JSON parse failed:", err);
     throw new Error("Failed to parse Gemini response as JSON");
   }
 
@@ -145,8 +138,6 @@ OUTPUT FORMAT:
   ) {
     throw new Error("Gemini response JSON is missing required fields");
   }
-
-  console.warn("[Gemini] Final parsed transaction:", parsed);
 
   return parsed;
 }

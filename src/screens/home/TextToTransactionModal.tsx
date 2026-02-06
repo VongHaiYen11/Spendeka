@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/config/api';
 import { ParsedTransactionFromText } from '@/types/textToTransaction';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 interface TextToTransactionModalProps {
   visible: boolean;
@@ -20,6 +21,7 @@ export default function TextToTransactionModal({
   onChangeText,
   onClose,
 }: TextToTransactionModalProps) {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
@@ -30,7 +32,6 @@ export default function TextToTransactionModal({
     if (!value.trim() || isLoading) return;
     try {
       setIsLoading(true);
-      console.log('TextToTransactionModal API_BASE_URL:', API_BASE_URL);
       const response = await fetch(`${API_BASE_URL}/text-to-transaction`, {
         method: 'POST',
         headers: {
@@ -46,19 +47,21 @@ export default function TextToTransactionModal({
 
       const parsed: ParsedTransactionFromText = await response.json();
 
-      // For now, just log the parsed transaction.
-      // Later you can hook this into createAndSaveTransaction or pre-fill the add-transaction form.
-      console.log('Parsed transaction from Gemini:', parsed);
-
-      // Show parsed transaction to make the response visible on device
-      Alert.alert(
-        'Parsed transaction',
-        JSON.stringify(parsed, null, 2),
-      );
+      // Navigate to add-transaction screen with pre-filled fields
+      const params: Record<string, string> = {
+        caption: parsed.caption ?? '',
+        amount: String(parsed.amount ?? ''),
+        type: parsed.type ?? 'spent',
+        category: parsed.category ?? '',
+        createdAt: parsed.createdAt ?? '',
+      };
 
       onClose();
+      router.push({
+        pathname: '/add-transaction',
+        params,
+      } as any);
     } catch (error: any) {
-      console.error('Failed to parse transaction text with Gemini:', error);
       Alert.alert(
         'Unable to parse',
         error?.message || 'Could not understand this text. Please adjust it and try again.',
@@ -90,7 +93,7 @@ export default function TextToTransactionModal({
                 Text to Transaction
               </Text>
               <Text style={[styles.modalInstruction, { color: textColor }]}>
-                Type something below. We'll try to turn it into a transaction.
+              Describe your expense or income.
               </Text>
               <TextInput
                 style={[
@@ -162,7 +165,7 @@ const styles = StyleSheet.create({
   modalInstruction: {
     fontSize: 14,
     opacity: 0.85,
-    marginBottom: 16,
+    marginBottom: 24,
     lineHeight: 20,
   },
   modalInput: {
@@ -178,6 +181,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+    marginTop: 12,
   },
   modalCancelButton: {
     paddingVertical: 12,
