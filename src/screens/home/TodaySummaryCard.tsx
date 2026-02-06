@@ -1,8 +1,8 @@
 import { Text } from '@/components/Themed';
+import { Expense } from '@/models/Expense';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, View as RNView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Expense } from '@/models/Expense';
 
 interface TodaySummaryCardProps {
   colorScheme: 'light' | 'dark' | null;
@@ -11,7 +11,7 @@ interface TodaySummaryCardProps {
   todayExpenses: Expense[];
   totalIncomeToday: number;
   totalSpentToday: number;
-  onOpenCamera: () => void;
+  onOpenCamera: (expenseId?: string) => void;
   formatAmount: (value: number) => string;
 }
 
@@ -25,6 +25,9 @@ export default function TodaySummaryCard({
   onOpenCamera,
   formatAmount,
 }: TodaySummaryCardProps) {
+  const hasTodayExpenses = todayExpenses.length > 0;
+  const latestExpense = hasTodayExpenses ? todayExpenses[0] : null;
+
   return (
     <RNView style={styles.todayCardWrapper}>
       <Text style={styles.todayLabelText}>Today</Text>
@@ -33,14 +36,35 @@ export default function TodaySummaryCard({
         <TouchableOpacity
           style={styles.todayImagesContainer}
           activeOpacity={0.8}
-          onPress={onOpenCamera}
+          onPress={() => {
+            if (latestExpense) {
+              onOpenCamera(latestExpense.id);
+            } else {
+              onOpenCamera();
+            }
+          }}
         >
-          {todayExpenses.length ? (
-            <Image
-              source={{ uri: todayExpenses[0].imageUrl }}
-              style={styles.todayImage}
-              resizeMode="cover"
-            />
+          {latestExpense ? (
+            <>
+              <Image
+                source={{ uri: latestExpense.imageUrl }}
+                style={styles.todayImage}
+                resizeMode="cover"
+              />
+              <RNView style={styles.todayImageOverlay}>
+                <Text
+                  style={[
+                    styles.todayImageOverlayText,
+                    latestExpense.type === 'income'
+                      ? styles.todayImageOverlayTextIncome
+                      : styles.todayImageOverlayTextExpense,
+                  ]}
+                >
+                  {latestExpense.type === 'income' ? '+' : '-'}
+                  {formatAmount(latestExpense.amount)}
+                </Text>
+              </RNView>
+            </>
           ) : (
             <RNView style={styles.todayEmptyImage}>
               <Ionicons
@@ -120,6 +144,27 @@ const styles = StyleSheet.create({
   todayImage: {
     width: '100%',
     height: '100%',
+  },
+  todayImageOverlay: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 8,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  todayImageOverlayText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  todayImageOverlayTextIncome: {
+    color: '#4CAF50',
+  },
+  todayImageOverlayTextExpense: {
+    color: '#E53935',
   },
   todayEmptyImage: {
     paddingVertical: 16,

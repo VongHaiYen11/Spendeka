@@ -1,29 +1,29 @@
-import { SafeView, Text, useThemeColor, View } from '@/components/Themed';
+import { SafeView, useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useTransactions } from '@/contexts/TransactionContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Expense } from '@/models/Expense';
+import ChartCategories from '@/screens/summary/components/chartCategories';
+import Overview from '@/screens/summary/components/overview';
 import {
-  getSavedAmountByDateRange,
-  getSpentAmountByDateRange,
-  createAndSaveTransaction,
-  generateTransactionId,
+    createAndSaveTransaction,
+    generateTransactionId,
+    getSavedAmountByDateRange,
+    getSpentAmountByDateRange,
 } from '@/services/TransactionService';
+import { ParsedTransactionFromText } from '@/types/textToTransaction';
+import type { DatabaseTransaction } from '@/types/transaction';
 import { formatDollar } from '@/utils/formatCurrency';
 import { getDateRange } from '@/utils/getDateRange';
 import { isSameDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, StatusBar, StyleSheet, ScrollView } from 'react-native';
-import Overview from '@/screens/summary/components/overview';
-import ChartCategories from '@/screens/summary/components/chartCategories';
+import { Alert, ScrollView, StatusBar, StyleSheet } from 'react-native';
 import HomeHeader from './HomeHeader';
 import HomeToolbar from './HomeToolbar';
-import TextToTransactionModal from './TextToTransactionModal';
 import ScanBillModal from './ScanBillModal';
+import TextToTransactionModal from './TextToTransactionModal';
 import TodaySummaryCard from './TodaySummaryCard';
-import { ParsedTransactionFromText } from '@/types/textToTransaction';
-import type { DatabaseTransaction } from '@/types/transaction';
 
 export default function Home() {
   const router = useRouter();
@@ -59,7 +59,6 @@ export default function Home() {
       }))
       .filter(
         (expense) =>
-          expense.type !== 'income' &&
           expense.imageUrl &&
           expense.imageUrl.trim() !== '',
       );
@@ -67,7 +66,13 @@ export default function Home() {
 
   const todayExpenses = useMemo(() => {
     const now = new Date();
-    return expenses.filter((e) => isSameDay(e.createdAt, now));
+
+    return expenses
+      .filter((e) => isSameDay(e.createdAt, now))
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   }, [expenses]);
 
   // Use TransactionService helpers to calculate today's income/spent totals
@@ -135,7 +140,15 @@ export default function Home() {
     }
   };
 
-  const handleOpenCameraFromToday = () => {
+  const handleOpenCameraFromToday = (expenseId?: string) => {
+    if (expenseId) {
+      router.push({
+        pathname: '/camera',
+        params: { openExpenseId: expenseId },
+      } as import('expo-router').Href);
+      return;
+    }
+
     router.push('/camera' as import('expo-router').Href);
   };
 
