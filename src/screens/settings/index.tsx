@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { auth } from "@/config/firebaseConfig";
+import { auth, db } from "@/config/firebaseConfig";
 import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -11,6 +11,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -26,6 +27,7 @@ import {
   reauthenticateWithCredential,
   updatePassword,
 } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function SettingsScreen() {
   const {
@@ -66,6 +68,44 @@ export default function SettingsScreen() {
     typeof setTimeout
   > | null>(null);
   const [newPasswordMatch, setNewPasswordMatch] = useState<boolean | null>(null);
+
+  const [profileName, setProfileName] = useState<string>("User");
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!user?.uid) {
+        setProfileName("User");
+        setProfileAvatarUrl(null);
+        return;
+      }
+
+      // Prefer Auth profile if present
+      const authName = user.displayName?.trim();
+      const authAvatar = user.photoURL ?? null;
+
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const data = snap.exists() ? (snap.data() as any) : null;
+        const nameFromDb = data?.fullName?.trim?.() || null;
+        const avatarFromDb = data?.avatarUrl ?? null;
+
+        if (cancelled) return;
+        setProfileName(nameFromDb || authName || "User");
+        setProfileAvatarUrl(avatarFromDb || authAvatar || null);
+      } catch {
+        if (cancelled) return;
+        setProfileName(authName || "User");
+        setProfileAvatarUrl(authAvatar || null);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, user?.displayName, user?.photoURL]);
 
   const handleDeleteAllData = () => {
     Alert.alert(
@@ -405,13 +445,21 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={[styles.profileCard, { backgroundColor: itemBg }]}
             activeOpacity={0.7}
+            onPress={() => router.push("/personal-info")}
           >
             <View style={styles.avatar}>
-              <Ionicons name="person" size={32} color="#fff" />
+              {profileAvatarUrl ? (
+                <Image
+                  source={{ uri: profileAvatarUrl }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Ionicons name="person" size={32} color="#fff" />
+              )}
             </View>
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: textColor }]}>
-                User
+                {profileName || "User"}
               </Text>
               <Text
                 style={[styles.profileSubtitle, { color: secondaryTextColor }]}
@@ -438,7 +486,7 @@ export default function SettingsScreen() {
               iconColor={iconBg.profile}
               title="Personal Info"
               hasArrow
-              onPress={() => {}}
+              onPress={() => router.push("/personal-info")}
             />
             <View
               style={[styles.separator, { backgroundColor: separatorColor }]}
@@ -793,6 +841,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#4A90E2",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
   },
   profileInfo: {
     flex: 1,

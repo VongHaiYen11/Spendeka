@@ -21,11 +21,11 @@ import {
 } from "firebase/auth";
 import * as ImagePicker from "expo-image-picker";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { auth, db, storage } from "@/config/firebaseConfig";
+import { auth, db } from "@/config/firebaseConfig";
+import { uploadAvatarImageToCloudinary } from "@/services/ImageService";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -158,11 +158,7 @@ export default function RegisterScreen() {
       // Upload avatar (optional)
       let avatarUrl: string | null = null;
       if (avatarUri) {
-        const response = await fetch(avatarUri);
-        const blob = await response.blob();
-        const avatarRef = ref(storage, `avatars/${user.uid}.jpg`);
-        await uploadBytes(avatarRef, blob);
-        avatarUrl = await getDownloadURL(avatarRef);
+        avatarUrl = await uploadAvatarImageToCloudinary(avatarUri);
       }
 
       // Update Auth profile
