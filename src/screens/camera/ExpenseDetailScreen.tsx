@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import {
     Expense,
     formatAmount,
@@ -37,6 +37,7 @@ export default function ExpenseDetailScreen({
   onDelete,
 }: ExpenseDetailScreenProps) {
   const iconOnColorBg = useThemeColor({}, "background");
+  const primaryColor = usePrimaryColor();
   const listRef = useRef<FlatList<Expense>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pageHeight, setPageHeight] = useState<number | null>(null);
@@ -127,7 +128,9 @@ export default function ExpenseDetailScreen({
         <RNView style={styles.infoRow}>
           <RNView style={styles.infoSection}>
             <Text style={styles.infoLabel}>Amount</Text>
-            <Text style={styles.amountText}>{formatAmount(item.amount)}</Text>
+            <Text style={[styles.amountText, { color: primaryColor }]}>
+              {formatAmount(item.amount)}
+            </Text>
           </RNView>
 
           <RNView style={styles.infoSection}>
@@ -315,7 +318,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   amountText: {
-    color: CAMERA_PRIMARY,
     fontSize: 20,
     fontWeight: "700",
   },

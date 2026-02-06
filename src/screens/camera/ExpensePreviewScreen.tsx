@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
 import {
   createAndSaveTransaction,
@@ -49,6 +49,7 @@ export default function ExpensePreviewScreen({
   const [categorySearch, setCategorySearch] = useState("");
 
   const iconOnColorBg = useThemeColor({}, "background"); // inner icon on category color background
+  const primaryColor = usePrimaryColor();
   const selectedCategoryInfo = useMemo(
     () => EXPENSE_CATEGORIES_EN.find((c) => c.value === selectedCategory),
     [selectedCategory],
@@ -213,6 +214,7 @@ export default function ExpensePreviewScreen({
                 <TouchableOpacity
                   style={[
                     styles.saveButton,
+                    { backgroundColor: primaryColor },
                     (isSaving || !isAmountValid) && styles.saveButtonDisabled,
                   ]}
                   onPress={handleSave}
@@ -308,11 +310,7 @@ export default function ExpensePreviewScreen({
                     {item.label}
                   </Text>
                   {selectedCategory === item.value && (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={CAMERA_PRIMARY}
-                    />
+                    <Ionicons name="checkmark" size={20} color={primaryColor} />
                   )}
                 </TouchableOpacity>
               )}
@@ -475,7 +473,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: CAMERA_PRIMARY,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,

@@ -1,5 +1,5 @@
 import { Text } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { Expense, formatAmount } from "@/models/Expense";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
@@ -31,6 +31,7 @@ export default function ExpenseCalendarView({
   expenses,
   onSelectExpense,
 }: ExpenseCalendarViewProps) {
+  const primaryColor = usePrimaryColor();
   const [selectedYear, setSelectedYear] = useState<number | "all">("all");
   const [selectedMonth, setSelectedMonth] = useState<number | "all">("all"); // 0-11
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
@@ -269,7 +270,7 @@ export default function ExpenseCalendarView({
                 <Text style={styles.dayDate}>
                   {formatDateLabel(group.date)}
                 </Text>
-                <Text style={styles.dayTotal}>
+                <Text style={[styles.dayTotal, { color: primaryColor }]}>
                   {formatAmount(group.totalAmount)}
                 </Text>
               </RNView>
@@ -511,7 +512,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   dayTotal: {
-    color: CAMERA_PRIMARY,
     fontSize: 14,
     fontWeight: "700",
   },

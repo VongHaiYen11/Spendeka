@@ -1,5 +1,5 @@
 import { Text } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { Expense } from "@/models/Expense";
 import {
@@ -63,6 +63,7 @@ export default function CameraScreen() {
 
   const cameraRef = useRef<CameraView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const primaryColor = usePrimaryColor();
 
   // Get transactions from global state
   const { transactions, reloadTransactions } = useTransactions();
@@ -226,7 +227,7 @@ export default function CameraScreen() {
     return (
       <RNView style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={CAMERA_PRIMARY} />
+        <ActivityIndicator size="large" color={primaryColor} />
         <Text style={styles.loadingText}>Requesting camera permission...</Text>
       </RNView>
     );
@@ -289,12 +290,12 @@ export default function CameraScreen() {
             <Ionicons
               name="camera"
               size={20}
-              color={activeTab === "camera" ? CAMERA_PRIMARY : "#999"}
+              color={activeTab === "camera" ? primaryColor : "#999"}
             />
             <Text
               style={[
                 styles.tabText,
-                activeTab === "camera" && styles.activeTabText,
+                activeTab === "camera" && { color: primaryColor },
               ]}
             >
               Camera
@@ -308,12 +309,12 @@ export default function CameraScreen() {
             <Ionicons
               name="receipt"
               size={20}
-              color={activeTab === "history" ? CAMERA_PRIMARY : "#999"}
+              color={activeTab === "history" ? primaryColor : "#999"}
             />
             <Text
               style={[
                 styles.tabText,
-                activeTab === "history" && styles.activeTabText,
+                activeTab === "history" && { color: primaryColor },
               ]}
             >
               Expenses
@@ -344,13 +345,16 @@ export default function CameraScreen() {
               <Ionicons
                 name={flash === "on" ? "flash" : "flash-off"}
                 size={24}
-                color={flash === "on" ? CAMERA_PRIMARY : "#fff"}
+              color={flash === "on" ? primaryColor : "#fff"}
               />
             </TouchableOpacity>
 
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity
-                style={styles.captureButton}
+                style={[
+                  styles.captureButton,
+                  { borderColor: primaryColor, shadowColor: primaryColor },
+                ]}
                 onPress={takePicture}
                 disabled={isCapturing}
                 activeOpacity={0.8}
@@ -438,9 +442,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  activeTabText: {
-    color: CAMERA_PRIMARY,
-  },
 
   // Camera Page
   cameraPage: {
@@ -487,10 +488,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: CAMERA_PRIMARY,
+    backgroundColor: "transparent",
+    borderWidth: 4,
+    borderColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: CAMERA_PRIMARY,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -500,7 +503,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: CAMERA_PRIMARY,
+    backgroundColor: "#fff",
     borderWidth: 4,
     borderColor: "#000",
     justifyContent: "center",
