@@ -1,5 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { CAMERA_PRIMARY } from "@/constants/AccentColors";
 import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
 import {
   createAndSaveTransaction,
@@ -205,7 +205,8 @@ export default function ExpensePreviewScreen({
             {(() => {
               const numeric = amount.replace(/[^0-9.]/g, "");
               const numericValue = parseFloat(numeric);
-              const isAmountValid = !Number.isNaN(numericValue) && numericValue > 0;
+              const isAmountValid =
+                !Number.isNaN(numericValue) && numericValue > 0;
               const isDisabled = isSaving || !isAmountValid;
 
               return (
@@ -291,7 +292,11 @@ export default function ExpensePreviewScreen({
                       { backgroundColor: item.color },
                     ]}
                   >
-                    <Ionicons name={item.icon as any} size={20} color={iconOnColorBg} />
+                    <Ionicons
+                      name={item.icon as any}
+                      size={20}
+                      color={iconOnColorBg}
+                    />
                   </RNView>
                   <Text
                     style={[
@@ -306,7 +311,7 @@ export default function ExpensePreviewScreen({
                     <Ionicons
                       name="checkmark"
                       size={20}
-                      color={PRIMARY_COLOR}
+                      color={CAMERA_PRIMARY}
                     />
                   )}
                 </TouchableOpacity>
@@ -470,7 +475,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: PRIMARY_COLOR,
+    backgroundColor: CAMERA_PRIMARY,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,

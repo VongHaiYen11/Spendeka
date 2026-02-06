@@ -2,9 +2,15 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import {
+  Text,
+  TouchableOpacity,
+  type TouchableOpacityProps,
+  View,
+} from "react-native";
 
 import Colors from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -17,6 +23,7 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const primaryColor = usePrimaryColor();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -47,11 +54,8 @@ export default function TabLayout() {
   }, [isDarkNav, colorScheme]);
 
   const tabBarActiveTintColor = useMemo(() => {
-    if (isDarkNav) {
-      return Colors.dark.tint;
-    }
-    return Colors[colorScheme ?? "light"].tint;
-  }, [isDarkNav, colorScheme]);
+    return primaryColor;
+  }, [primaryColor]);
 
   return (
     <Tabs
@@ -85,7 +89,7 @@ export default function TabLayout() {
           // Custom center floating button – navigate to add-transaction (do not switch to dump tab)
           tabBarButton: (props: BottomTabBarButtonProps) => (
             <TouchableOpacity
-              {...props}
+              {...(props as TouchableOpacityProps)}
               onPress={() => {
                 router.push({ pathname: "/add-transaction" });
               }}
@@ -104,7 +108,7 @@ export default function TabLayout() {
                   width: 60,
                   height: 60,
                   borderRadius: 30,
-                  backgroundColor: Colors.primary,
+                  backgroundColor: primaryColor,
                   justifyContent: "center",
                   alignItems: "center",
                   // Shadow for iOS
@@ -120,7 +124,7 @@ export default function TabLayout() {
                   style={{
                     fontSize: 30,
                     fontWeight: "400",
-                    color: "#000",
+                    color: "#fff",
                     lineHeight: 30,
                   }}
                 >

@@ -1,5 +1,5 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -17,6 +17,7 @@ export default function DetailRow({
   value,
   onPress,
 }: DetailRowProps) {
+  const primaryColor = usePrimaryColor();
   const textColor = useThemeColor({}, "text");
   const cardColor = useThemeColor({}, "card");
   const placeholderColor = useThemeColor({}, "placeholder");
@@ -28,7 +29,7 @@ export default function DetailRow({
       activeOpacity={0.7}
     >
       <View style={styles.rowLeft}>
-        <Ionicons name={icon} size={22} color={PRIMARY_COLOR} />
+        <Ionicons name={icon} size={22} color={primaryColor} />
         <Text style={[styles.rowLabel, { color: textColor }]}>{label}</Text>
       </View>
       <View style={styles.rowRight}>

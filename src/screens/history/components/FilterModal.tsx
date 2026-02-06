@@ -1,5 +1,6 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import Colors, { PRIMARY_COLOR } from "@/constants/Colors";
+import Colors from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { format, isToday } from "date-fns";
@@ -83,6 +84,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 }) => {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
+  const primaryColor = usePrimaryColor();
   const isDark = backgroundColor === Colors.dark.background;
   const colorScheme = useColorScheme();
   const themeVariant = colorScheme === "dark" ? "dark" : "light";
@@ -138,9 +140,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const handleCategoryToggle = (value: string) => {
     setSelectedCategories((prev) => {
       const isSelected = prev.includes(value);
-      return isSelected
-        ? prev.filter((c) => c !== value)
-        : [...prev, value];
+      return isSelected ? prev.filter((c) => c !== value) : [...prev, value];
     });
   };
 
@@ -464,19 +464,29 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                         onChange={(_, date) => {
                           if (date) {
                             handleStartDateChange(date);
-                            if (Platform.OS === "android") setShowStartDatePicker(false);
+                            if (Platform.OS === "android")
+                              setShowStartDatePicker(false);
                           }
                         }}
                         maximumDate={new Date()}
                         themeVariant={themeVariant}
-                        style={Platform.OS === "android" ? styles.androidDatePicker : undefined}
+                        style={
+                          Platform.OS === "android"
+                            ? styles.androidDatePicker
+                            : undefined
+                        }
                       />
                       {Platform.OS === "ios" && (
                         <TouchableOpacity
                           onPress={() => setShowStartDatePicker(false)}
                           style={styles.inlineDatePickerDone}
                         >
-                          <Text style={[styles.inlineDatePickerDoneText, { color: PRIMARY_COLOR }]}>
+                          <Text
+                            style={[
+                              styles.inlineDatePickerDoneText,
+                              { color: primaryColor },
+                            ]}
+                          >
                             Done
                           </Text>
                         </TouchableOpacity>
@@ -544,19 +554,29 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                         onChange={(_, date) => {
                           if (date) {
                             handleEndDateChange(date);
-                            if (Platform.OS === "android") setShowEndDatePicker(false);
+                            if (Platform.OS === "android")
+                              setShowEndDatePicker(false);
                           }
                         }}
                         maximumDate={new Date()}
                         themeVariant={themeVariant}
-                        style={Platform.OS === "android" ? styles.androidDatePicker : undefined}
+                        style={
+                          Platform.OS === "android"
+                            ? styles.androidDatePicker
+                            : undefined
+                        }
                       />
                       {Platform.OS === "ios" && (
                         <TouchableOpacity
                           onPress={() => setShowEndDatePicker(false)}
                           style={styles.inlineDatePickerDone}
                         >
-                          <Text style={[styles.inlineDatePickerDoneText, { color: PRIMARY_COLOR }]}>
+                          <Text
+                            style={[
+                              styles.inlineDatePickerDoneText,
+                              { color: primaryColor },
+                            ]}
+                          >
                             Done
                           </Text>
                         </TouchableOpacity>

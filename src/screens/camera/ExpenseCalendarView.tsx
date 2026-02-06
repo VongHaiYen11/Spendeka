@@ -1,19 +1,19 @@
-import { Text } from '@/components/Themed';
-import { PRIMARY_COLOR } from '@/constants/Colors';
-import { Expense, formatAmount } from '@/models/Expense';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import { Text } from "@/components/Themed";
+import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { Expense, formatAmount } from "@/models/Expense";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useMemo, useState } from "react";
 import {
-  Dimensions,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View as RNView,
-} from 'react-native';
+    Dimensions,
+    Image,
+    Modal,
+    View as RNView,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const IMAGE_THUMB_SIZE = (width - 40 - 2 * 10) / 3; // paddingHorizontal 20*2 + gap 10*2
 
 interface DayGroup {
@@ -31,10 +31,12 @@ export default function ExpenseCalendarView({
   expenses,
   onSelectExpense,
 }: ExpenseCalendarViewProps) {
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
-  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all'); // 0-11
-  const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
-  const [activeFilterField, setActiveFilterField] = useState<'year' | 'month' | 'day' | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | "all">("all");
+  const [selectedMonth, setSelectedMonth] = useState<number | "all">("all"); // 0-11
+  const [selectedDay, setSelectedDay] = useState<number | "all">("all");
+  const [activeFilterField, setActiveFilterField] = useState<
+    "year" | "month" | "day" | null
+  >(null);
 
   const yearOptions = useMemo(() => {
     const years = new Set<number>();
@@ -46,36 +48,37 @@ export default function ExpenseCalendarView({
   }, [expenses]);
 
   const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const dayGroups: DayGroup[] = useMemo(() => {
     if (expenses.length === 0) return [];
 
     const filteredExpenses =
-      selectedYear === 'all' && selectedMonth === 'all' && selectedDay === 'all'
+      selectedYear === "all" && selectedMonth === "all" && selectedDay === "all"
         ? expenses
         : expenses.filter((expense) => {
             const date = new Date(expense.createdAt);
             const year = date.getFullYear();
             const month = date.getMonth();
-          const day = date.getDate();
+            const day = date.getDate();
 
-          if (selectedYear !== 'all' && year !== selectedYear) return false;
-          if (selectedMonth !== 'all' && month !== selectedMonth) return false;
-          if (selectedDay !== 'all' && day !== selectedDay) return false;
-          return true;
+            if (selectedYear !== "all" && year !== selectedYear) return false;
+            if (selectedMonth !== "all" && month !== selectedMonth)
+              return false;
+            if (selectedDay !== "all" && day !== selectedDay) return false;
+            return true;
           });
 
     if (filteredExpenses.length === 0) return [];
@@ -95,23 +98,25 @@ export default function ExpenseCalendarView({
       dayMap.get(key)!.expenses.push(expense);
     });
 
-    const groups: DayGroup[] = Array.from(dayMap.values()).map(({ date, expenses: dayExpenses }) => {
-      // Only sum expenses with type "spent"
-      const totalAmount = dayExpenses
-        .filter((e) => e.type === "spent" || !e.type) // Include "spent" or undefined (backward compatibility)
-        .reduce((sum, e) => sum + e.amount, 0);
+    const groups: DayGroup[] = Array.from(dayMap.values()).map(
+      ({ date, expenses: dayExpenses }) => {
+        // Only sum expenses with type "spent"
+        const totalAmount = dayExpenses
+          .filter((e) => e.type === "spent" || !e.type) // Include "spent" or undefined (backward compatibility)
+          .reduce((sum, e) => sum + e.amount, 0);
 
-      // Sort expenses so newest of the day comes first
-      const sortedExpenses = [...dayExpenses].sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-      );
+        // Sort expenses so newest of the day comes first
+        const sortedExpenses = [...dayExpenses].sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+        );
 
-      return {
-        date,
-        totalAmount,
-        expenses: sortedExpenses,
-      };
-    });
+        return {
+          date,
+          totalAmount,
+          expenses: sortedExpenses,
+        };
+      },
+    );
 
     // Newest day first
     groups.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -128,31 +133,32 @@ export default function ExpenseCalendarView({
 
   const hasExpenses = expenses.length > 0;
   const hasDayGroups = dayGroups.length > 0;
-  const isAllTime = selectedYear === 'all' && selectedMonth === 'all' && selectedDay === 'all';
+  const isAllTime =
+    selectedYear === "all" && selectedMonth === "all" && selectedDay === "all";
   const hasFilter = !isAllTime;
 
   const filterLabelText = (() => {
-    if (isAllTime) return 'Filter: All time';
+    if (isAllTime) return "Filter: All time";
 
     const parts: string[] = [];
 
-    if (selectedDay !== 'all') {
+    if (selectedDay !== "all") {
       parts.push(String(selectedDay));
     }
 
-    if (selectedMonth !== 'all') {
+    if (selectedMonth !== "all") {
       parts.push(monthNames[selectedMonth]);
     }
 
-    if (selectedYear !== 'all') {
+    if (selectedYear !== "all") {
       parts.push(String(selectedYear));
     }
 
     if (parts.length === 0) {
-      return 'Filter: Custom';
+      return "Filter: Custom";
     }
 
-    return `Filter: ${parts.join(' ')}`;
+    return `Filter: ${parts.join(" ")}`;
   })();
 
   return (
@@ -163,16 +169,28 @@ export default function ExpenseCalendarView({
           <RNView style={styles.filterHeaderRow}>
             <Text style={styles.filterLabel}>{filterLabelText}</Text>
             <TouchableOpacity
-              style={[styles.resetButton, isAllTime && styles.resetButtonDisabled]}
+              style={[
+                styles.resetButton,
+                isAllTime && styles.resetButtonDisabled,
+              ]}
               onPress={() => {
-                setSelectedYear('all');
-                setSelectedMonth('all');
-                setSelectedDay('all');
+                setSelectedYear("all");
+                setSelectedMonth("all");
+                setSelectedDay("all");
               }}
               disabled={isAllTime}
             >
-              <Ionicons name="refresh" size={14} color={isAllTime ? '#666' : '#ccc'} />
-              <Text style={[styles.resetButtonText, isAllTime && styles.resetButtonTextDisabled]}>
+              <Ionicons
+                name="refresh"
+                size={14}
+                color={isAllTime ? "#666" : "#ccc"}
+              />
+              <Text
+                style={[
+                  styles.resetButtonText,
+                  isAllTime && styles.resetButtonTextDisabled,
+                ]}
+              >
                 Reset
               </Text>
             </TouchableOpacity>
@@ -182,12 +200,12 @@ export default function ExpenseCalendarView({
             {/* Year selector */}
             <TouchableOpacity
               style={styles.filterField}
-              onPress={() => setActiveFilterField('year')}
+              onPress={() => setActiveFilterField("year")}
             >
               <Text style={styles.filterFieldLabel}>Year</Text>
               <RNView style={styles.filterFieldValueRow}>
                 <Text style={styles.filterFieldValueText}>
-                  {selectedYear === 'all' ? 'All' : selectedYear}
+                  {selectedYear === "all" ? "All" : selectedYear}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color="#aaa" />
               </RNView>
@@ -196,12 +214,12 @@ export default function ExpenseCalendarView({
             {/* Month selector */}
             <TouchableOpacity
               style={styles.filterField}
-              onPress={() => setActiveFilterField('month')}
+              onPress={() => setActiveFilterField("month")}
             >
               <Text style={styles.filterFieldLabel}>Month</Text>
               <RNView style={styles.filterFieldValueRow}>
                 <Text style={styles.filterFieldValueText}>
-                  {selectedMonth === 'all' ? 'All' : monthNames[selectedMonth]}
+                  {selectedMonth === "all" ? "All" : monthNames[selectedMonth]}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color="#aaa" />
               </RNView>
@@ -210,12 +228,12 @@ export default function ExpenseCalendarView({
             {/* Day selector */}
             <TouchableOpacity
               style={styles.filterField}
-              onPress={() => setActiveFilterField('day')}
+              onPress={() => setActiveFilterField("day")}
             >
               <Text style={styles.filterFieldLabel}>Day</Text>
               <RNView style={styles.filterFieldValueRow}>
                 <Text style={styles.filterFieldValueText}>
-                  {selectedDay === 'all' ? 'All' : selectedDay}
+                  {selectedDay === "all" ? "All" : selectedDay}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color="#aaa" />
               </RNView>
@@ -233,7 +251,9 @@ export default function ExpenseCalendarView({
           <RNView style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={64} color="#444" />
             <Text style={styles.emptyText}>No expenses yet</Text>
-            <Text style={styles.emptySubText}>Take a photo to add an expense!</Text>
+            <Text style={styles.emptySubText}>
+              Take a photo to add an expense!
+            </Text>
           </RNView>
         ) : !hasDayGroups ? (
           <RNView style={styles.emptyState}>
@@ -246,8 +266,12 @@ export default function ExpenseCalendarView({
             <RNView key={group.date.toISOString()} style={styles.daySection}>
               {/* Date and total */}
               <RNView style={styles.dayHeader}>
-                <Text style={styles.dayDate}>{formatDateLabel(group.date)}</Text>
-                <Text style={styles.dayTotal}>{formatAmount(group.totalAmount)}</Text>
+                <Text style={styles.dayDate}>
+                  {formatDateLabel(group.date)}
+                </Text>
+                <Text style={styles.dayTotal}>
+                  {formatAmount(group.totalAmount)}
+                </Text>
               </RNView>
 
               {/* Images for this day */}
@@ -259,7 +283,10 @@ export default function ExpenseCalendarView({
                     activeOpacity={0.8}
                     style={styles.imageWrapper}
                   >
-                    <Image source={{ uri: expense.imageUrl }} style={styles.expenseImage} />
+                    <Image
+                      source={{ uri: expense.imageUrl }}
+                      style={styles.expenseImage}
+                    />
                   </TouchableOpacity>
                 ))}
               </RNView>
@@ -279,11 +306,11 @@ export default function ExpenseCalendarView({
           <RNView style={styles.modalContent}>
             <RNView style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {activeFilterField === 'year'
-                  ? 'Select year'
-                  : activeFilterField === 'month'
-                  ? 'Select month'
-                  : 'Select day'}
+                {activeFilterField === "year"
+                  ? "Select year"
+                  : activeFilterField === "month"
+                    ? "Select month"
+                    : "Select day"}
               </Text>
               <TouchableOpacity
                 onPress={() => setActiveFilterField(null)}
@@ -301,16 +328,16 @@ export default function ExpenseCalendarView({
               <TouchableOpacity
                 style={styles.modalItem}
                 onPress={() => {
-                  if (activeFilterField === 'year') setSelectedYear('all');
-                  if (activeFilterField === 'month') setSelectedMonth('all');
-                  if (activeFilterField === 'day') setSelectedDay('all');
+                  if (activeFilterField === "year") setSelectedYear("all");
+                  if (activeFilterField === "month") setSelectedMonth("all");
+                  if (activeFilterField === "day") setSelectedDay("all");
                   setActiveFilterField(null);
                 }}
               >
                 <Text style={styles.modalItemText}>All</Text>
               </TouchableOpacity>
 
-              {activeFilterField === 'year' &&
+              {activeFilterField === "year" &&
                 yearOptions.map((year) => (
                   <TouchableOpacity
                     key={year}
@@ -324,7 +351,7 @@ export default function ExpenseCalendarView({
                   </TouchableOpacity>
                 ))}
 
-              {activeFilterField === 'month' &&
+              {activeFilterField === "month" &&
                 monthNames.map((name, index) => (
                   <TouchableOpacity
                     key={name}
@@ -338,24 +365,34 @@ export default function ExpenseCalendarView({
                   </TouchableOpacity>
                 ))}
 
-              {activeFilterField === 'day' &&
+              {activeFilterField === "day" &&
                 (() => {
                   let maxDay = 31;
 
-                  if (selectedMonth !== 'all') {
+                  if (selectedMonth !== "all") {
                     if (selectedMonth === 1) {
                       // February
-                      if (selectedYear === 'all') {
+                      if (selectedYear === "all") {
                         // No specific year -> allow up to 29
                         maxDay = 29;
                       } else {
                         // Specific year -> real leap year handling
-                        maxDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+                        maxDay = new Date(
+                          selectedYear,
+                          selectedMonth + 1,
+                          0,
+                        ).getDate();
                       }
                     } else {
                       const yearForCalc =
-                        selectedYear === 'all' ? new Date().getFullYear() : selectedYear;
-                      maxDay = new Date(yearForCalc, selectedMonth + 1, 0).getDate();
+                        selectedYear === "all"
+                          ? new Date().getFullYear()
+                          : selectedYear;
+                      maxDay = new Date(
+                        yearForCalc,
+                        selectedMonth + 1,
+                        0,
+                      ).getDate();
                     }
                   }
 
@@ -394,61 +431,61 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   filterHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   filterLabel: {
-    color: '#999',
+    color: "#999",
     fontSize: 12,
   },
   filterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 8,
   },
   filterField: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   filterFieldLabel: {
-    color: '#777',
+    color: "#777",
     fontSize: 10,
     marginBottom: 4,
   },
   filterFieldValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   filterFieldValueText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
   },
   resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: "rgba(255,255,255,0.2)",
   },
   resetButtonDisabled: {
     opacity: 0.5,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
   },
   resetButtonText: {
-    color: '#ccc',
+    color: "#ccc",
     fontSize: 11,
   },
   resetButtonTextDisabled: {
-    color: '#666',
+    color: "#666",
   },
 
   // List
@@ -463,52 +500,52 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
   },
   dayDate: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dayTotal: {
-    color: PRIMARY_COLOR,
+    color: CAMERA_PRIMARY,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   imagesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   imageWrapper: {
     width: IMAGE_THUMB_SIZE,
     height: IMAGE_THUMB_SIZE,
     borderRadius: 22,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   expenseImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
 
   // Empty states
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 150,
   },
   emptyText: {
-    color: '#666',
+    color: "#666",
     fontSize: 18,
     marginTop: 16,
   },
   emptySubText: {
-    color: '#444',
+    color: "#444",
     fontSize: 14,
     marginTop: 8,
   },
@@ -516,38 +553,38 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#111',
+    backgroundColor: "#111",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '60%',
+    maxHeight: "60%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 10,
   },
   modalTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalCloseButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalList: {
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
   modalListContent: {
     paddingHorizontal: 20,
@@ -556,10 +593,10 @@ const styles = StyleSheet.create({
   modalItem: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: "rgba(255,255,255,0.05)",
   },
   modalItemText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
   },
 });

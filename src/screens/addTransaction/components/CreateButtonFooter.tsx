@@ -1,12 +1,12 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface CreateButtonFooterProps {
@@ -25,11 +25,16 @@ export default function CreateButtonFooter({
   icon = "add",
 }: CreateButtonFooterProps) {
   const backgroundColor = useThemeColor({}, "background");
+  const primaryColor = usePrimaryColor();
 
   return (
     <View style={[styles.createButtonFooter, { backgroundColor }]}>
       <TouchableOpacity
-        style={[styles.createButton, isLoading && styles.createButtonDisabled]}
+        style={[
+          styles.createButton,
+          { backgroundColor: primaryColor },
+          isLoading && styles.createButtonDisabled,
+        ]}
         onPress={onPress}
         disabled={isLoading}
       >
@@ -58,7 +63,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: PRIMARY_COLOR,
     paddingVertical: 16,
     borderRadius: 14,
     gap: 10,

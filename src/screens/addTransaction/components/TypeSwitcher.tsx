@@ -1,5 +1,5 @@
 import { Text } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -11,10 +11,17 @@ interface TypeSwitcherProps {
 }
 
 export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
+  const primaryColor = usePrimaryColor();
   return (
-    <View style={styles.typeContainer}>
+    <View style={[styles.typeContainer, { borderColor: primaryColor }]}>
       <TouchableOpacity
-        style={[styles.typeButton, value === "spent" && styles.typeButtonActive]}
+        style={[
+          styles.typeButton,
+          value === "spent" && [
+            styles.typeButtonActive,
+            { backgroundColor: primaryColor },
+          ],
+        ]}
         onPress={() => onChange("spent")}
       >
         <Text
@@ -22,14 +29,20 @@ export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
             styles.typeButtonText,
             value === "spent"
               ? styles.typeButtonTextActive
-              : [styles.typeButtonTextInactive, { color: PRIMARY_COLOR }],
+              : [styles.typeButtonTextInactive, { color: primaryColor }],
           ]}
         >
           Expense
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.typeButton, value === "income" && styles.typeButtonActive]}
+        style={[
+          styles.typeButton,
+          value === "income" && [
+            styles.typeButtonActive,
+            { backgroundColor: primaryColor },
+          ],
+        ]}
         onPress={() => onChange("income")}
       >
         <Text
@@ -37,7 +50,7 @@ export default function TypeSwitcher({ value, onChange }: TypeSwitcherProps) {
             styles.typeButtonText,
             value === "income"
               ? styles.typeButtonTextActive
-              : [styles.typeButtonTextInactive, { color: PRIMARY_COLOR }],
+              : [styles.typeButtonTextInactive, { color: primaryColor }],
           ]}
         >
           Income
@@ -53,7 +66,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: PRIMARY_COLOR,
     padding: 3,
     marginBottom: 32,
   },
@@ -64,9 +76,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 14,
   },
-  typeButtonActive: {
-    backgroundColor: PRIMARY_COLOR,
-  },
+  typeButtonActive: {},
   typeButtonText: {
     fontSize: 14,
     fontWeight: "600",

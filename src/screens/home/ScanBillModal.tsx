@@ -1,24 +1,24 @@
-import { Text, useThemeColor, View } from '@/components/Themed';
-import { API_BASE_URL } from '@/config/api';
-import { PRIMARY_COLOR } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { ParsedTransactionFromText } from '@/types/textToTransaction';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { Text, useThemeColor, View } from "@/components/Themed";
+import { API_BASE_URL } from "@/config/api";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { ParsedTransactionFromText } from "@/types/textToTransaction";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  View as RNView,
-  StyleSheet,
-  TouchableOpacity,
-  Pressable,
-  Image,
-  ActionSheetIOS,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+    ActionSheetIOS,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    View as RNView,
+    StyleSheet,
+    TouchableOpacity,
+} from "react-native";
 
 interface ScanBillModalProps {
   visible: boolean;
@@ -33,9 +33,10 @@ export default function ScanBillModal({
 }: ScanBillModalProps) {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const textColor = useThemeColor({}, 'text');
-  const borderColor = useThemeColor({}, 'border');
-  const widgetBackgroundColor = useThemeColor({}, 'card');
+  const primaryColor = usePrimaryColor();
+  const textColor = useThemeColor({}, "text");
+  const borderColor = useThemeColor({}, "border");
+  const widgetBackgroundColor = useThemeColor({}, "card");
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +70,7 @@ export default function ScanBillModal({
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
         setErrorMessage(
-          'Camera permission is required to take a photo of your bill.',
+          "Camera permission is required to take a photo of your bill.",
         );
         return;
       }
@@ -86,7 +87,7 @@ export default function ScanBillModal({
       setImageUri(asset.uri);
     } catch (error: any) {
       setErrorMessage(
-        error?.message || 'Failed to take photo. Please try again.',
+        error?.message || "Failed to take photo. Please try again.",
       );
     }
   };
@@ -95,10 +96,11 @@ export default function ScanBillModal({
     try {
       setErrorMessage(null);
       setSuccessMessage(null);
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         setErrorMessage(
-          'Media library permission is required to upload a bill image.',
+          "Media library permission is required to upload a bill image.",
         );
         return;
       }
@@ -115,16 +117,16 @@ export default function ScanBillModal({
       setImageUri(asset.uri);
     } catch (error: any) {
       setErrorMessage(
-        error?.message || 'Failed to pick image. Please try again.',
+        error?.message || "Failed to pick image. Please try again.",
       );
     }
   };
 
   const showImageSourceOptions = () => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Photo Library'],
+          options: ["Cancel", "Take Photo", "Photo Library"],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -137,12 +139,12 @@ export default function ScanBillModal({
       );
     } else {
       Alert.alert(
-        'Select Image Source',
-        'Choose an option',
+        "Select Image Source",
+        "Choose an option",
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Take Photo', onPress: handleTakePhoto },
-          { text: 'Photo Library', onPress: handlePickImage },
+          { text: "Cancel", style: "cancel" },
+          { text: "Take Photo", onPress: handleTakePhoto },
+          { text: "Photo Library", onPress: handlePickImage },
         ],
         { cancelable: true },
       );
@@ -158,21 +160,18 @@ export default function ScanBillModal({
     try {
       setIsLoading(true);
 
-      const uriParts = imageUri.split('.');
-      const fileType = uriParts[uriParts.length - 1] || 'jpg';
+      const uriParts = imageUri.split(".");
+      const fileType = uriParts[uriParts.length - 1] || "jpg";
 
       const formData = new FormData();
-      formData.append(
-        'file',
-        {
-          uri: imageUri,
-          name: `bill_${Date.now()}.${fileType}`,
-          type: `image/${fileType}`,
-        } as any,
-      );
+      formData.append("file", {
+        uri: imageUri,
+        name: `bill_${Date.now()}.${fileType}`,
+        type: `image/${fileType}`,
+      } as any);
 
       const response = await fetch(`${API_BASE_URL}/scan-bill`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
@@ -180,7 +179,7 @@ export default function ScanBillModal({
         const error = await response.json().catch(() => null);
         const message =
           error?.error ||
-          'Failed to scan bill. Please try again with a clearer image.';
+          "Failed to scan bill. Please try again with a clearer image.";
         throw new Error(message);
       }
 
@@ -195,16 +194,16 @@ export default function ScanBillModal({
 
       const parsed = data.parsed;
       if (!parsed) {
-        throw new Error('Server did not return a parsed transaction.');
+        throw new Error("Server did not return a parsed transaction.");
       }
 
       // Navigate to add-transaction screen with pre-filled fields
       const params: Record<string, string> = {
-        caption: parsed.caption ?? '',
-        amount: String(parsed.amount ?? ''),
-        type: parsed.type ?? 'spent',
-        category: parsed.category ?? '',
-        createdAt: parsed.createdAt ?? '',
+        caption: parsed.caption ?? "",
+        amount: String(parsed.amount ?? ""),
+        type: parsed.type ?? "spent",
+        category: parsed.category ?? "",
+        createdAt: parsed.createdAt ?? "",
       };
 
       // Include imageUri if available (for scanned bills)
@@ -214,15 +213,15 @@ export default function ScanBillModal({
 
       handleClose();
       router.push({
-        pathname: '/add-transaction',
+        pathname: "/add-transaction",
         params,
       } as any);
     } catch (error: any) {
       const rawMessage =
-        typeof error?.message === 'string' ? error.message : undefined;
+        typeof error?.message === "string" ? error.message : undefined;
       setErrorMessage(
         rawMessage ||
-          'Could not extract a transaction from this bill. Please try a clearer photo.',
+          "Could not extract a transaction from this bill. Please try a clearer photo.",
       );
     } finally {
       setIsLoading(false);
@@ -236,12 +235,9 @@ export default function ScanBillModal({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <Pressable
-        style={styles.modalOverlay}
-        onPress={handleClose}
-      >
+      <Pressable style={styles.modalOverlay} onPress={handleClose}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalKeyboard}
         >
           <View
@@ -250,94 +246,99 @@ export default function ScanBillModal({
               { backgroundColor: widgetBackgroundColor },
             ]}
           >
-              <Text style={[styles.modalHeading, { color: textColor }]}>
-                Scan bill to transaction
-              </Text>
-              <Text style={[styles.modalInstruction, { color: textColor }]}>
-                Take a photo or upload a clear image of your bill.
-              </Text>
+            <Text style={[styles.modalHeading, { color: textColor }]}>
+              Scan bill to transaction
+            </Text>
+            <Text style={[styles.modalInstruction, { color: textColor }]}>
+              Take a photo or upload a clear image of your bill.
+            </Text>
 
-              {imageUri ? (
-                <RNView style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: imageUri }} style={styles.previewImage} />
-                  <TouchableOpacity
-                    style={styles.changeImageButton}
-                    onPress={() => setImageUri(null)}
-                  >
-                    <Text style={styles.changeImageText}>Change image</Text>
-                  </TouchableOpacity>
-                </RNView>
-              ) : (
+            {imageUri ? (
+              <RNView style={styles.imagePreviewContainer}>
+                <Image source={{ uri: imageUri }} style={styles.previewImage} />
                 <TouchableOpacity
-                  style={[
-                    styles.uploadButton,
-                    {
-                      borderColor,
-                      backgroundColor: widgetBackgroundColor,
-                    },
-                  ]}
-                  onPress={showImageSourceOptions}
+                  style={styles.changeImageButton}
+                  onPress={() => setImageUri(null)}
                 >
-                  <Ionicons name="cloud-upload-outline" size={32} color={textColor} />
-                  <Text style={[styles.uploadButtonText, { color: textColor }]}>
-                    Upload Bill Image
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {rawTextPreview && (
-                <RNView style={styles.rawTextContainer}>
-                  <Text style={styles.rawTextLabel}>Extracted text preview</Text>
                   <Text
-                    style={[
-                      styles.rawTextContent,
-                      { color: textColor },
-                    ]}
-                    numberOfLines={4}
+                    style={[styles.changeImageText, { color: primaryColor }]}
                   >
-                    {rawTextPreview}
-                  </Text>
-                </RNView>
-              )}
-
-              {errorMessage && (
-                <RNView style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{errorMessage}</Text>
-                </RNView>
-              )}
-
-              {successMessage && (
-                <RNView style={styles.successContainer}>
-                  <Text style={styles.successText}>{successMessage}</Text>
-                </RNView>
-              )}
-
-              <RNView style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalCancelButton, { borderColor }]}
-                  onPress={handleClose}
-                  disabled={isLoading}
-                >
-                  <Text style={[styles.modalCancelText, { color: textColor }]}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modalCreateButton,
-                    {
-                      backgroundColor: PRIMARY_COLOR,
-                      opacity: isLoading || !imageUri ? 0.6 : 1,
-                    },
-                  ]}
-                  onPress={handleExtractAndCreate}
-                  disabled={isLoading || !imageUri}
-                >
-                  <Text style={styles.modalCreateText}>
-                    {isLoading ? 'Creating...' : 'Extract'}
+                    Change image
                   </Text>
                 </TouchableOpacity>
               </RNView>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  {
+                    borderColor,
+                    backgroundColor: widgetBackgroundColor,
+                  },
+                ]}
+                onPress={showImageSourceOptions}
+              >
+                <Ionicons
+                  name="cloud-upload-outline"
+                  size={32}
+                  color={textColor}
+                />
+                <Text style={[styles.uploadButtonText, { color: textColor }]}>
+                  Upload Bill Image
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {rawTextPreview && (
+              <RNView style={styles.rawTextContainer}>
+                <Text style={styles.rawTextLabel}>Extracted text preview</Text>
+                <Text
+                  style={[styles.rawTextContent, { color: textColor }]}
+                  numberOfLines={4}
+                >
+                  {rawTextPreview}
+                </Text>
+              </RNView>
+            )}
+
+            {errorMessage && (
+              <RNView style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </RNView>
+            )}
+
+            {successMessage && (
+              <RNView style={styles.successContainer}>
+                <Text style={styles.successText}>{successMessage}</Text>
+              </RNView>
+            )}
+
+            <RNView style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalCancelButton, { borderColor }]}
+                onPress={handleClose}
+                disabled={isLoading}
+              >
+                <Text style={[styles.modalCancelText, { color: textColor }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalCreateButton,
+                  {
+                    backgroundColor: primaryColor,
+                    opacity: isLoading || !imageUri ? 0.6 : 1,
+                  },
+                ]}
+                onPress={handleExtractAndCreate}
+                disabled={isLoading || !imageUri}
+              >
+                <Text style={styles.modalCreateText}>
+                  {isLoading ? "Creating..." : "Extract"}
+                </Text>
+              </TouchableOpacity>
+            </RNView>
           </View>
         </KeyboardAvoidingView>
       </Pressable>
@@ -348,23 +349,23 @@ export default function ScanBillModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
     paddingHorizontal: 24,
   },
   modalKeyboard: {
-    width: '100%',
+    width: "100%",
   },
   modalContent: {
     borderRadius: 16,
     padding: 24,
     maxWidth: 420,
-    alignSelf: 'center',
-    width: '100%',
+    alignSelf: "center",
+    width: "100%",
   },
   modalHeading: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 10,
   },
   modalInstruction: {
@@ -378,41 +379,40 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 60,
     paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
     gap: 8,
   },
   uploadButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 4,
   },
   imagePreviewContainer: {
     marginBottom: 12,
   },
   previewImage: {
-    width: '100%',
+    width: "100%",
     height: 180,
     borderRadius: 8,
-    resizeMode: 'cover',
+    resizeMode: "cover",
     marginBottom: 8,
   },
   changeImageButton: {
     paddingVertical: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   changeImageText: {
     fontSize: 13,
-    color: PRIMARY_COLOR,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   rawTextContainer: {
     marginBottom: 12,
   },
   rawTextLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   rawTextContent: {
@@ -424,20 +424,20 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: '#e74c3c',
-    fontWeight: '600',
+    color: "#e74c3c",
+    fontWeight: "600",
   },
   successContainer: {
     marginBottom: 8,
   },
   successText: {
     fontSize: 13,
-    color: '#2ecc71',
-    fontWeight: '600',
+    color: "#2ecc71",
+    fontWeight: "600",
   },
   modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 12,
     marginTop: 12,
   },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalCreateButton: {
     paddingVertical: 12,
@@ -458,8 +458,7 @@ const styles = StyleSheet.create({
   },
   modalCreateText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
   },
 });
-

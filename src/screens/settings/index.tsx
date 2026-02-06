@@ -1,27 +1,30 @@
-import { SafeView, Text, View } from '@/components/Themed';
-import { PRIMARY_COLOR } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { ScrollView, StyleSheet, Switch, TouchableOpacity } from 'react-native';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { SafeView, Text, View } from "@/components/Themed";
+import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
+import AccentColorPickerModal from "./components/AccentColorPickerModal";
 
 export default function SettingsScreen() {
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode, toggleDarkMode, accentKey, setAccentKey } = useTheme();
+  const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
+  const [accentModalVisible, setAccentModalVisible] = useState(false);
 
   // Colors based on theme
-  const itemBg = colorScheme === 'dark' ? '#1c1c1e' : '#fff';
-  const textColor = colorScheme === 'dark' ? '#fff' : '#000';
-  const secondaryTextColor = colorScheme === 'dark' ? '#8e8e93' : '#666';
-  const separatorColor = colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e5e5e5';
+  const itemBg = colorScheme === "dark" ? "#1c1c1e" : "#fff";
+  const textColor = colorScheme === "dark" ? "#fff" : "#000";
+  const secondaryTextColor = colorScheme === "dark" ? "#8e8e93" : "#666";
+  const separatorColor =
+    colorScheme === "dark" ? "rgba(255,255,255,0.1)" : "#e5e5e5";
   const iconBg = {
-    profile: '#4A90E2',
-    password: '#4A90E2',
-    accent: '#8B5CF6',
-    notification: '#34C759',
-    language: '#4A90E2',
-    signOut: '#FF3B30',
+    profile: "#4A90E2",
+    password: "#4A90E2",
+    accent: "#8B5CF6",
+    notification: "#34C759",
+    language: "#4A90E2",
+    signOut: "#FF3B30",
   };
 
   const SettingItem = ({
@@ -58,12 +61,16 @@ export default function SettingsScreen() {
           <Switch
             value={toggleValue}
             onValueChange={onToggle}
-            trackColor={{ false: '#767577', true: PRIMARY_COLOR }}
+            trackColor={{ false: "#767577", true: primaryColor }}
             thumbColor="#fff"
           />
         )}
         {hasArrow && (
-          <Ionicons name="chevron-forward" size={20} color={secondaryTextColor} />
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={secondaryTextColor}
+          />
         )}
       </View>
     </TouchableOpacity>
@@ -72,7 +79,10 @@ export default function SettingsScreen() {
   return (
     <SafeView style={styles.container}>
       <Text style={[styles.header, { color: textColor }]}>Settings</Text>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* User Profile Section */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -83,18 +93,28 @@ export default function SettingsScreen() {
               <Ionicons name="person" size={32} color="#fff" />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: textColor }]}>User</Text>
-              <Text style={[styles.profileSubtitle, { color: secondaryTextColor }]}>
+              <Text style={[styles.profileName, { color: textColor }]}>
+                User
+              </Text>
+              <Text
+                style={[styles.profileSubtitle, { color: secondaryTextColor }]}
+              >
                 Edit personal details
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={secondaryTextColor} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={secondaryTextColor}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Account */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>Account</Text>
+          <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
+            Account
+          </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
             <SettingItem
               icon="person-outline"
@@ -103,7 +123,9 @@ export default function SettingsScreen() {
               hasArrow
               onPress={() => {}}
             />
-            <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+            <View
+              style={[styles.separator, { backgroundColor: separatorColor }]}
+            />
             <SettingItem
               icon="lock-closed-outline"
               iconColor={iconBg.password}
@@ -111,7 +133,9 @@ export default function SettingsScreen() {
               hasArrow
               onPress={() => {}}
             />
-            <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+            <View
+              style={[styles.separator, { backgroundColor: separatorColor }]}
+            />
             <SettingItem
               icon="log-out-outline"
               iconColor={iconBg.signOut}
@@ -124,7 +148,9 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>Appearance</Text>
+          <Text style={[styles.sectionHeader, { color: secondaryTextColor }]}>
+            Appearance
+          </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
             <SettingItem
               icon="moon"
@@ -134,13 +160,15 @@ export default function SettingsScreen() {
               toggleValue={isDarkMode}
               onToggle={toggleDarkMode}
             />
-            <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+            <View
+              style={[styles.separator, { backgroundColor: separatorColor }]}
+            />
             <SettingItem
               icon="color-palette-outline"
               iconColor={iconBg.accent}
               title="Accent Color"
               hasArrow
-              onPress={() => {}}
+              onPress={() => setAccentModalVisible(true)}
             />
           </View>
         </View>
@@ -180,6 +208,13 @@ export default function SettingsScreen() {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      <AccentColorPickerModal
+        visible={accentModalVisible}
+        currentAccentKey={accentKey}
+        onClose={() => setAccentModalVisible(false)}
+        onSelect={setAccentKey}
+      />
     </SafeView>
   );
 }
@@ -193,7 +228,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 34,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 20,
@@ -203,8 +238,8 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: "600",
+    textTransform: "uppercase",
     marginHorizontal: 20,
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -212,11 +247,11 @@ const styles = StyleSheet.create({
   sectionContent: {
     marginHorizontal: 16,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     marginHorizontal: 16,
     borderRadius: 12,
@@ -225,34 +260,34 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#4A90E2',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#4A90E2",
+    justifyContent: "center",
+    alignItems: "center",
   },
   profileInfo: {
     flex: 1,
     marginLeft: 16,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   profileName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   profileSubtitle: {
     fontSize: 14,
   },
   settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
   },
   iconContainer: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   settingTitle: {
@@ -260,15 +295,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   rightContent: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   separator: {
     height: 1,
     marginHorizontal: 0,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
   bottomPadding: {
     height: 40,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
 });

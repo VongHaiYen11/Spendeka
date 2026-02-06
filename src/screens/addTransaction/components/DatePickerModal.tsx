@@ -1,17 +1,17 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { PRIMARY_COLOR } from "@/constants/Colors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import DateTimePicker, {
-  DateTimePickerAndroid,
-  AndroidNativeProps,
+    AndroidNativeProps,
+    DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import React, { useEffect } from "react";
 import {
-  Modal,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface DatePickerModalProps {
@@ -29,6 +29,7 @@ export default function DatePickerModal({
 }: DatePickerModalProps) {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
+  const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
   const themeVariant = colorScheme === "dark" ? "dark" : "light";
 
@@ -84,7 +85,7 @@ export default function DatePickerModal({
               onPress={onClose}
               style={styles.dateModalDoneButton}
             >
-              <Text style={[styles.modalCloseText, { color: PRIMARY_COLOR }]}>
+              <Text style={[styles.modalCloseText, { color: primaryColor }]}>
                 Done
               </Text>
             </TouchableOpacity>
