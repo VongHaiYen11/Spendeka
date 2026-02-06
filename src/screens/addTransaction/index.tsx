@@ -11,10 +11,10 @@ import {
   uploadImageToCloudinary,
 } from "@/services/TransactionService";
 import { DatabaseTransaction, TransactionCategory } from "@/types/transaction";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { format, isToday } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -43,6 +43,14 @@ export default function AddTransactionScreen({
   initialTransaction,
 }: AddTransactionScreenProps = {}) {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    caption?: string;
+    amount?: string;
+    type?: "income" | "spent";
+    category?: string;
+    createdAt?: string;
+    imageUri?: string;
+  }>();
   const {
     addTransactionOptimistic,
     removeOptimisticTransaction,
@@ -61,25 +69,41 @@ export default function AddTransactionScreen({
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const paramsInitialized = useRef(false);
 
+  // Pre-fill form fields from route params (only once on mount)
   useEffect(() => {
-    if (!initialTransaction) return;
-    setAmount(String(initialTransaction.amount));
-    setTransactionType(initialTransaction.type);
-    setCategory(initialTransaction.category);
-    setCaption(initialTransaction.caption || "");
-    setSelectedDate(
-      initialTransaction.createdAt instanceof Date
-        ? initialTransaction.createdAt
-        : new Date(initialTransaction.createdAt)
-    );
-    setImageUri(
-      initialTransaction.imageUrl
-        ? initialTransaction.imageUrl
-        : null
-    );
-  }, [initialTransaction]);
+    // Prevent infinite loops by only initializing once
+    if (paramsInitialized.current) return;
+    
+    // Check if any params exist to initialize
+    const hasParams = params.caption || params.amount || params.type || params.category || params.createdAt || params.imageUri;
+    if (!hasParams) return;
+
+    if (params.caption) {
+      setCaption(params.caption);
+    }
+    if (params.amount) {
+      setAmount(params.amount);
+    }
+    if (params.type === "income" || params.type === "spent") {
+      setTransactionType(params.type);
+    }
+    if (params.category) {
+      setCategory(params.category as TransactionCategory);
+    }
+    if (params.createdAt) {
+      const parsedDate = new Date(params.createdAt);
+      if (!isNaN(parsedDate.getTime())) {
+        setSelectedDate(parsedDate);
+      }
+    }
+    if (params.imageUri) {
+      setImageUri(params.imageUri);
+    }
+
+    paramsInitialized.current = true;
+  }, [params.caption, params.amount, params.type, params.category, params.createdAt, params.imageUri]);
 
   const backgroundColor = useThemeColor({}, "background");
   const selectedCategoryInfo =
