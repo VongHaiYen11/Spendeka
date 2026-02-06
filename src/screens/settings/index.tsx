@@ -481,13 +481,7 @@ export default function SettingsScreen() {
             Account
           </Text>
           <View style={[styles.sectionContent, { backgroundColor: itemBg }]}>
-            <SettingItem
-              icon="person-outline"
-              iconColor={iconBg.profile}
-              title="Personal Info"
-              hasArrow
-              onPress={() => router.push("/personal-info")}
-            />
+            
             <View
               style={[styles.separator, { backgroundColor: separatorColor }]}
             />
