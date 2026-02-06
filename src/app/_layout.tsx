@@ -3,7 +3,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   DarkTheme,
   DefaultTheme,
-  ThemeProvider,
+  ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -13,7 +13,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
 
 import { TransactionProvider } from "@/contexts/TransactionContext";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -53,29 +53,37 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
-      <TransactionProvider>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="history"
-              options={{ headerShown: false, presentation: "card" }}
-            />
-            <Stack.Screen
-              name="add-transaction"
-              options={{ headerShown: false, presentation: "card" }}
-            />
-            <Stack.Screen
-              name="edit-transaction"
-              options={{ headerShown: false, presentation: "card" }}
-            />
-          </Stack>
-        </ThemeProvider>
-      </TransactionProvider>
+      <ThemeProvider>
+        <TransactionProvider>
+          <ThemedNavigationContainer />
+        </TransactionProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function ThemedNavigationContainer() {
+  const { colorScheme } = useTheme();
+
+  return (
+    <NavigationThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="history"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="add-transaction"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="edit-transaction"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+      </Stack>
+    </NavigationThemeProvider>
   );
 }

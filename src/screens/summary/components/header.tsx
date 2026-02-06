@@ -1,4 +1,5 @@
-import { Text } from '@/components/Themed';
+import { Text, useThemeColor } from '@/components/Themed';
+import Colors from '@/constants/Colors';
 import DateRangePickerModal from '@/screens/summary/components/DateRangePickerModal';
 import { RangeType, getDateRange } from '@/utils/getDateRange';
 import {
@@ -6,12 +7,11 @@ import {
   differenceInCalendarDays,
   format,
   isSameDay,
-  isSameMonth,
-  isSameYear,
   subDays,
 } from 'date-fns';
 import { useMemo, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface HeaderProps {
   range: RangeType;
@@ -27,6 +27,9 @@ export default function HeaderSummary({
   setCurrentDate,
 }: HeaderProps) {
   const [modalVisible, setModalVisible] = useState(false);
+  const colorScheme = useColorScheme();
+  const textColor = useThemeColor({}, 'text');
+  const colors = Colors[colorScheme];
   const { start, end } = getDateRange(range, currentDate);
   const today = new Date();
 
@@ -122,22 +125,28 @@ export default function HeaderSummary({
   };
 
   return (
-    <View className="relative flex-col w-full p-4">
-      <View className="flex-row justify-between items-center w-full mb-1">
+    <View style={styles.container}>
+      <View style={styles.row}>
         <TouchableOpacity
           onPress={onPrev}
           disabled={range === 'all'}
-          className={`px-4 py-2 ${range === 'all' ? 'opacity-30' : ''}`}
+          style={[styles.navButton, range === 'all' && styles.navButtonDisabled]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text className="text-lg">◀</Text>
+          <Text style={[styles.navArrow, { color: textColor }]}>◀</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setModalVisible(true)}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+          style={[
+            styles.rangeButton,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
         >
-          <Text className="text-gray-800 dark:text-gray-200 text-center">
+          <Text style={[styles.rangeText, { color: textColor }]}>
             {getRangeText()}
           </Text>
         </TouchableOpacity>
@@ -145,10 +154,13 @@ export default function HeaderSummary({
         <TouchableOpacity
           onPress={onNext}
           disabled={range === 'all' || includesToday}
-          className={`px-4 py-2 ${range === 'all' || includesToday ? 'opacity-30' : ''}`}
+          style={[
+            styles.navButton,
+            (range === 'all' || includesToday) && styles.navButtonDisabled,
+          ]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text className="text-lg">▶</Text>
+          <Text style={[styles.navArrow, { color: textColor }]}>▶</Text>
         </TouchableOpacity>
       </View>
 
@@ -165,3 +177,37 @@ export default function HeaderSummary({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+    width: '100%',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 4,
+  },
+  navButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  navButtonDisabled: {
+    opacity: 0.3,
+  },
+  navArrow: {
+    fontSize: 18,
+  },
+  rangeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  rangeText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});
