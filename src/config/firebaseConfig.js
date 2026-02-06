@@ -1,7 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 // Your web app's Firebase configuration
@@ -19,8 +20,27 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth (no custom persistence to avoid RN bundler issues)
-const authInstance = getAuth(app);
+// Initialize Auth with persistence for React Native
+// This ensures the user stays logged in even after closing the app
+let authInstance;
+if (Platform.OS === "web") {
+  // Use getAuth for web platform
+  authInstance = getAuth(app);
+} else {
+  // Use initializeAuth with AsyncStorage persistence for React Native
+  try {
+    authInstance = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error) {
+    // If auth is already initialized, get the existing instance
+    if (error.code === "auth/already-initialized") {
+      authInstance = getAuth(app);
+    } else {
+      throw error;
+    }
+  }
+}
 
 // Only initialize Analytics on web platform (not available in React Native)
 // Analytics requires DOM which doesn't exist in React Native

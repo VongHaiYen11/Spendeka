@@ -1,9 +1,11 @@
 import { SafeView, Text, View } from "@/components/Themed";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -26,6 +28,8 @@ export default function SettingsScreen() {
   const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
   const { reloadTransactions } = useTransactions();
+  const { logout } = useAuth();
+  const router = useRouter();
   const [accentModalVisible, setAccentModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -51,6 +55,31 @@ export default function SettingsScreen() {
               );
             } finally {
               setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace("/(auth)/login");
+            } catch (err) {
+              Alert.alert(
+                "Error",
+                "Could not sign out. Please try again."
+              );
             }
           },
         },
@@ -187,7 +216,7 @@ export default function SettingsScreen() {
               iconColor={iconBg.signOut}
               title="Sign Out"
               hasArrow
-              onPress={() => {}}
+              onPress={handleSignOut}
             />
           </View>
         </View>
