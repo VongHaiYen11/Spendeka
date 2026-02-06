@@ -1,5 +1,6 @@
 import { SafeView, useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/contexts/TransactionContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Expense } from '@/models/Expense';
@@ -27,8 +28,8 @@ import TodaySummaryCard from './TodaySummaryCard';
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useAuth();
   const { transactions, reloadTransactions } = useTransactions();
-  const [userName] = useState('User'); // TODO: Get from user profile/authentication
   const [textModalVisible, setTextModalVisible] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
   const [scanModalVisible, setScanModalVisible] = useState(false);
@@ -38,6 +39,9 @@ export default function Home() {
   const iconColor = Colors[colorScheme ?? 'light'].text;
   const textColor = useThemeColor({}, 'text');
   const todayCardBackground = colorScheme === 'dark' ? '#1a1a1a' : '#ffffff';
+
+  const userName = user?.displayName?.trim() || user?.email?.split('@')?.[0] || 'User';
+  const avatarUrl = user?.photoURL;
 
   // Range for embedded Summary charts on Home (fixed to "day")
   const homeRange: 'day' = 'day';
@@ -105,6 +109,10 @@ export default function Home() {
     router.push('/history' as import('expo-router').Href);
   };
 
+  const handleGoSettings = () => {
+    router.push('/settings' as import('expo-router').Href);
+  };
+
   const openTextModal = () => setTextModalVisible(true);
   const closeTextModal = () => {
     setTextModalVisible(false);
@@ -155,13 +163,19 @@ export default function Home() {
   return (
     <SafeView style={styles.container}>
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-      <HomeHeader userName={userName} iconColor={iconColor} />
+      <HomeHeader
+        userName={userName}
+        avatarUrl={avatarUrl}
+        iconColor={iconColor}
+        onPressProfile={handleGoSettings}
+      />
 
       <HomeToolbar
         iconColor={iconColor}
         onPressHistory={handleGoHistory}
         onPressScan={openScanModal}
         onPressText={openTextModal}
+        onPressCamera={() => handleOpenCameraFromToday()}
       />
 
       <ScrollView

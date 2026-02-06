@@ -1,12 +1,13 @@
-import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface HomeToolbarProps {
   iconColor: string;
   onPressHistory: () => void;
   onPressScan: () => void;
   onPressText: () => void;
+  onPressCamera: () => void;
 }
 
 export default function HomeToolbar({
@@ -14,6 +15,7 @@ export default function HomeToolbar({
   onPressHistory,
   onPressScan,
   onPressText,
+  onPressCamera,
 }: HomeToolbarProps) {
   const cardColor = useThemeColor({}, 'card');
 
@@ -32,9 +34,9 @@ export default function HomeToolbar({
           <Ionicons name="text-outline" size={28} color={iconColor} />
           <Text style={styles.toolbarLabel}>Text</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolbarButton}>
-          <Ionicons name="mic-outline" size={28} color={iconColor} />
-          <Text style={styles.toolbarLabel}>Voice</Text>
+        <TouchableOpacity style={styles.toolbarButton} onPress={onPressCamera}>
+          <Ionicons name="camera-outline" size={28} color={iconColor} />
+          <Text style={styles.toolbarLabel}>Camera</Text>
         </TouchableOpacity>
       </View>
     </View>
