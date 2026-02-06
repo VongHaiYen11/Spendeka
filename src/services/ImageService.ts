@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/config/api";
 import {
     CLOUDINARY_CONFIG,
     CLOUDINARY_UPLOAD_URL,
@@ -8,6 +9,11 @@ export interface Photo {
   url: string;
   publicId: string;
   timestamp: Date;
+}
+
+export interface AutoCaptionResult {
+  items: string[];
+  caption: string;
 }
 
 /**
@@ -102,4 +108,40 @@ export const uploadImage = async (uri: string): Promise<Photo | null> => {
   } catch (error) {
     throw error;
   }
+};
+
+/**
+ * Generate an automatic caption (and optional item list) for an expense image.
+ * Calls the backend /image-caption endpoint which uses Gemini vision.
+ */
+export const generateAutoCaptionFromImage = async (
+  uri: string,
+): Promise<AutoCaptionResult> => {
+  const uriParts = uri.split(".");
+  const fileType = uriParts[uriParts.length - 1] || "jpg";
+
+  const formData = new FormData();
+  formData.append("file", {
+    uri,
+    type: `image/${fileType}`,
+    name: `expense_${Date.now()}.${fileType}`,
+  } as any);
+
+  const response = await fetch(`${API_BASE_URL}/image-caption`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = "Failed to generate caption from image";
+    try {
+      const errorData = await response.json();
+      if (errorData?.error) message = errorData.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  return (await response.json()) as AutoCaptionResult;
 };
