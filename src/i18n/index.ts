@@ -1,3 +1,4 @@
+import React from "react";
 import { useTheme, type LanguageKey } from "@/contexts/ThemeContext";
 
 export type TranslationKey =
@@ -61,6 +62,14 @@ export type TranslationKey =
   | "settings.reminder.enabled"
   | "settings.item.appLanguage"
   | "settings.item.deleteAllData"
+  | "settings.deleteAll.confirmTitle"
+  | "settings.deleteAll.confirmMessage"
+  | "settings.deleteAll.cancel"
+  | "settings.deleteAll.confirm"
+  | "settings.deleteAll.doneTitle"
+  | "settings.deleteAll.doneMessage"
+  | "settings.deleteAll.errorTitle"
+  | "settings.deleteAll.errorMessage"
   | "summary.recentTransactions"
   | "summary.seeMore"
   | "summary.header.allTime"
@@ -338,6 +347,15 @@ const en: TranslationDict = {
   "settings.reminder.enabled": "Reminder",
   "settings.item.appLanguage": "App Language",
   "settings.item.deleteAllData": "Delete All Data",
+  "settings.deleteAll.confirmTitle": "Delete All Data",
+  "settings.deleteAll.confirmMessage":
+    "Do you want to delete all your transactions? This cannot be undone.",
+  "settings.deleteAll.cancel": "Cancel",
+  "settings.deleteAll.confirm": "Delete All",
+  "settings.deleteAll.doneTitle": "Done",
+  "settings.deleteAll.doneMessage": "All transactions have been deleted.",
+  "settings.deleteAll.errorTitle": "Error",
+  "settings.deleteAll.errorMessage": "Could not delete all data. Please try again.",
 
   "summary.recentTransactions": "Recent Transactions",
   "summary.seeMore": "See More",
@@ -632,6 +650,16 @@ const vi: TranslationDict = {
   "settings.reminder.enabled": "Nhắc nhở",
   "settings.item.appLanguage": "Ngôn ngữ ứng dụng",
   "settings.item.deleteAllData": "Xóa toàn bộ dữ liệu",
+  "settings.deleteAll.confirmTitle": "Xóa tất cả dữ liệu",
+  "settings.deleteAll.confirmMessage":
+    "Bạn có muốn xóa hết tất cả giao dịch? Hành động này không thể hoàn tác.",
+  "settings.deleteAll.cancel": "Hủy",
+  "settings.deleteAll.confirm": "Xóa hết",
+  "settings.deleteAll.doneTitle": "Hoàn tất",
+  "settings.deleteAll.doneMessage": "Đã xóa toàn bộ giao dịch.",
+  "settings.deleteAll.errorTitle": "Lỗi",
+  "settings.deleteAll.errorMessage":
+    "Không thể xóa dữ liệu. Vui lòng thử lại.",
 
   "summary.recentTransactions": "Giao dịch gần đây",
   "summary.seeMore": "Xem thêm",
@@ -859,9 +887,11 @@ const dictionaries: Record<LanguageKey, TranslationDict> = {
 
 export function useI18n() {
   const { languageKey } = useTheme();
-  const dict = dictionaries[languageKey] ?? en;
+  const languageKeyRef = React.useRef(languageKey);
+  languageKeyRef.current = languageKey;
 
   const t = (key: TranslationKey, params?: Record<string, string>): string => {
+    const dict = dictionaries[languageKeyRef.current] ?? en;
     let text = dict[key] ?? en[key] ?? key;
     if (params) {
       Object.keys(params).forEach((paramKey) => {
