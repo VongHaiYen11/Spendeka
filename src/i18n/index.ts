@@ -103,6 +103,8 @@ export type TranslationKey =
   | "summary.chart.spent"
   | "summary.chart.all"
   | "summary.chart.noData"
+  | "summary.emptyState"
+  | "summary.emptyStateHint"
   | "summary.chart.others"
   | "summary.chart.legend.income"
   | "summary.chart.legend.spent"
@@ -390,6 +392,8 @@ const en: TranslationDict = {
   "summary.chart.spent": "Spent",
   "summary.chart.all": "All",
   "summary.chart.noData": "No data",
+  "summary.emptyState": "No data",
+  "summary.emptyStateHint": "Add transactions to see your summary here.",
   "summary.chart.others": "Others",
   "summary.chart.legend.income": "Income",
   "summary.chart.legend.spent": "Spent",
@@ -694,6 +698,8 @@ const vi: TranslationDict = {
   "summary.chart.spent": "Chi tiêu",
   "summary.chart.all": "Tất cả",
   "summary.chart.noData": "Không có dữ liệu",
+  "summary.emptyState": "Không có dữ liệu",
+  "summary.emptyStateHint": "Thêm giao dịch để xem tóm tắt tại đây.",
   "summary.chart.others": "Khác",
   "summary.chart.legend.income": "Thu nhập",
   "summary.chart.legend.spent": "Chi tiêu",

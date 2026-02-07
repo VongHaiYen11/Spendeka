@@ -8,7 +8,8 @@ import {
   filterTransactionsByDateRange,
   filterTransactionsByRange,
 } from '@/utils/transactionHelpers';
-import { useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView } from 'react-native';
 import AccountInfo from './components/accountInfo';
 import ChartCategories from './components/chartCategories';
@@ -21,7 +22,14 @@ type RangeType = 'day' | 'week' | 'month' | 'year' | 'all';
 export default function Summary() {
   const [range, setRange] = useState<RangeType>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { transactions } = useTransactions();
+  const { transactions, refreshTransactions } = useTransactions();
+
+  // Refetch when Summary tab is focused so after "Delete All" we show correct empty state
+  useFocusEffect(
+    useCallback(() => {
+      refreshTransactions();
+    }, [refreshTransactions]),
+  );
 
   const { start, end } = getDateRange(range, currentDate);
   // For 'all' range, use a very old date as start if undefined
@@ -63,7 +71,7 @@ export default function Summary() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         bounces={true}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
       >
         <AccountInfo
           period={range}
