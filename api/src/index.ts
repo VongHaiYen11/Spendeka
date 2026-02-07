@@ -8,6 +8,9 @@ import type { Request, Response } from "express";
 // @ts-ignore - types are provided at runtime via node_modules
 import multer from "multer";
 import fsPromises from "node:fs/promises";
+import { parseTextToTransaction } from "./services/gemini.js";
+import { generateCaptionFromImage } from "./services/imageCaption.js";
+import { scanBillAndParse } from "./services/scanBill.js";
 
 // Extend Express Request so multer's req.file is typed (multer adds it at runtime)
 declare global {
@@ -17,9 +20,6 @@ declare global {
     }
   }
 }
-import { parseTextToTransaction } from "./services/gemini.js";
-import { generateCaptionFromImage } from "./services/imageCaption.js";
-import { scanBillAndParse } from "./services/scanBill.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;

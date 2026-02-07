@@ -1,6 +1,11 @@
 import { SafeView, Text, View } from "@/components/Themed";
 import { auth, db } from "@/config/firebaseConfig";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  useAvatarUrl,
+  useDisplayName,
+  useUserProfile,
+} from "@/contexts/UserProfileContext";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -11,14 +16,14 @@ import {
 } from "@/services/NotificationService";
 import { clearAllExpenses } from "@/services/TransactionService";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -48,6 +53,9 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const { reloadTransactions } = useTransactions();
   const { logout, user } = useAuth();
+  const displayName = useDisplayName();
+  const avatarUrl = useAvatarUrl();
+  const { refreshProfile } = useUserProfile();
   const router = useRouter();
   const [accentModalVisible, setAccentModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -82,43 +90,12 @@ export default function SettingsScreen() {
     null,
   );
 
-  const [profileName, setProfileName] = useState<string>("User");
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (!user?.uid) {
-        setProfileName("User");
-        setProfileAvatarUrl(null);
-        return;
-      }
-
-      // Prefer Auth profile if present
-      const authName = user.displayName?.trim();
-      const authAvatar = user.photoURL ?? null;
-
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        const data = snap.exists() ? (snap.data() as any) : null;
-        const nameFromDb = data?.fullName?.trim?.() || null;
-        const avatarFromDb = data?.avatarUrl ?? null;
-
-        if (cancelled) return;
-        setProfileName(nameFromDb || authName || "User");
-        setProfileAvatarUrl(avatarFromDb || authAvatar || null);
-      } catch {
-        if (cancelled) return;
-        setProfileName(authName || "User");
-        setProfileAvatarUrl(authAvatar || null);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.uid, user?.displayName, user?.photoURL]);
+  // Refetch profile when Settings screen is focused (e.g. after saving in personal-info)
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   // Load reminder settings
   useEffect(() => {
@@ -519,9 +496,9 @@ export default function SettingsScreen() {
             onPress={() => router.push("/personal-info")}
           >
             <View style={styles.avatar}>
-              {profileAvatarUrl ? (
+              {avatarUrl ? (
                 <Image
-                  source={{ uri: profileAvatarUrl }}
+                  source={{ uri: avatarUrl }}
                   style={styles.avatarImage}
                 />
               ) : (
@@ -530,7 +507,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: textColor }]}>
-                {profileName || "User"}
+                {displayName || "User"}
               </Text>
               <Text
                 style={[styles.profileSubtitle, { color: secondaryTextColor }]}

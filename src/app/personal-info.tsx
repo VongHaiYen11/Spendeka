@@ -1,5 +1,6 @@
 import Colors from "@/constants/Colors";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { db } from "@/config/firebaseConfig";
@@ -57,6 +58,7 @@ export default function PersonalInfoScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { refreshProfile } = useUserProfile();
   const { t } = useI18n();
   const primaryColor = usePrimaryColor();
   const scheme = useColorScheme();
@@ -66,6 +68,8 @@ export default function PersonalInfoScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  /** True right after Save succeeds so Save button stays disabled until user edits again */
+  const [justSaved, setJustSaved] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState<string>(""); // YYYY-MM-DD or ""
@@ -79,6 +83,8 @@ export default function PersonalInfoScreen() {
   const initialRef = useRef<{ fullName: string; dob: string; avatar: string | null } | null>(
     null
   );
+  /** Set to true when Save succeeds so Back right after doesn't show "Unsaved changes" */
+  const justSavedRef = useRef(false);
 
   const isDirty = useMemo(() => {
     const init = initialRef.current;
@@ -139,6 +145,10 @@ export default function PersonalInfoScreen() {
   // Unsaved-changes guard
   useEffect(() => {
     const unsub = navigation.addListener("beforeRemove", (e: any) => {
+      if (justSavedRef.current) {
+        justSavedRef.current = false;
+        return;
+      }
       if (!isDirty || saving) return;
       e.preventDefault();
       Alert.alert("Unsaved changes", "You have unsaved changes. Save before leaving?", [
@@ -176,6 +186,7 @@ export default function PersonalInfoScreen() {
         quality: 0.85,
       });
       if (!result.canceled) {
+        setJustSaved(false);
         setAvatarUri(result.assets[0]?.uri ?? null);
       }
     } catch {
@@ -186,6 +197,7 @@ export default function PersonalInfoScreen() {
   const handleDobChange = (_event: any, selected?: Date) => {
     if (Platform.OS === "android") setShowDobPicker(false);
     if (!selected) return;
+    setJustSaved(false);
     setDobDate(selected);
     setDob(formatDob(selected));
   };
@@ -235,6 +247,11 @@ export default function PersonalInfoScreen() {
       setOriginalAvatarUrl(finalAvatarUrl);
       setAvatarUri(finalAvatarUrl);
       initialRef.current = { fullName: nameTrimmed, dob: dob || "", avatar: finalAvatarUrl };
+      justSavedRef.current = true;
+      setJustSaved(true);
+
+      // Refresh profile in context so Settings, Home, etc. show updated name/avatar/dob
+      await refreshProfile();
 
       if (!silent) Alert.alert("Saved", "Your profile has been updated.");
       return true;
@@ -260,13 +277,13 @@ export default function PersonalInfoScreen() {
         </Text>
         <TouchableOpacity
           onPress={() => handleSave()}
-          disabled={!isDirty || saving}
+          disabled={!isDirty || saving || justSaved}
           activeOpacity={0.8}
           style={[
             styles.saveBtn,
             {
               backgroundColor: primaryColor,
-              opacity: !isDirty || saving ? 0.5 : 1,
+              opacity: !isDirty || saving || justSaved ? 0.5 : 1,
             },
           ]}
         >
@@ -296,7 +313,10 @@ export default function PersonalInfoScreen() {
             <FontAwesome name="id-card-o" size={18} color={Colors.general.gray600} style={styles.inputIcon} />
             <TextInput
               value={fullName}
-              onChangeText={setFullName}
+              onChangeText={(text) => {
+                setJustSaved(false);
+                setFullName(text);
+              }}
               placeholder="Your name"
               placeholderTextColor={Colors[scheme].placeholder}
               style={[styles.input, { color: theme.text }]}

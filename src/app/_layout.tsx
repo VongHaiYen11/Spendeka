@@ -14,6 +14,7 @@ import { StyleSheet } from "react-native";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TransactionProvider } from "@/contexts/TransactionContext";
+import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
 export {
@@ -59,9 +60,11 @@ function RootLayoutNav() {
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
       <AuthProvider>
         <ThemeProvider>
-          <TransactionProvider>
-            <ThemedNavigationContainer />
-          </TransactionProvider>
+          <UserProfileProvider>
+            <TransactionProvider>
+              <ThemedNavigationContainer />
+            </TransactionProvider>
+          </UserProfileProvider>
         </ThemeProvider>
       </AuthProvider>
     </GestureHandlerRootView>

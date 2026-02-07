@@ -1,6 +1,6 @@
 import { SafeView, useThemeColor } from "@/components/Themed";
 import Colors from "@/constants/Colors";
-import { useAuth } from "@/contexts/AuthContext";
+import { useDisplayName, useAvatarUrl } from "@/contexts/UserProfileContext";
 import { useTransactions } from "@/contexts/TransactionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useI18n } from "@/i18n";
@@ -29,7 +29,8 @@ import TodaySummaryCard from "./TodaySummaryCard";
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
+  const userName = useDisplayName();
+  const avatarUrl = useAvatarUrl();
   const { transactions, reloadTransactions } = useTransactions();
   const { t } = useI18n();
   const [textModalVisible, setTextModalVisible] = useState(false);
@@ -42,9 +43,6 @@ export default function Home() {
   const textColor = useThemeColor({}, "text");
   const todayCardBackground = colorScheme === "dark" ? "#1a1a1a" : "#ffffff";
 
-  const userName =
-    user?.displayName?.trim() || user?.email?.split("@")?.[0] || "User";
-  const avatarUrl = user?.photoURL;
 
   // Range for embedded Summary charts on Home (fixed to "day")
   const homeRange: "day" = "day";
