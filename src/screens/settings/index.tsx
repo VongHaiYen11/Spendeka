@@ -153,23 +153,26 @@ export default function SettingsScreen() {
 
   const handleDeleteAllData = () => {
     Alert.alert(
-      "Delete All Data",
-      "This will permanently remove all your transactions. This action cannot be undone.",
+      t("settings.deleteAll.confirmTitle"),
+      t("settings.deleteAll.confirmMessage"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("settings.deleteAll.cancel"), style: "cancel" },
         {
-          text: "Delete All",
+          text: t("settings.deleteAll.confirm"),
           style: "destructive",
           onPress: async () => {
             setIsDeleting(true);
             try {
               await clearAllExpenses();
               await reloadTransactions();
-              Alert.alert("Done", "All data has been deleted.");
+              Alert.alert(
+                t("settings.deleteAll.doneTitle"),
+                t("settings.deleteAll.doneMessage"),
+              );
             } catch (err) {
               Alert.alert(
-                "Error",
-                "Could not delete all data. Please try again.",
+                t("settings.deleteAll.errorTitle"),
+                t("settings.deleteAll.errorMessage"),
               );
             } finally {
               setIsDeleting(false);
