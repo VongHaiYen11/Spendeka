@@ -18,12 +18,20 @@ function extractJsonObject(raw: string): string {
   return match[0];
 }
 
+export type ParseTransactionLanguage = "vie" | "eng";
+
 export async function parseTextToTransaction(
   text: string,
+  language: ParseTransactionLanguage = "eng",
 ): Promise<ParsedTransactionFromText> {
   // Server reference time (used for today/yesterday fallback)
   const now = new Date();
   const nowIso = now.toISOString();
+
+  const captionRule =
+    language === "vie"
+      ? '- "caption" must be a short note in Vietnamese (e.g. "Cà phê sáng", "Ăn trưa").'
+      : '- "caption" must be a short note in English (e.g. "Morning coffee", "Lunch").';
 
   const prompt = `
 You are a transaction parser.
@@ -51,6 +59,10 @@ Return exactly ONE JSON object (no markdown, no extra text) in this shape:
 }
 
 Rules:
+
+CAPTION (IMPORTANT):
+- ${captionRule}
+- Keep it concise; it will be used as a transaction note.
 
 AMOUNT:
 - "amount" must be a positive number.

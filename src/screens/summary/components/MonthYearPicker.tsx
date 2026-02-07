@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import React, {
     useCallback,
     useEffect,
@@ -23,20 +24,6 @@ interface MonthYearPickerProps {
 }
 
 const ITEM_HEIGHT = 50;
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 // Memoized picker item component for better performance
 interface PickerItemProps {
@@ -81,6 +68,7 @@ export default function MonthYearPicker({
   selectedDate,
   onSelect,
 }: MonthYearPickerProps) {
+  const { t } = useI18n();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const monthScrollRef = useRef<ScrollView | null>(null);
@@ -88,6 +76,24 @@ export default function MonthYearPicker({
   const [containerHeight, setContainerHeight] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const MONTHS = useMemo(
+    () => [
+      t("summary.month.january"),
+      t("summary.month.february"),
+      t("summary.month.march"),
+      t("summary.month.april"),
+      t("summary.month.may"),
+      t("summary.month.june"),
+      t("summary.month.july"),
+      t("summary.month.august"),
+      t("summary.month.september"),
+      t("summary.month.october"),
+      t("summary.month.november"),
+      t("summary.month.december"),
+    ],
+    [t],
+  );
 
   // Memoize years array to avoid recalculation
   const years = useMemo(() => {
@@ -159,7 +165,7 @@ export default function MonthYearPicker({
         setIsScrolling(false);
       }, 150); // Wait 150ms after scroll stops
     },
-    [selectedDate, onSelect, years],
+    [selectedDate, onSelect, years, MONTHS],
   );
 
   const handleMomentumScrollEnd = useCallback(
@@ -189,7 +195,7 @@ export default function MonthYearPicker({
 
       setIsScrolling(false);
     },
-    [selectedDate, onSelect, years],
+    [selectedDate, onSelect, years, MONTHS],
   );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {

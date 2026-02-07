@@ -2,6 +2,7 @@ import { Text, useThemeColor, View } from "@/components/Themed";
 import { API_BASE_URL } from "@/config/api";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import { ParsedTransactionFromText } from "@/types/textToTransaction";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -37,6 +38,7 @@ export default function ScanBillModal({
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const widgetBackgroundColor = useThemeColor({}, "card");
+  const { t, languageKey } = useI18n();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,9 +71,7 @@ export default function ScanBillModal({
       setSuccessMessage(null);
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        setErrorMessage(
-          "Camera permission is required to take a photo of your bill.",
-        );
+        setErrorMessage(t("home.scanModal.error.cameraPermission"));
         return;
       }
 
@@ -86,9 +86,7 @@ export default function ScanBillModal({
       const asset = result.assets[0];
       setImageUri(asset.uri);
     } catch (error: any) {
-      setErrorMessage(
-        error?.message || "Failed to take photo. Please try again.",
-      );
+      setErrorMessage(error?.message || t("home.scanModal.error.photoFailed"));
     }
   };
 
@@ -99,9 +97,7 @@ export default function ScanBillModal({
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        setErrorMessage(
-          "Media library permission is required to upload a bill image.",
-        );
+        setErrorMessage(t("home.scanModal.error.mediaPermission"));
         return;
       }
 
@@ -116,9 +112,7 @@ export default function ScanBillModal({
       const asset = result.assets[0];
       setImageUri(asset.uri);
     } catch (error: any) {
-      setErrorMessage(
-        error?.message || "Failed to pick image. Please try again.",
-      );
+      setErrorMessage(error?.message || t("home.scanModal.error.pickFailed"));
     }
   };
 
@@ -126,7 +120,11 @@ export default function ScanBillModal({
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Cancel", "Take Photo", "Photo Library"],
+          options: [
+            t("home.scanModal.selectSource.cancel"),
+            t("home.scanModal.selectSource.takePhoto"),
+            t("home.scanModal.selectSource.photoLibrary"),
+          ],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -139,12 +137,18 @@ export default function ScanBillModal({
       );
     } else {
       Alert.alert(
-        "Select Image Source",
-        "Choose an option",
+        t("home.scanModal.selectSource.title"),
+        t("home.scanModal.selectSource.message"),
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "Take Photo", onPress: handleTakePhoto },
-          { text: "Photo Library", onPress: handlePickImage },
+          { text: t("home.scanModal.selectSource.cancel"), style: "cancel" },
+          {
+            text: t("home.scanModal.selectSource.takePhoto"),
+            onPress: handleTakePhoto,
+          },
+          {
+            text: t("home.scanModal.selectSource.photoLibrary"),
+            onPress: handlePickImage,
+          },
         ],
         { cancelable: true },
       );
@@ -169,6 +173,7 @@ export default function ScanBillModal({
         name: `bill_${Date.now()}.${fileType}`,
         type: `image/${fileType}`,
       } as any);
+      formData.append("language", languageKey);
 
       const response = await fetch(`${API_BASE_URL}/scan-bill`, {
         method: "POST",
@@ -177,9 +182,7 @@ export default function ScanBillModal({
 
       if (!response.ok) {
         const error = await response.json().catch(() => null);
-        const message =
-          error?.error ||
-          "Failed to scan bill. Please try again with a clearer image.";
+        const message = error?.error || t("home.scanModal.error.scanFailed");
         throw new Error(message);
       }
 
@@ -194,7 +197,7 @@ export default function ScanBillModal({
 
       const parsed = data.parsed;
       if (!parsed) {
-        throw new Error("Server did not return a parsed transaction.");
+        throw new Error(t("home.error.createTransaction"));
       }
 
       // Navigate to add-transaction screen with pre-filled fields
@@ -219,10 +222,7 @@ export default function ScanBillModal({
     } catch (error: any) {
       const rawMessage =
         typeof error?.message === "string" ? error.message : undefined;
-      setErrorMessage(
-        rawMessage ||
-          "Could not extract a transaction from this bill. Please try a clearer photo.",
-      );
+      setErrorMessage(rawMessage || t("home.scanModal.error.extractFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -247,10 +247,10 @@ export default function ScanBillModal({
             ]}
           >
             <Text style={[styles.modalHeading, { color: textColor }]}>
-              Scan bill to transaction
+              {t("home.scanModal.title")}
             </Text>
             <Text style={[styles.modalInstruction, { color: textColor }]}>
-              Take a photo or upload a clear image of your bill.
+              {t("home.scanModal.instruction")}
             </Text>
 
             {imageUri ? (
@@ -263,7 +263,7 @@ export default function ScanBillModal({
                   <Text
                     style={[styles.changeImageText, { color: primaryColor }]}
                   >
-                    Change image
+                    {t("home.scanModal.changeImage")}
                   </Text>
                 </TouchableOpacity>
               </RNView>
@@ -284,14 +284,16 @@ export default function ScanBillModal({
                   color={textColor}
                 />
                 <Text style={[styles.uploadButtonText, { color: textColor }]}>
-                  Upload Bill Image
+                  {t("home.scanModal.uploadButton")}
                 </Text>
               </TouchableOpacity>
             )}
 
             {rawTextPreview && (
               <RNView style={styles.rawTextContainer}>
-                <Text style={styles.rawTextLabel}>Extracted text preview</Text>
+                <Text style={styles.rawTextLabel}>
+                  {t("home.scanModal.extractedText")}
+                </Text>
                 <Text
                   style={[styles.rawTextContent, { color: textColor }]}
                   numberOfLines={4}
@@ -320,7 +322,7 @@ export default function ScanBillModal({
                 disabled={isLoading}
               >
                 <Text style={[styles.modalCancelText, { color: textColor }]}>
-                  Cancel
+                  {t("home.scanModal.cancel")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -335,7 +337,9 @@ export default function ScanBillModal({
                 disabled={isLoading || !imageUri}
               >
                 <Text style={styles.modalCreateText}>
-                  {isLoading ? "Creating..." : "Extract"}
+                  {isLoading
+                    ? t("home.scanModal.creating")
+                    : t("home.scanModal.extract")}
                 </Text>
               </TouchableOpacity>
             </RNView>

@@ -1,16 +1,22 @@
 import { Text, useThemeColor } from "@/components/Themed";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
-import { EXPENSE_CATEGORIES_EN, INCOME_CATEGORIES_EN } from "@/models/Expense";
+import { useI18n } from "@/i18n";
+import {
+  EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
+  INCOME_CATEGORIES_VI,
+} from "@/models/Expense";
 import { TransactionCategory } from "@/types/transaction";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface CategoryModalProps {
@@ -43,8 +49,16 @@ export default function CategoryModal({
   const cardColor = useThemeColor({}, "card");
   const placeholderColor = useThemeColor({}, "placeholder");
   const iconOnColorBg = backgroundColor; // inner icon follows theme background
+  const { t, languageKey } = useI18n();
 
-  const categories = categoryLists[transactionType];
+  const categories =
+    transactionType === "spent"
+      ? languageKey === "vie"
+        ? EXPENSE_CATEGORIES
+        : EXPENSE_CATEGORIES_EN
+      : languageKey === "vie"
+        ? INCOME_CATEGORIES_VI
+        : INCOME_CATEGORIES_EN;
   const filteredCategories = searchQuery.trim()
     ? categories.filter((cat) =>
         cat.label.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -62,7 +76,7 @@ export default function CategoryModal({
         <View style={[styles.modalContent, { backgroundColor }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: textColor }]}>
-              Select Category
+              {t("add.category.selectTitle")}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
               <Ionicons name="close" size={24} color={textColor} />
@@ -74,7 +88,7 @@ export default function CategoryModal({
             <Ionicons name="search" size={20} color={placeholderColor} />
             <TextInput
               style={[styles.searchInput, { color: textColor }]}
-              placeholder="Search category..."
+              placeholder={t("add.category.searchPlaceholder")}
               placeholderTextColor={placeholderColor}
               value={searchQuery}
               onChangeText={onSearchChange}

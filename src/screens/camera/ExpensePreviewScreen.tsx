@@ -1,6 +1,15 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
-import { EXPENSE_CATEGORIES_EN, ExpenseCategory } from "@/models/Expense";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
+import {
+  EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORIES_EN,
+  INCOME_CATEGORIES_EN,
+  INCOME_CATEGORIES_VI,
+  type ExpenseCategory,
+  type IncomeCategory,
+} from "@/models/Expense";
+import { generateAutoCaptionFromImage } from "@/services";
 import {
   createAndSaveTransaction,
   generateTransactionId,
@@ -42,25 +51,45 @@ export default function ExpensePreviewScreen({
 }: ExpensePreviewScreenProps) {
   const [caption, setCaption] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] =
-    useState<ExpenseCategory>("food");
+  const [transactionType, setTransactionType] = useState<"spent" | "income">(
+    "spent",
+  );
+  const [selectedCategory, setSelectedCategory] = useState<
+    ExpenseCategory | IncomeCategory
+  >("food");
   const [isSaving, setIsSaving] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
 
   const iconOnColorBg = useThemeColor({}, "background"); // inner icon on category color background
+  const primaryColor = usePrimaryColor();
+  const { t, languageKey } = useI18n();
+
+  const categorySource = useMemo(
+    () =>
+      transactionType === "spent"
+        ? languageKey === "vie"
+          ? EXPENSE_CATEGORIES
+          : EXPENSE_CATEGORIES_EN
+        : languageKey === "vie"
+          ? INCOME_CATEGORIES_VI
+          : INCOME_CATEGORIES_EN,
+    [transactionType, languageKey],
+  );
+
   const selectedCategoryInfo = useMemo(
-    () => EXPENSE_CATEGORIES_EN.find((c) => c.value === selectedCategory),
-    [selectedCategory],
+    () => categorySource.find((c) => c.value === selectedCategory),
+    [categorySource, selectedCategory],
   );
 
   const filteredCategories = useMemo(() => {
-    if (!categorySearch.trim()) return EXPENSE_CATEGORIES_EN;
+    if (!categorySearch.trim()) return categorySource;
     const search = categorySearch.toLowerCase();
-    return EXPENSE_CATEGORIES_EN.filter((cat) =>
+    return categorySource.filter((cat) =>
       cat.label.toLowerCase().includes(search),
     );
-  }, [categorySearch]);
+  }, [categorySource, categorySearch]);
 
   const formatAmountInput = (text: string) => {
     const numericValue = text.replace(/[^0-9.]/g, "");
@@ -80,16 +109,57 @@ export default function ExpensePreviewScreen({
     }
   };
 
-  const handleSelectCategory = (category: ExpenseCategory) => {
+  const handleSelectCategory = (category: ExpenseCategory | IncomeCategory) => {
     setSelectedCategory(category);
     setShowCategoryModal(false);
     setCategorySearch("");
   };
 
+  const handleChangeType = (type: "spent" | "income") => {
+    if (type === transactionType) return;
+    setTransactionType(type);
+
+    // Ensure selected category is valid for the new type
+    setSelectedCategory((current) => {
+      const list =
+        type === "spent"
+          ? languageKey === "vie"
+            ? EXPENSE_CATEGORIES
+            : EXPENSE_CATEGORIES_EN
+          : languageKey === "vie"
+            ? INCOME_CATEGORIES_VI
+            : INCOME_CATEGORIES_EN;
+      const existsInNewList = list.some((c) => c.value === current);
+      return existsInNewList ? current : (list[0]?.value ?? current);
+    });
+  };
+
+  const handleAutoCaption = async () => {
+    if (isGeneratingCaption) return;
+
+    try {
+      setIsGeneratingCaption(true);
+      const result = await generateAutoCaptionFromImage(imageUri, languageKey);
+      if (result?.caption) {
+        setCaption(result.caption.slice(0, MAX_NOTE_LENGTH));
+      }
+    } catch (error: any) {
+      Alert.alert(
+        t("camera.preview.error.captionTitle"),
+        error?.message || t("camera.preview.error.captionMessage"),
+      );
+    } finally {
+      setIsGeneratingCaption(false);
+    }
+  };
+
   const handleSave = async () => {
     const amountValue = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (!amountValue || amountValue <= 0) {
-      Alert.alert("Error", "Please enter a valid amount");
+      Alert.alert(
+        t("camera.preview.error.amountTitle"),
+        t("camera.preview.error.amountMessage"),
+      );
       return;
     }
 
@@ -99,7 +169,7 @@ export default function ExpensePreviewScreen({
       caption,
       amount: amountValue,
       category: selectedCategory,
-      type: "spent",
+      type: transactionType,
       createdAt: new Date(),
     };
 
@@ -108,7 +178,10 @@ export default function ExpensePreviewScreen({
       await createAndSaveTransaction(transaction, imageUri);
       onSaveSuccess();
     } catch (error) {
-      Alert.alert("Error", "Could not save expense");
+      Alert.alert(
+        t("camera.preview.error.saveTitle"),
+        t("camera.preview.error.saveMessage"),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -121,41 +194,95 @@ export default function ExpensePreviewScreen({
         style={styles.content}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        {/* Fixed header (không cuộn theo nội dung) */}
+        <RNView style={styles.header}>
+          <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            {transactionType === "income"
+              ? t("camera.preview.title.addIncome")
+              : t("camera.preview.title.addExpense")}
+          </Text>
+          <RNView style={styles.placeholderButton} />
+        </RNView>
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <RNView style={styles.header}>
-            <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.title}>Add Expense</Text>
-            <RNView style={styles.placeholderButton} />
-          </RNView>
-
           {/* Image with Caption Overlay */}
           <RNView style={styles.imageContainer}>
             <Image source={{ uri: imageUri }} style={styles.image} />
             <RNView style={styles.captionOverlay}>
-              <TextInput
-                style={styles.captionInput}
-                placeholder="Add a note..."
-                placeholderTextColor="rgba(255,255,255,0.7)"
-                value={caption}
-                onChangeText={handleCaptionChange}
-                maxLength={MAX_NOTE_LENGTH}
-              />
+              <RNView style={styles.captionRow}>
+                <TextInput
+                  style={styles.captionInput}
+                  placeholder={t("camera.preview.note.placeholder")}
+                  placeholderTextColor="rgba(255,255,255,0.7)"
+                  value={caption}
+                  onChangeText={handleCaptionChange}
+                  maxLength={MAX_NOTE_LENGTH}
+                />
+                <TouchableOpacity
+                  style={styles.autoCaptionButton}
+                  onPress={handleAutoCaption}
+                  disabled={isGeneratingCaption}
+                >
+                  {isGeneratingCaption ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="sparkles-outline" size={18} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              </RNView>
               <Text style={styles.charCounter}>
                 {caption.length}/{MAX_NOTE_LENGTH}
               </Text>
             </RNView>
           </RNView>
 
-          {/* Amount Input */}
+          {/* Type selector + Amount Input */}
           <RNView style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Amount</Text>
+            <RNView style={styles.typeToggleRow}>
+              <TouchableOpacity
+                style={[
+                  styles.typeToggleButton,
+                  transactionType === "spent" && styles.typeToggleButtonActive,
+                ]}
+                onPress={() => handleChangeType("spent")}
+              >
+                <Text
+                  style={[
+                    styles.typeToggleText,
+                    transactionType === "spent" && styles.typeToggleTextActive,
+                  ]}
+                >
+                  {t("camera.preview.type.spent")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.typeToggleButton,
+                  transactionType === "income" && styles.typeToggleButtonActive,
+                ]}
+                onPress={() => handleChangeType("income")}
+              >
+                <Text
+                  style={[
+                    styles.typeToggleText,
+                    transactionType === "income" && styles.typeToggleTextActive,
+                  ]}
+                >
+                  {t("camera.preview.type.income")}
+                </Text>
+              </TouchableOpacity>
+            </RNView>
+
+            <Text style={styles.inputLabel}>
+              {t("camera.preview.field.amount")}
+            </Text>
             <RNView style={styles.amountInputContainer}>
               <TextInput
                 style={styles.amountInput}
@@ -171,7 +298,9 @@ export default function ExpensePreviewScreen({
 
           {/* Category Dropdown */}
           <RNView style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Category</Text>
+            <Text style={styles.inputLabel}>
+              {t("camera.preview.field.category")}
+            </Text>
             <TouchableOpacity
               style={styles.categoryDropdown}
               onPress={() => setShowCategoryModal(true)}
@@ -213,6 +342,7 @@ export default function ExpensePreviewScreen({
                 <TouchableOpacity
                   style={[
                     styles.saveButton,
+                    { backgroundColor: primaryColor },
                     (isSaving || !isAmountValid) && styles.saveButtonDisabled,
                   ]}
                   onPress={handleSave}
@@ -223,7 +353,9 @@ export default function ExpensePreviewScreen({
                   ) : (
                     <>
                       <Ionicons name="checkmark" size={24} color="#000" />
-                      <Text style={styles.saveButtonText}>Save Expense</Text>
+                      <Text style={styles.saveButtonText}>
+                        {t("camera.preview.button.save")}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -243,7 +375,9 @@ export default function ExpensePreviewScreen({
         <RNView style={styles.modalOverlay}>
           <RNView style={styles.modalContent}>
             <RNView style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Category</Text>
+              <Text style={styles.modalTitle}>
+                {t("camera.preview.category.selectTitle")}
+              </Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowCategoryModal(false);
@@ -260,7 +394,7 @@ export default function ExpensePreviewScreen({
               <Ionicons name="search" size={20} color="#666" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search category..."
+                placeholder={t("camera.preview.category.searchPlaceholder")}
                 placeholderTextColor="#666"
                 value={categorySearch}
                 onChangeText={setCategorySearch}
@@ -308,11 +442,7 @@ export default function ExpensePreviewScreen({
                     {item.label}
                   </Text>
                   {selectedCategory === item.value && (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={CAMERA_PRIMARY}
-                    />
+                    <Ionicons name="checkmark" size={20} color={primaryColor} />
                   )}
                 </TouchableOpacity>
               )}
@@ -394,10 +524,24 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
+  captionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 8,
+  },
   captionInput: {
+    flex: 1,
     color: "#fff",
     fontSize: 14,
     textAlign: "center",
+  },
+  autoCaptionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
   charCounter: {
     color: "rgba(255,255,255,0.5)",
@@ -410,6 +554,32 @@ const styles = StyleSheet.create({
   inputSection: {
     paddingHorizontal: 20,
     marginTop: 20,
+  },
+  typeToggleRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: 12,
+    gap: 4,
+  },
+  typeToggleButton: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeToggleButtonActive: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  typeToggleText: {
+    color: "#999",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  typeToggleTextActive: {
+    color: "#fff",
   },
   inputLabel: {
     color: "#999",
@@ -475,7 +645,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: CAMERA_PRIMARY,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,

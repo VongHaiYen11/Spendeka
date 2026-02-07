@@ -1,19 +1,19 @@
 import { useThemeColor } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
 import {
-  filterTransactionsByDateRange,
-  getIncomeByCategoryFromTransactions,
-  getSpentByCategoryFromTransactions,
+    filterTransactionsByDateRange,
+    getIncomeByCategoryFromTransactions,
+    getSpentByCategoryFromTransactions,
 } from "@/utils/transactionHelpers";
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
-import { CATEGORY_OPTIONS } from "../constants";
 import {
-  CategoryType,
-  ChartCategoriesProps,
-  ChartDataItem,
-  ThemeColors,
+    CategoryType,
+    ChartCategoriesProps,
+    ChartDataItem,
+    ThemeColors,
 } from "../types";
 import { generateChartData } from "../utils/chartDataUtils";
 
@@ -22,8 +22,10 @@ export interface UseChartCategoriesReturn {
   setCategoryType: (type: CategoryType) => void;
   dropdownOpen: boolean;
   setDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  items: typeof CATEGORY_OPTIONS;
-  setItems: React.Dispatch<React.SetStateAction<typeof CATEGORY_OPTIONS>>;
+  items: Array<{ label: string; value: CategoryType }>;
+  setItems: React.Dispatch<
+    React.SetStateAction<Array<{ label: string; value: CategoryType }>>
+  >;
   themeColors: ThemeColors;
   chartData: ChartDataItem[];
   chartWidth: number;
@@ -46,10 +48,33 @@ export const useChartCategories = ({
   ChartCategoriesProps,
   "startDate" | "endDate"
 >): UseChartCategoriesReturn => {
+  const { t, languageKey } = useI18n();
   const { width } = useWindowDimensions();
   const [categoryType, setCategoryType] = useState<CategoryType>("spent");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [items, setItems] = useState(CATEGORY_OPTIONS);
+
+  const itemsMemo = useMemo(
+    () => [
+      { label: t("summary.chart.income"), value: "income" as CategoryType },
+      { label: t("summary.chart.spent"), value: "spent" as CategoryType },
+    ],
+    [t, languageKey],
+  );
+
+  const [items, setItems] = useState(itemsMemo);
+  const prevLanguageKeyRef = useRef(languageKey);
+
+  // Only update items when language actually changes (using ref to prevent loops)
+  useEffect(() => {
+    if (prevLanguageKeyRef.current !== languageKey) {
+      prevLanguageKeyRef.current = languageKey;
+      setItems([
+        { label: t("summary.chart.income"), value: "income" as CategoryType },
+        { label: t("summary.chart.spent"), value: "spent" as CategoryType },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [languageKey]);
 
   // Theme resolution
   const backgroundColor = useThemeColor({}, "background");
@@ -91,12 +116,20 @@ export const useChartCategories = ({
     // Use the correct data source based on categoryType
     const categoryData =
       categoryType === "income" ? incomeByCategory : spentByCategory;
-    return generateChartData(categoryData, themeColors, categoryType);
+    return generateChartData(
+      categoryData,
+      themeColors,
+      categoryType,
+      t,
+      languageKey,
+    );
   }, [
     categoryType,
     incomeByCategory,
     spentByCategory,
     themeColors,
+    t,
+    languageKey,
   ]);
 
   const chartWidth = width - 32;

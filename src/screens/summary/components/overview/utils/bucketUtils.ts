@@ -1,4 +1,6 @@
 import { differenceInDays, eachDayOfInterval, format } from "date-fns";
+import { enUS, vi } from "date-fns/locale";
+import { TranslationKey } from "@/i18n";
 import { MONTH_ABBREVIATIONS } from "../constants";
 import { AggregatedBucket, Range } from "../types";
 
@@ -16,26 +18,29 @@ export const createBuckets = (
   range: Range,
   startDate: Date,
   endDate: Date,
+  t: (key: TranslationKey, params?: Record<string, string>) => string,
+  languageKey: "vie" | "eng" = "eng",
 ): AggregatedBucket[] => {
+  const dateLocale = languageKey === "vie" ? vi : enUS;
   switch (range) {
     case "day": {
       // 8 bars: 3-hour intervals
       return [
-        { label: "12 AM", income: 0, spent: 0 },
-        { label: "3 AM", income: 0, spent: 0 },
-        { label: "6 AM", income: 0, spent: 0 },
-        { label: "9 AM", income: 0, spent: 0 },
-        { label: "12 PM", income: 0, spent: 0 },
-        { label: "3 PM", income: 0, spent: 0 },
-        { label: "6 PM", income: 0, spent: 0 },
-        { label: "9 PM", income: 0, spent: 0 },
+        { label: t("summary.chart.time.12am"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.3am"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.6am"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.9am"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.12pm"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.3pm"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.6pm"), income: 0, spent: 0 },
+        { label: t("summary.chart.time.9pm"), income: 0, spent: 0 },
       ];
     }
     case "week": {
       // 7 bars: one per day
       const days = eachDayOfInterval({ start: startDate, end: endDate });
       return days.slice(0, 7).map((day) => ({
-        label: format(day, "EEE"),
+        label: format(day, "EEE", { locale: dateLocale }),
         income: 0,
         spent: 0,
       }));

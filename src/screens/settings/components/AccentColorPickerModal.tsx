@@ -5,6 +5,7 @@ import {
     type AccentKey,
 } from "@/constants/AccentColors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import React from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -21,9 +22,24 @@ export default function AccentColorPickerModal({
   onClose,
   onSelect,
 }: AccentColorPickerModalProps) {
+  const { t } = useI18n();
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const colorScheme = useColorScheme();
+
+  // Map accent keys to translation keys
+  const getColorName = (key: AccentKey): string => {
+    const colorMap: Record<AccentKey, string> = {
+      yellow: t("settings.accentColor.yellow"),
+      green: t("settings.accentColor.green"),
+      pink: t("settings.accentColor.pink"),
+      blue: t("settings.accentColor.blue"),
+      red: t("settings.accentColor.red"),
+      orange: t("settings.accentColor.orange"),
+      neutral: t("settings.accentColor.blue"), // fallback
+    };
+    return colorMap[key] || key;
+  };
 
   const handleSelect = (key: AccentKey) => {
     onSelect(key);
@@ -48,10 +64,12 @@ export default function AccentColorPickerModal({
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: textColor }]}>
-              Accent Color
+              {t("settings.accentColor.title")}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.doneButton}>
-              <Text style={[styles.doneText, { color: textColor }]}>Done</Text>
+              <Text style={[styles.doneText, { color: textColor }]}>
+                {t("settings.accentColor.done")}
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.grid}>
@@ -73,7 +91,7 @@ export default function AccentColorPickerModal({
                     style={[styles.colorCircle, { backgroundColor: primary }]}
                   />
                   <Text style={[styles.optionName, { color: textColor }]}>
-                    {option.name}
+                    {getColorName(option.id)}
                   </Text>
                 </TouchableOpacity>
               );

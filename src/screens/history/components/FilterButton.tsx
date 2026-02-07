@@ -1,5 +1,6 @@
 import { Text } from "@/components/Themed";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
 import { SlidersHorizontal } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
@@ -9,6 +10,7 @@ interface FilterButtonProps {
 }
 
 const FilterButton: React.FC<FilterButtonProps> = ({ onPress }) => {
+  const { t } = useI18n();
   const primaryColor = usePrimaryColor();
 
   return (
@@ -17,7 +19,9 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onPress }) => {
       onPress={onPress}
     >
       <SlidersHorizontal size={16} color="#fff" />
-      <Text style={[styles.filterText, { color: "#fff" }]}>Filter</Text>
+      <Text style={[styles.filterText, { color: "#fff" }]}>
+        {t("history.filter.button")}
+      </Text>
     </TouchableOpacity>
   );
 };

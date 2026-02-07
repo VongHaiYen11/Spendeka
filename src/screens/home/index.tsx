@@ -1,48 +1,58 @@
-import { SafeView, Text, useThemeColor, View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { useTransactions } from '@/contexts/TransactionContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Expense } from '@/models/Expense';
+import { SafeView, useThemeColor } from "@/components/Themed";
+import Colors from "@/constants/Colors";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTransactions } from "@/contexts/TransactionContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
+import { Expense } from "@/models/Expense";
+import ChartCategories from "@/screens/summary/components/chartCategories";
+import Overview from "@/screens/summary/components/overview";
 import {
-  getSavedAmountByDateRange,
-  getSpentAmountByDateRange,
-  createAndSaveTransaction,
-  generateTransactionId,
-} from '@/services/TransactionService';
-import { formatDollar } from '@/utils/formatCurrency';
-import { getDateRange } from '@/utils/getDateRange';
-import { isSameDay } from 'date-fns';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, StatusBar, StyleSheet, ScrollView } from 'react-native';
-import Overview from '@/screens/summary/components/overview';
-import ChartCategories from '@/screens/summary/components/chartCategories';
-import HomeHeader from './HomeHeader';
-import HomeToolbar from './HomeToolbar';
-import TextToTransactionModal from './TextToTransactionModal';
-import ScanBillModal from './ScanBillModal';
-import TodaySummaryCard from './TodaySummaryCard';
-import { ParsedTransactionFromText } from '@/types/textToTransaction';
-import type { DatabaseTransaction } from '@/types/transaction';
+    createAndSaveTransaction,
+    generateTransactionId,
+    getSavedAmountByDateRange,
+    getSpentAmountByDateRange,
+} from "@/services/TransactionService";
+import { ParsedTransactionFromText } from "@/types/textToTransaction";
+import type { DatabaseTransaction } from "@/types/transaction";
+import { formatDollar } from "@/utils/formatCurrency";
+import { getDateRange } from "@/utils/getDateRange";
+import { isSameDay } from "date-fns";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, ScrollView, StatusBar, StyleSheet } from "react-native";
+import HomeHeader from "./HomeHeader";
+import HomeToolbar from "./HomeToolbar";
+import ScanBillModal from "./ScanBillModal";
+import TextToTransactionModal from "./TextToTransactionModal";
+import TodaySummaryCard from "./TodaySummaryCard";
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useAuth();
   const { transactions, reloadTransactions } = useTransactions();
-  const [userName] = useState('User'); // TODO: Get from user profile/authentication
+  const { t } = useI18n();
   const [textModalVisible, setTextModalVisible] = useState(false);
-  const [textInputValue, setTextInputValue] = useState('');
+  const [textInputValue, setTextInputValue] = useState("");
   const [scanModalVisible, setScanModalVisible] = useState(false);
   const [totalIncomeToday, setTotalIncomeToday] = useState(0);
   const [totalSpentToday, setTotalSpentToday] = useState(0);
   const colorScheme = useColorScheme();
-  const iconColor = Colors[colorScheme ?? 'light'].text;
-  const textColor = useThemeColor({}, 'text');
-  const todayCardBackground = colorScheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  const iconColor = Colors[colorScheme ?? "light"].text;
+  const textColor = useThemeColor({}, "text");
+  const todayCardBackground = colorScheme === "dark" ? "#1a1a1a" : "#ffffff";
+
+  const userName =
+    user?.displayName?.trim() || user?.email?.split("@")?.[0] || "User";
+  const avatarUrl = user?.photoURL;
 
   // Range for embedded Summary charts on Home (fixed to "day")
-  const homeRange: 'day' = 'day';
+  const homeRange: "day" = "day";
   const homeCurrentDate = new Date();
-  const { start: homeStart, end: homeEnd } = getDateRange(homeRange, homeCurrentDate);
+  const { start: homeStart, end: homeEnd } = getDateRange(
+    homeRange,
+    homeCurrentDate,
+  );
   const homeStartDate = homeStart || new Date();
   const homeEndDate = homeEnd || new Date();
 
@@ -50,24 +60,25 @@ export default function Home() {
     return transactions
       .map((tx) => ({
         id: tx.id,
-        imageUrl: tx.imageUrl ?? '',
+        imageUrl: tx.imageUrl ?? "",
         caption: tx.caption,
         amount: tx.amount,
         category: tx.category,
         type: tx.type,
         createdAt: tx.createdAt,
       }))
-      .filter(
-        (expense) =>
-          expense.type !== 'income' &&
-          expense.imageUrl &&
-          expense.imageUrl.trim() !== '',
-      );
+      .filter((expense) => expense.imageUrl && expense.imageUrl.trim() !== "");
   }, [transactions]);
 
   const todayExpenses = useMemo(() => {
     const now = new Date();
-    return expenses.filter((e) => isSameDay(e.createdAt, now));
+
+    return expenses
+      .filter((e) => isSameDay(e.createdAt, now))
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   }, [expenses]);
 
   // Use TransactionService helpers to calculate today's income/spent totals
@@ -97,13 +108,17 @@ export default function Home() {
   const formatAmount = (value: number) => formatDollar(value);
 
   const handleGoHistory = () => {
-    router.push('/history' as import('expo-router').Href);
+    router.push("/history" as import("expo-router").Href);
+  };
+
+  const handleGoSettings = () => {
+    router.push("/settings" as import("expo-router").Href);
   };
 
   const openTextModal = () => setTextModalVisible(true);
   const closeTextModal = () => {
     setTextModalVisible(false);
-    setTextInputValue('');
+    setTextInputValue("");
   };
 
   const openScanModal = () => setScanModalVisible(true);
@@ -129,26 +144,42 @@ export default function Home() {
       closeScanModal();
     } catch (error: any) {
       Alert.alert(
-        'Error',
-        error?.message || 'Could not create transaction from this bill.',
+        t("home.textModal.error.title"),
+        error?.message || t("home.error.createTransaction"),
       );
     }
   };
 
-  const handleOpenCameraFromToday = () => {
-    router.push('/camera' as import('expo-router').Href);
+  const handleOpenCameraFromToday = (expenseId?: string) => {
+    if (expenseId) {
+      router.push({
+        pathname: "/camera",
+        params: { openExpenseId: expenseId },
+      } as import("expo-router").Href);
+      return;
+    }
+
+    router.push("/camera" as import("expo-router").Href);
   };
 
   return (
     <SafeView style={styles.container}>
-      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-      <HomeHeader userName={userName} iconColor={iconColor} />
+      <StatusBar
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+      />
+      <HomeHeader
+        userName={userName}
+        avatarUrl={avatarUrl}
+        iconColor={iconColor}
+        onPressProfile={handleGoSettings}
+      />
 
       <HomeToolbar
         iconColor={iconColor}
         onPressHistory={handleGoHistory}
         onPressScan={openScanModal}
         onPressText={openTextModal}
+        onPressCamera={() => handleOpenCameraFromToday()}
       />
 
       <ScrollView
@@ -209,4 +240,3 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 });
-

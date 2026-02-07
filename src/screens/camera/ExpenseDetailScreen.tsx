@@ -1,22 +1,23 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
 import {
-    Expense,
-    formatAmount,
-    getCategoryDisplayInfo,
+  Expense,
+  formatAmount,
+  getCategoryDisplayInfo,
 } from "@/models/Expense";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    View as RNView,
-    StatusBar,
-    StyleSheet,
-    TouchableOpacity
+  Dimensions,
+  FlatList,
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  View as RNView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -37,6 +38,9 @@ export default function ExpenseDetailScreen({
   onDelete,
 }: ExpenseDetailScreenProps) {
   const iconOnColorBg = useThemeColor({}, "background");
+  const primaryColor = usePrimaryColor();
+  const { t } = useI18n();
+  const { languageKey } = useTheme();
   const listRef = useRef<FlatList<Expense>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pageHeight, setPageHeight] = useState<number | null>(null);
@@ -102,7 +106,9 @@ export default function ExpenseDetailScreen({
   };
 
   const renderItem = ({ item }: { item: Expense }) => {
-    const categoryInfo = getCategoryDisplayInfo(item.category);
+    const categoryInfo = getCategoryDisplayInfo(item.category, languageKey);
+    const isIncome = item.type === "income";
+    const signedAmount = `${isIncome ? "+" : "-"}${formatAmount(item.amount)}`;
 
     return (
       <RNView style={[styles.page, pageHeight ? { height: pageHeight } : null]}>
@@ -126,12 +132,18 @@ export default function ExpenseDetailScreen({
         {/* Amount & Category in one row */}
         <RNView style={styles.infoRow}>
           <RNView style={styles.infoSection}>
-            <Text style={styles.infoLabel}>Amount</Text>
-            <Text style={styles.amountText}>{formatAmount(item.amount)}</Text>
+            <Text style={styles.infoLabel}>
+              {t("camera.detail.field.amount")}
+            </Text>
+            <Text style={[styles.amountText, { color: primaryColor }]}>
+              {signedAmount}
+            </Text>
           </RNView>
 
           <RNView style={styles.infoSection}>
-            <Text style={styles.infoLabel}>Category</Text>
+            <Text style={styles.infoLabel}>
+              {t("camera.detail.field.category")}
+            </Text>
             <RNView style={styles.categoryRow}>
               <RNView
                 style={[
@@ -166,7 +178,11 @@ export default function ExpenseDetailScreen({
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Expense Detail</Text>
+        <Text style={styles.title}>
+          {currentExpense?.type === "income"
+            ? t("camera.detail.title.income")
+            : t("camera.detail.title.expense")}
+        </Text>
         <TouchableOpacity
           onPress={() => {
             if (currentExpense) {
@@ -315,7 +331,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   amountText: {
-    color: CAMERA_PRIMARY,
     fontSize: 20,
     fontWeight: "700",
   },

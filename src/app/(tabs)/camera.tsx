@@ -1,11 +1,12 @@
 import { Text } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
 import { Expense } from "@/models/Expense";
 import {
-    ExpenseCalendarView,
-    ExpenseDetailScreen,
-    ExpensePreviewScreen,
+  ExpenseCalendarView,
+  ExpenseDetailScreen,
+  ExpensePreviewScreen,
 } from "@/screens/camera";
 import { deleteExpense } from "@/services/TransactionService";
 import { DatabaseTransaction } from "@/types/transaction";
@@ -14,22 +15,22 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Camera, CameraView, FlashMode } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    BackHandler,
-    Dimensions,
-    View as RNView,
-    StatusBar,
-    StyleSheet,
-    TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  BackHandler,
+  Dimensions,
+  View as RNView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -49,6 +50,7 @@ const databaseTransactionToExpense = (tx: DatabaseTransaction): Expense => ({
 });
 
 export default function CameraScreen() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useLocalSearchParams<{ openExpenseId?: string }>();
   const openExpenseId = params.openExpenseId;
@@ -63,20 +65,16 @@ export default function CameraScreen() {
 
   const cameraRef = useRef<CameraView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const primaryColor = usePrimaryColor();
 
   // Get transactions from global state
   const { transactions, reloadTransactions } = useTransactions();
 
-  // Convert to Expense format: only spent (expense) with valid image URLs; hide income in camera screen
+  // Convert to Expense format: include any transaction with a valid image URL
   const expenses = useMemo(() => {
     return transactions
       .map(databaseTransactionToExpense)
-      .filter(
-        (expense) =>
-          expense.type !== "income" &&
-          expense.imageUrl &&
-          expense.imageUrl.trim() !== "",
-      );
+      .filter((expense) => expense.imageUrl && expense.imageUrl.trim() !== "");
   }, [transactions]);
 
   // Sync selectedExpense from openExpenseId (when opening detail from Home)
@@ -226,7 +224,7 @@ export default function CameraScreen() {
     return (
       <RNView style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={CAMERA_PRIMARY} />
+        <ActivityIndicator size="large" color={primaryColor} />
         <Text style={styles.loadingText}>Requesting camera permission...</Text>
       </RNView>
     );
@@ -289,15 +287,15 @@ export default function CameraScreen() {
             <Ionicons
               name="camera"
               size={20}
-              color={activeTab === "camera" ? CAMERA_PRIMARY : "#999"}
+              color={activeTab === "camera" ? primaryColor : "#999"}
             />
             <Text
               style={[
                 styles.tabText,
-                activeTab === "camera" && styles.activeTabText,
+                activeTab === "camera" && { color: primaryColor },
               ]}
             >
-              Camera
+              {t("nav.camera")}
             </Text>
           </TouchableOpacity>
 
@@ -308,15 +306,15 @@ export default function CameraScreen() {
             <Ionicons
               name="receipt"
               size={20}
-              color={activeTab === "history" ? CAMERA_PRIMARY : "#999"}
+              color={activeTab === "history" ? primaryColor : "#999"}
             />
             <Text
               style={[
                 styles.tabText,
-                activeTab === "history" && styles.activeTabText,
+                activeTab === "history" && { color: primaryColor },
               ]}
             >
-              Expenses
+              {t("nav.history")}
             </Text>
           </TouchableOpacity>
         </RNView>
@@ -344,13 +342,16 @@ export default function CameraScreen() {
               <Ionicons
                 name={flash === "on" ? "flash" : "flash-off"}
                 size={24}
-                color={flash === "on" ? CAMERA_PRIMARY : "#fff"}
+                color={flash === "on" ? primaryColor : "#fff"}
               />
             </TouchableOpacity>
 
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity
-                style={styles.captureButton}
+                style={[
+                  styles.captureButton,
+                  { borderColor: primaryColor, shadowColor: primaryColor },
+                ]}
                 onPress={takePicture}
                 disabled={isCapturing}
                 activeOpacity={0.8}
@@ -438,9 +439,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  activeTabText: {
-    color: CAMERA_PRIMARY,
-  },
 
   // Camera Page
   cameraPage: {
@@ -487,10 +485,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: CAMERA_PRIMARY,
+    backgroundColor: "transparent",
+    borderWidth: 4,
+    borderColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: CAMERA_PRIMARY,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: CAMERA_PRIMARY,
+    backgroundColor: "#fff",
     borderWidth: 4,
     borderColor: "#000",
     justifyContent: "center",

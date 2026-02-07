@@ -1,8 +1,8 @@
 import { Text } from "@/components/Themed";
+import { useI18n } from "@/i18n";
 import React from "react";
 import { View } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { CATEGORY_OPTIONS } from "../constants";
 import { styles } from "../styles";
 import { CategoryType, ThemeColors } from "../types";
 
@@ -11,8 +11,10 @@ interface ChartHeaderProps {
   setCategoryType: (type: CategoryType) => void;
   dropdownOpen: boolean;
   setDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  items: typeof CATEGORY_OPTIONS;
-  setItems: React.Dispatch<React.SetStateAction<typeof CATEGORY_OPTIONS>>;
+  items: Array<{ label: string; value: CategoryType }>;
+  setItems: React.Dispatch<
+    React.SetStateAction<Array<{ label: string; value: CategoryType }>>
+  >;
   themeColors: ThemeColors;
 }
 
@@ -25,9 +27,10 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   setItems,
   themeColors,
 }) => {
+  const { t } = useI18n();
   return (
     <View style={styles.header}>
-      <Text style={styles.title}>Breakdown</Text>
+      <Text style={styles.title}>{t("summary.chart.breakdown")}</Text>
       <View style={styles.dropdownWrapper}>
         <DropDownPicker
           open={dropdownOpen}

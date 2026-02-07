@@ -2,22 +2,23 @@ import {
     CLOUDINARY_CONFIG,
     CLOUDINARY_UPLOAD_URL,
 } from "@/config/cloudinaryConfig";
-import { db } from "@/config/firebaseConfig";
+import { auth, db } from "@/config/firebaseConfig";
 import { transactionEventEmitter } from "@/contexts/TransactionEventEmitter";
 import { createExpense, Expense, ExpenseCategory } from "@/models/Expense";
 import { DatabaseTransaction } from "@/types/transaction";
 import { getCategoryIconEmoji } from "@/utils/getCategoryIcon";
 import { getDateRange, RangeType } from "@/utils/getDateRange";
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    orderBy,
-    query,
-    Timestamp,
-    updateDoc,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 
 // Helper function to compare dates (ignoring time)
@@ -35,6 +36,11 @@ function isDateInRange(date: Date, startDate: Date, endDate: Date): boolean {
 }
 
 const EXPENSES_COLLECTION = "expenses";
+
+const getCurrentUserId = (): string | null => {
+  const user = auth?.currentUser;
+  return user?.uid ?? null;
+};
 
 /**
  * Generate a unique transaction id (shared by camera and add-transaction flows)
@@ -143,15 +149,7 @@ const saveExpense = async (expense: Expense): Promise<void> => {
       createdAt: expense.createdAt,
     };
 
-    await addDoc(collection(db, EXPENSES_COLLECTION), {
-      id: dbTransaction.id,
-      imageUrl: dbTransaction.imageUrl ?? "",
-      caption: dbTransaction.caption,
-      amount: dbTransaction.amount,
-      category: dbTransaction.category,
-      type: dbTransaction.type,
-      createdAt: Timestamp.fromDate(dbTransaction.createdAt),
-    });
+    await saveDatabaseTransaction(dbTransaction);
     // Notify all listeners that transactions have changed
     transactionEventEmitter.emit();
   } catch (error) {
@@ -166,8 +164,14 @@ export const saveDatabaseTransaction = async (
   transaction: DatabaseTransaction,
 ): Promise<void> => {
   try {
+    const userId = transaction.userId ?? getCurrentUserId();
+    if (!userId) {
+      throw new Error("No authenticated user. Cannot save transaction.");
+    }
+
     await addDoc(collection(db, EXPENSES_COLLECTION), {
       id: transaction.id,
+      userId,
       imageUrl: transaction.imageUrl ?? "",
       caption: transaction.caption,
       amount: transaction.amount,
@@ -189,15 +193,22 @@ export const getDatabaseTransactions = async (): Promise<
   DatabaseTransaction[]
 > => {
   try {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      return [];
+    }
+
     const expensesRef = collection(db, EXPENSES_COLLECTION);
-    const q = query(expensesRef, orderBy("createdAt", "desc"));
+    const q = query(expensesRef, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
 
     const transactions: DatabaseTransaction[] = [];
     querySnapshot.forEach((docSnapshot) => {
       const data = docSnapshot.data();
+      if (!data.createdAt) return;
       transactions.push({
         id: data.id,
+        userId: data.userId,
         imageUrl: data.imageUrl || "", // Default to empty string if missing
         caption: data.caption,
         amount: data.amount,
@@ -206,6 +217,11 @@ export const getDatabaseTransactions = async (): Promise<
         createdAt: data.createdAt.toDate(),
       });
     });
+
+    // Sort newest first on client to avoid composite index requirement
+    transactions.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
 
     return transactions;
   } catch (error) {
@@ -281,6 +297,7 @@ export const updateDatabaseTransaction = async (
     category: transaction.category,
     type: transaction.type,
     createdAt: Timestamp.fromDate(transaction.createdAt),
+    userId: transaction.userId ?? getCurrentUserId(),
     ...(transaction.imageUrl !== undefined && { imageUrl: transaction.imageUrl ?? "" }),
   });
   transactionEventEmitter.emit();
@@ -347,8 +364,14 @@ export const getTotalAmount = async (): Promise<number> => {
  */
 export const clearAllExpenses = async (): Promise<void> => {
   try {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      return;
+    }
+
     const expensesRef = collection(db, EXPENSES_COLLECTION);
-    const querySnapshot = await getDocs(expensesRef);
+    const q = query(expensesRef, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
 
     const deletePromises = querySnapshot.docs.map((docSnapshot) =>
       deleteDoc(doc(db, EXPENSES_COLLECTION, docSnapshot.id)),

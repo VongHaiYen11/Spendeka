@@ -1,16 +1,17 @@
 import { Text } from "@/components/Themed";
-import { CAMERA_PRIMARY } from "@/constants/AccentColors";
+import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n";
 import { Expense, formatAmount } from "@/models/Expense";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Modal,
-    View as RNView,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
+  Dimensions,
+  Image,
+  Modal,
+  View as RNView,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -31,6 +32,11 @@ export default function ExpenseCalendarView({
   expenses,
   onSelectExpense,
 }: ExpenseCalendarViewProps) {
+  const primaryColor = usePrimaryColor();
+  const { t } = useI18n();
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<
+    "spent" | "income"
+  >("spent");
   const [selectedYear, setSelectedYear] = useState<number | "all">("all");
   const [selectedMonth, setSelectedMonth] = useState<number | "all">("all"); // 0-11
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
@@ -48,27 +54,32 @@ export default function ExpenseCalendarView({
   }, [expenses]);
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    t("camera.calendar.month.january"),
+    t("camera.calendar.month.february"),
+    t("camera.calendar.month.march"),
+    t("camera.calendar.month.april"),
+    t("camera.calendar.month.may"),
+    t("camera.calendar.month.june"),
+    t("camera.calendar.month.july"),
+    t("camera.calendar.month.august"),
+    t("camera.calendar.month.september"),
+    t("camera.calendar.month.october"),
+    t("camera.calendar.month.november"),
+    t("camera.calendar.month.december"),
   ];
 
   const dayGroups: DayGroup[] = useMemo(() => {
     if (expenses.length === 0) return [];
 
+    const typeFiltered = expenses.filter((expense) => {
+      const type = expense.type ?? "spent";
+      return type === transactionTypeFilter;
+    });
+
     const filteredExpenses =
       selectedYear === "all" && selectedMonth === "all" && selectedDay === "all"
-        ? expenses
-        : expenses.filter((expense) => {
+        ? typeFiltered
+        : typeFiltered.filter((expense) => {
             const date = new Date(expense.createdAt);
             const year = date.getFullYear();
             const month = date.getMonth();
@@ -101,9 +112,7 @@ export default function ExpenseCalendarView({
     const groups: DayGroup[] = Array.from(dayMap.values()).map(
       ({ date, expenses: dayExpenses }) => {
         // Only sum expenses with type "spent"
-        const totalAmount = dayExpenses
-          .filter((e) => e.type === "spent" || !e.type) // Include "spent" or undefined (backward compatibility)
-          .reduce((sum, e) => sum + e.amount, 0);
+        const totalAmount = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
 
         // Sort expenses so newest of the day comes first
         const sortedExpenses = [...dayExpenses].sort(
@@ -122,7 +131,13 @@ export default function ExpenseCalendarView({
     groups.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return groups;
-  }, [expenses, selectedYear, selectedMonth, selectedDay]);
+  }, [
+    expenses,
+    selectedYear,
+    selectedMonth,
+    selectedDay,
+    transactionTypeFilter,
+  ]);
 
   const formatDateLabel = (date: Date) => {
     const day = date.getDate();
@@ -138,7 +153,7 @@ export default function ExpenseCalendarView({
   const hasFilter = !isAllTime;
 
   const filterLabelText = (() => {
-    if (isAllTime) return "Filter: All time";
+    if (isAllTime) return t("camera.calendar.filter.allTime");
 
     const parts: string[] = [];
 
@@ -155,10 +170,10 @@ export default function ExpenseCalendarView({
     }
 
     if (parts.length === 0) {
-      return "Filter: Custom";
+      return t("camera.calendar.filter.custom");
     }
 
-    return `Filter: ${parts.join(" ")}`;
+    return `${t("camera.calendar.filter.custom")} ${parts.join(" ")}`;
   })();
 
   return (
@@ -191,7 +206,7 @@ export default function ExpenseCalendarView({
                   isAllTime && styles.resetButtonTextDisabled,
                 ]}
               >
-                Reset
+                {t("camera.calendar.filter.reset")}
               </Text>
             </TouchableOpacity>
           </RNView>
@@ -202,10 +217,14 @@ export default function ExpenseCalendarView({
               style={styles.filterField}
               onPress={() => setActiveFilterField("year")}
             >
-              <Text style={styles.filterFieldLabel}>Year</Text>
+              <Text style={styles.filterFieldLabel}>
+                {t("camera.calendar.filter.year")}
+              </Text>
               <RNView style={styles.filterFieldValueRow}>
                 <Text style={styles.filterFieldValueText}>
-                  {selectedYear === "all" ? "All" : selectedYear}
+                  {selectedYear === "all"
+                    ? t("camera.calendar.filter.all")
+                    : selectedYear}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color="#aaa" />
               </RNView>
@@ -216,10 +235,14 @@ export default function ExpenseCalendarView({
               style={styles.filterField}
               onPress={() => setActiveFilterField("month")}
             >
-              <Text style={styles.filterFieldLabel}>Month</Text>
+              <Text style={styles.filterFieldLabel}>
+                {t("camera.calendar.filter.month")}
+              </Text>
               <RNView style={styles.filterFieldValueRow}>
                 <Text style={styles.filterFieldValueText}>
-                  {selectedMonth === "all" ? "All" : monthNames[selectedMonth]}
+                  {selectedMonth === "all"
+                    ? t("camera.calendar.filter.all")
+                    : monthNames[selectedMonth]}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color="#aaa" />
               </RNView>
@@ -230,13 +253,57 @@ export default function ExpenseCalendarView({
               style={styles.filterField}
               onPress={() => setActiveFilterField("day")}
             >
-              <Text style={styles.filterFieldLabel}>Day</Text>
+              <Text style={styles.filterFieldLabel}>
+                {t("camera.calendar.filter.day")}
+              </Text>
               <RNView style={styles.filterFieldValueRow}>
                 <Text style={styles.filterFieldValueText}>
-                  {selectedDay === "all" ? "All" : selectedDay}
+                  {selectedDay === "all"
+                    ? t("camera.calendar.filter.all")
+                    : selectedDay}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color="#aaa" />
               </RNView>
+            </TouchableOpacity>
+          </RNView>
+
+          {/* Type selector */}
+          <RNView style={styles.typeFilterRow}>
+            <TouchableOpacity
+              style={[
+                styles.typeFilterChip,
+                transactionTypeFilter === "spent" &&
+                  styles.typeFilterChipActive,
+              ]}
+              onPress={() => setTransactionTypeFilter("spent")}
+            >
+              <Text
+                style={[
+                  styles.typeFilterChipText,
+                  transactionTypeFilter === "spent" &&
+                    styles.typeFilterChipTextActive,
+                ]}
+              >
+                {t("camera.preview.type.spent")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.typeFilterChip,
+                transactionTypeFilter === "income" &&
+                  styles.typeFilterChipActive,
+              ]}
+              onPress={() => setTransactionTypeFilter("income")}
+            >
+              <Text
+                style={[
+                  styles.typeFilterChipText,
+                  transactionTypeFilter === "income" &&
+                    styles.typeFilterChipTextActive,
+                ]}
+              >
+                {t("camera.preview.type.income")}
+              </Text>
             </TouchableOpacity>
           </RNView>
         </RNView>
@@ -250,16 +317,22 @@ export default function ExpenseCalendarView({
         {!hasExpenses ? (
           <RNView style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={64} color="#444" />
-            <Text style={styles.emptyText}>No expenses yet</Text>
+            <Text style={styles.emptyText}>
+              {t("camera.calendar.empty.noExpenses")}
+            </Text>
             <Text style={styles.emptySubText}>
-              Take a photo to add an expense!
+              {t("camera.calendar.empty.addExpense")}
             </Text>
           </RNView>
         ) : !hasDayGroups ? (
           <RNView style={styles.emptyState}>
             <Ionicons name="search-outline" size={64} color="#444" />
-            <Text style={styles.emptyText}>No expenses in this month</Text>
-            <Text style={styles.emptySubText}>Try selecting another month</Text>
+            <Text style={styles.emptyText}>
+              {t("camera.calendar.empty.noExpensesMonth")}
+            </Text>
+            <Text style={styles.emptySubText}>
+              {t("camera.calendar.empty.tryAnotherMonth")}
+            </Text>
           </RNView>
         ) : (
           dayGroups.map((group) => (
@@ -269,8 +342,10 @@ export default function ExpenseCalendarView({
                 <Text style={styles.dayDate}>
                   {formatDateLabel(group.date)}
                 </Text>
-                <Text style={styles.dayTotal}>
-                  {formatAmount(group.totalAmount)}
+                <Text style={[styles.dayTotal, { color: primaryColor }]}>
+                  {`${transactionTypeFilter === "income" ? "+" : "-"}${formatAmount(
+                    group.totalAmount,
+                  )}`}
                 </Text>
               </RNView>
 
@@ -307,10 +382,10 @@ export default function ExpenseCalendarView({
             <RNView style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {activeFilterField === "year"
-                  ? "Select year"
+                  ? t("camera.calendar.select.year")
                   : activeFilterField === "month"
-                    ? "Select month"
-                    : "Select day"}
+                    ? t("camera.calendar.select.month")
+                    : t("camera.calendar.select.day")}
               </Text>
               <TouchableOpacity
                 onPress={() => setActiveFilterField(null)}
@@ -334,7 +409,9 @@ export default function ExpenseCalendarView({
                   setActiveFilterField(null);
                 }}
               >
-                <Text style={styles.modalItemText}>All</Text>
+                <Text style={styles.modalItemText}>
+                  {t("camera.calendar.filter.all")}
+                </Text>
               </TouchableOpacity>
 
               {activeFilterField === "year" &&
@@ -445,6 +522,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
+  typeFilterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 10,
+  },
   filterField: {
     flex: 1,
     backgroundColor: "rgba(255,255,255,0.06)",
@@ -465,6 +548,28 @@ const styles = StyleSheet.create({
   filterFieldValueText: {
     color: "#fff",
     fontSize: 12,
+  },
+  typeFilterChip: {
+    flex: 1,
+    borderRadius: 999,
+    paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.02)",
+  },
+  typeFilterChipActive: {
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  typeFilterChipText: {
+    color: "#ccc",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  typeFilterChipTextActive: {
+    color: "#fff",
   },
   resetButton: {
     flexDirection: "row",
@@ -511,7 +616,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   dayTotal: {
-    color: CAMERA_PRIMARY,
     fontSize: 14,
     fontWeight: "700",
   },

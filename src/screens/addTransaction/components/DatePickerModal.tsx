@@ -1,17 +1,18 @@
 import { Text, useThemeColor } from "@/components/Themed";
-import { usePrimaryColor } from "@/contexts/ThemeContext";
+import { usePrimaryColor, useTheme } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import DateTimePicker, {
-    AndroidNativeProps,
-    DateTimePickerAndroid,
+  AndroidNativeProps,
+  DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import React, { useEffect } from "react";
 import {
-    Modal,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Modal,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface DatePickerModalProps {
@@ -27,11 +28,15 @@ export default function DatePickerModal({
   onClose,
   onChange,
 }: DatePickerModalProps) {
+  const { t } = useI18n();
+  const { languageKey } = useTheme();
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const primaryColor = usePrimaryColor();
   const colorScheme = useColorScheme();
   const themeVariant = colorScheme === "dark" ? "dark" : "light";
+  // Map languageKey to locale format: "vie" -> "vi", "eng" -> "en"
+  const locale = languageKey === "vie" ? "vi" : "en";
 
   // On Android, use the native dialog API instead of our custom Modal.
   // This avoids the bug where users have to tap the OK button many times
@@ -46,6 +51,7 @@ export default function DatePickerModal({
       display: "default",
       maximumDate: new Date(),
       themeVariant,
+      locale,
       onChange: (event, selectedDate) => {
         if (event.type === "set" && selectedDate) {
           onChange(selectedDate);
@@ -54,7 +60,7 @@ export default function DatePickerModal({
         onClose();
       },
     } as AndroidNativeProps);
-  }, [visible, value, onChange, onClose, themeVariant]);
+  }, [visible, value, onChange, onClose, themeVariant, locale]);
 
   // Android dialog is handled via DateTimePickerAndroid above
   if (Platform.OS === "android") {
@@ -79,14 +85,14 @@ export default function DatePickerModal({
         >
           <View style={styles.dateModalHeader}>
             <Text style={[styles.modalTitle, { color: textColor }]}>
-              Select Date
+              {t("add.date.selectTitle")}
             </Text>
             <TouchableOpacity
               onPress={onClose}
               style={styles.dateModalDoneButton}
             >
               <Text style={[styles.modalCloseText, { color: primaryColor }]}>
-                Done
+                {t("add.date.done")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -99,6 +105,7 @@ export default function DatePickerModal({
             }}
             maximumDate={new Date()}
             themeVariant={themeVariant}
+            locale={locale}
           />
         </View>
       </TouchableOpacity>

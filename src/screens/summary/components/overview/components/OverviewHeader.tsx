@@ -1,8 +1,8 @@
 import { Text } from "@/components/Themed";
+import { useI18n } from "@/i18n";
 import React from "react";
 import { View } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { TYPE_OPTIONS } from "../constants";
 import { styles } from "../styles";
 import { ChartType, ThemeColors } from "../types";
 
@@ -11,8 +11,10 @@ interface OverviewHeaderProps {
   setChartType: (type: ChartType) => void;
   dropdownOpen: boolean;
   setDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  items: typeof TYPE_OPTIONS;
-  setItems: React.Dispatch<React.SetStateAction<typeof TYPE_OPTIONS>>;
+  items: Array<{ label: string; value: ChartType }>;
+  setItems: React.Dispatch<
+    React.SetStateAction<Array<{ label: string; value: ChartType }>>
+  >;
   themeColors: ThemeColors;
 }
 
@@ -25,9 +27,10 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
   setItems,
   themeColors,
 }) => {
+  const { t } = useI18n();
   return (
     <View style={styles.header}>
-      <Text style={styles.title}>Trends</Text>
+      <Text style={styles.title}>{t("summary.chart.trends")}</Text>
       <View style={styles.dropdownWrapper}>
         <DropDownPicker
           open={dropdownOpen}

@@ -1,6 +1,7 @@
 import { Text, useThemeColor } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 import DateRangePickerModal from "@/screens/summary/components/DateRangePickerModal";
 import { RangeType, getDateRange } from "@/utils/getDateRange";
 import {
@@ -10,6 +11,7 @@ import {
     isSameDay,
     subDays,
 } from "date-fns";
+import { enUS, vi } from "date-fns/locale";
 import { useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -26,12 +28,14 @@ export default function HeaderSummary({
   currentDate,
   setCurrentDate,
 }: HeaderProps) {
+  const { t, languageKey } = useI18n();
   const [modalVisible, setModalVisible] = useState(false);
   const colorScheme = useColorScheme();
   const textColor = useThemeColor({}, "text");
   const colors = Colors[colorScheme];
   const { start, end } = getDateRange(range, currentDate);
   const today = new Date();
+  const dateLocale = languageKey === "vie" ? vi : enUS;
 
   // Check if the current date range includes today
   const includesToday = useMemo(() => {
@@ -100,23 +104,23 @@ export default function HeaderSummary({
     const today = new Date();
 
     if (range === "all") {
-      return `All time`;
+      return t("summary.header.allTime");
     }
 
     if (range === "day") {
       const diff = differenceInCalendarDays(currentDate, today);
-      if (diff === 0) return "Today";
-      if (diff === -1) return "Yesterday";
-      if (diff === 1) return "Tomorrow";
-      return format(currentDate, "dd MMM yyyy");
+      if (diff === 0) return t("summary.header.today");
+      if (diff === -1) return t("summary.header.yesterday");
+      if (diff === 1) return t("summary.header.tomorrow");
+      return format(currentDate, "dd MMM yyyy", { locale: dateLocale });
     }
 
     if (range === "week") {
-      return `${format(start!, "dd MMM")} – ${format(end!, "dd MMM")}`;
+      return `${format(start!, "dd MMM", { locale: dateLocale })} – ${format(end!, "dd MMM", { locale: dateLocale })}`;
     }
 
     if (range === "month") {
-      return format(currentDate, "MMMM yyyy");
+      return format(currentDate, "MMMM yyyy", { locale: dateLocale });
     }
 
     if (range === "year") {

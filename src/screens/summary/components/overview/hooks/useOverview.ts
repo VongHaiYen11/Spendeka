@@ -1,10 +1,10 @@
 import { useThemeColor } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
 import { filterTransactionsByDateRange } from "@/utils/transactionHelpers";
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
-import { TYPE_OPTIONS } from "../constants";
 import { ChartType, OverviewProps, ThemeColors } from "../types";
 import { aggregateTransactions, buildChartData } from "../utils/chartDataUtils";
 
@@ -18,8 +18,10 @@ export interface UseOverviewReturn {
   setChartType: (type: ChartType) => void;
   dropdownOpen: boolean;
   setDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  items: typeof TYPE_OPTIONS;
-  setItems: React.Dispatch<React.SetStateAction<typeof TYPE_OPTIONS>>;
+  items: Array<{ label: string; value: ChartType }>;
+  setItems: React.Dispatch<
+    React.SetStateAction<Array<{ label: string; value: ChartType }>>
+  >;
   themeColors: ThemeColors;
   allTimeDateRange: AllTimeDateRange;
   chartData: ReturnType<typeof buildChartData>;
@@ -50,10 +52,35 @@ export const useOverview = ({
   OverviewProps,
   "startDate" | "endDate" | "range"
 >): UseOverviewReturn => {
+  const { t, languageKey } = useI18n();
   const { width } = useWindowDimensions();
   const [chartType, setChartType] = useState<ChartType>("all");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [items, setItems] = useState(TYPE_OPTIONS);
+
+  const itemsMemo = useMemo(
+    () => [
+      { label: t("summary.chart.all"), value: "all" as ChartType },
+      { label: t("summary.chart.income"), value: "income" as ChartType },
+      { label: t("summary.chart.spent"), value: "spent" as ChartType },
+    ],
+    [t, languageKey],
+  );
+
+  const [items, setItems] = useState(itemsMemo);
+  const prevLanguageKeyRef = useRef(languageKey);
+
+  // Only update items when language actually changes (using ref to prevent loops)
+  useEffect(() => {
+    if (prevLanguageKeyRef.current !== languageKey) {
+      prevLanguageKeyRef.current = languageKey;
+      setItems([
+        { label: t("summary.chart.all"), value: "all" as ChartType },
+        { label: t("summary.chart.income"), value: "income" as ChartType },
+        { label: t("summary.chart.spent"), value: "spent" as ChartType },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [languageKey]);
 
   // Theme resolution
   const backgroundColor = useThemeColor({}, "background");
@@ -81,14 +108,22 @@ export const useOverview = ({
 
   // Keep useMemo for expensive aggregation computation
   const buckets = useMemo(
-    () => aggregateTransactions(rawTransactions, range, startDate, endDate),
-    [rawTransactions, range, startDate, endDate],
+    () =>
+      aggregateTransactions(
+        rawTransactions,
+        range,
+        startDate,
+        endDate,
+        t,
+        languageKey,
+      ),
+    [rawTransactions, range, startDate, endDate, t, languageKey],
   );
 
   // Keep useMemo for expensive chart data computation
   const chartData = useMemo(
-    () => buildChartData(buckets, chartType, range),
-    [buckets, chartType, range],
+    () => buildChartData(buckets, chartType, range, t),
+    [buckets, chartType, range, t],
   );
 
   // For "all time" range: date range of data filtered by chart type (income / spent / all)

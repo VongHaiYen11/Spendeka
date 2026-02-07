@@ -1,4 +1,5 @@
 import { Text, useThemeColor, View } from "@/components/Themed";
+import { useI18n } from "@/i18n";
 import { calculateNetTotal, DatabaseTransaction } from "@/types/transaction";
 import { formatDollar } from "@/utils/formatCurrency";
 import React from "react";
@@ -16,6 +17,7 @@ const formatTotalWithSign = (total: number) => {
 };
 
 const DateGroup: React.FC<DateGroupProps> = ({ dateKey, transactions }) => {
+  const { t } = useI18n();
   const textColor = useThemeColor({}, "text");
   const total = calculateNetTotal(transactions);
   const totalColor = total > 0 ? "#4CAF50" : total < 0 ? "#F44336" : textColor;
@@ -31,7 +33,7 @@ const DateGroup: React.FC<DateGroupProps> = ({ dateKey, transactions }) => {
         ))}
         <View style={styles.groupTotal}>
           <Text style={[styles.totalLabel, { color: totalColor }]}>
-            Total: {formatTotalWithSign(total)}
+            {t("history.total")}: {formatTotalWithSign(total)}
           </Text>
         </View>
       </>

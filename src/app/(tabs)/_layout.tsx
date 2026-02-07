@@ -12,6 +12,7 @@ import {
 import Colors from "@/constants/Colors";
 import { usePrimaryColor } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useI18n } from "@/i18n";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -26,6 +27,7 @@ export default function TabLayout() {
   const primaryColor = usePrimaryColor();
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
 
   // Dark nav only when on camera tab (opening detail from Home navigates to Camera)
   const isDarkNav = useMemo(() => {
@@ -69,14 +71,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("nav.home"),
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="summary"
         options={{
-          title: "Summary",
+          title: t("nav.summary"),
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
         }}
       />
@@ -138,14 +140,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="camera"
         options={{
-          title: "Camera",
+          title: t("nav.camera"),
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: t("nav.settings"),
           tabBarIcon: ({ color }) => <TabBarIcon name="gear" color={color} />,
         }}
       />

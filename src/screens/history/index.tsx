@@ -1,18 +1,22 @@
 import { SafeView, Text, useThemeColor, View } from "@/components/Themed";
 import { useTransactions } from "@/contexts/TransactionContext";
+import { useI18n } from "@/i18n";
 import {
+  EXPENSE_CATEGORIES,
   EXPENSE_CATEGORIES_EN,
   INCOME_CATEGORIES_EN,
+  INCOME_CATEGORIES_VI,
 } from "@/models/Expense";
+import { useFocusEffect } from "@react-navigation/native";
+import { format, parseISO } from "date-fns";
+import { enUS, vi } from "date-fns/locale";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
 import DateGroup from "./components/DateGroup";
 import FilterButton from "./components/FilterButton";
 import FilterModal, { FilterState } from "./components/FilterModal";
 import Header from "./components/Header";
 import SearchBar from "./components/SearchBar";
-import { format, parseISO } from "date-fns";
 import {
   filterTransactions,
   groupTransactionsByDay,
@@ -24,6 +28,7 @@ import {
 export default function HistoryScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const { t, languageKey } = useI18n();
 
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
@@ -48,8 +53,21 @@ export default function HistoryScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshTransactions();
-    }, [refreshTransactions])
+    }, [refreshTransactions]),
   );
+
+  // Build category label map for bilingual search
+  const categoryLabelMap = useMemo(() => {
+    const expenseCategories =
+      languageKey === "vie" ? EXPENSE_CATEGORIES : EXPENSE_CATEGORIES_EN;
+    const incomeCategories =
+      languageKey === "vie" ? INCOME_CATEGORIES_VI : INCOME_CATEGORIES_EN;
+    const map: Record<string, string> = {};
+    [...expenseCategories, ...incomeCategories].forEach((cat) => {
+      map[cat.value] = cat.label;
+    });
+    return map;
+  }, [languageKey]);
 
   const filteredTransactions = useMemo(() => {
     return filterTransactions(allTransactions, searchQuery, {
@@ -59,8 +77,13 @@ export default function HistoryScreen() {
       maxAmount: filters.maxAmount,
       startDate: filters.startDate,
       endDate: filters.endDate,
+      categoryLabelMap,
     });
-  }, [allTransactions, searchQuery, filters]);
+  }, [allTransactions, searchQuery, filters, categoryLabelMap]);
+
+  const dateLocale = useMemo(() => {
+    return languageKey === "vie" ? vi : enUS;
+  }, [languageKey]);
 
   const groupedTransactions = useMemo(() => {
     if (filters.groupBy === "year") {
@@ -69,23 +92,23 @@ export default function HistoryScreen() {
     if (filters.groupBy === "day") {
       return groupTransactionsByDay(filteredTransactions);
     }
-    return groupTransactionsByMonth(filteredTransactions);
-  }, [filteredTransactions, filters.groupBy]);
+    return groupTransactionsByMonth(filteredTransactions, dateLocale);
+  }, [filteredTransactions, filters.groupBy, dateLocale]);
 
   const sortedGroupKeys = useMemo(() => {
     return sortGroupKeys(Object.keys(groupedTransactions));
   }, [groupedTransactions]);
 
-  const expenseCategoryOptions = useMemo(
-    () =>
-      EXPENSE_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
-    [],
-  );
-  const incomeCategoryOptions = useMemo(
-    () =>
-      INCOME_CATEGORIES_EN.map((c) => ({ value: c.value, label: c.label })),
-    [],
-  );
+  const expenseCategoryOptions = useMemo(() => {
+    const categories =
+      languageKey === "vie" ? EXPENSE_CATEGORIES : EXPENSE_CATEGORIES_EN;
+    return categories.map((c) => ({ value: c.value, label: c.label }));
+  }, [languageKey]);
+  const incomeCategoryOptions = useMemo(() => {
+    const categories =
+      languageKey === "vie" ? INCOME_CATEGORIES_VI : INCOME_CATEGORIES_EN;
+    return categories.map((c) => ({ value: c.value, label: c.label }));
+  }, [languageKey]);
 
   return (
     <SafeView style={styles.container}>
@@ -119,21 +142,21 @@ export default function HistoryScreen() {
           <View style={styles.emptyState}>
             <ActivityIndicator size="large" color={textColor} />
             <Text style={[styles.emptyText, { color: textColor }]}>
-              Loading...
+              {t("history.loading")}
             </Text>
           </View>
         ) : filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyText, { color: textColor }]}>
-              No transactions found
+              {t("history.empty")}
             </Text>
           </View>
         ) : (
           sortedGroupKeys.map((groupKey) => {
-            const displayKey =
-              /^\d{4}-\d{2}-\d{2}$/.test(groupKey)
-                ? format(parseISO(groupKey), "MMM d, yyyy")
-                : groupKey;
+            const formattedKey = /^\d{4}-\d{2}-\d{2}$/.test(groupKey)
+              ? format(parseISO(groupKey), "MMM d, yyyy", { locale: dateLocale })
+              : groupKey;
+            const displayKey = formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
             return (
               <DateGroup
                 key={groupKey}
