@@ -139,7 +139,7 @@ export default function ExpensePreviewScreen({
 
     try {
       setIsGeneratingCaption(true);
-      const result = await generateAutoCaptionFromImage(imageUri);
+      const result = await generateAutoCaptionFromImage(imageUri, languageKey);
       if (result?.caption) {
         setCaption(result.caption.slice(0, MAX_NOTE_LENGTH));
       }

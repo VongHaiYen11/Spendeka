@@ -7,14 +7,14 @@ import { ParsedTransactionFromText } from "@/types/textToTransaction";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    View as RNView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  View as RNView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
 } from "react-native";
 
 interface TextToTransactionModalProps {
@@ -36,7 +36,7 @@ export default function TextToTransactionModal({
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const widgetBackgroundColor = useThemeColor({}, "card");
-  const { t } = useI18n();
+  const { t, languageKey } = useI18n();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -48,7 +48,7 @@ export default function TextToTransactionModal({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: value }),
+        body: JSON.stringify({ text: value, language: languageKey }),
       });
 
       if (!response.ok) {

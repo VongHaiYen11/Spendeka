@@ -1,16 +1,18 @@
 import "dotenv/config";
-import Tesseract from "tesseract.js";
-import fs from "node:fs";
 import fsPromises from "node:fs/promises";
-import { parseTextToTransaction } from "./gemini.js";
+import Tesseract from "tesseract.js";
 import type { ParsedTransactionFromText } from "../types/transaction.js";
+import { parseTextToTransaction } from "./gemini.js";
 
 const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB hard limit for bill images
+
+export type ScanBillLanguage = "vie" | "eng";
 
 export async function scanBillAndParse(
   filePath: string,
   originalName: string,
   size: number,
+  language: ScanBillLanguage = "eng",
 ): Promise<{ rawText: string; parsed: ParsedTransactionFromText }> {
   if (!size || size <= 0) {
     await safeUnlink(filePath);
@@ -40,7 +42,7 @@ export async function scanBillAndParse(
       throw new Error("OCR did not detect any text in the bill image.");
     }
 
-    const parsed = await parseTextToTransaction(rawText);
+    const parsed = await parseTextToTransaction(rawText, language);
 
     return { rawText, parsed };
   } finally {
@@ -58,4 +60,3 @@ async function safeUnlink(path: string) {
     }
   }
 }
-

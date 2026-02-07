@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "@/config/api";
 import {
-    CLOUDINARY_CONFIG,
-    CLOUDINARY_UPLOAD_URL,
+  CLOUDINARY_CONFIG,
+  CLOUDINARY_UPLOAD_URL,
 } from "@/config/cloudinaryConfig";
 
 export interface Photo {
@@ -113,9 +113,12 @@ export const uploadImage = async (uri: string): Promise<Photo | null> => {
 /**
  * Generate an automatic caption (and optional item list) for an expense image.
  * Calls the backend /image-caption endpoint which uses Gemini vision.
+ * @param uri - Local image URI
+ * @param language - User's app language ("vie" | "eng") so caption matches settings
  */
 export const generateAutoCaptionFromImage = async (
   uri: string,
+  language: "vie" | "eng" = "eng",
 ): Promise<AutoCaptionResult> => {
   const uriParts = uri.split(".");
   const fileType = uriParts[uriParts.length - 1] || "jpg";
@@ -126,6 +129,7 @@ export const generateAutoCaptionFromImage = async (
     type: `image/${fileType}`,
     name: `expense_${Date.now()}.${fileType}`,
   } as any);
+  formData.append("language", language);
 
   const response = await fetch(`${API_BASE_URL}/image-caption`, {
     method: "POST",

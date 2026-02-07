@@ -14,21 +14,23 @@ export interface ImageCaptionResult {
   caption: string;
 }
 
-export async function generateCaptionFromImage(
-  filePath: string,
-  mimeType: string,
-): Promise<ImageCaptionResult> {
-  const buffer = await fsPromises.readFile(filePath);
-  const base64 = buffer.toString("base64");
+export type ImageCaptionLanguage = "vie" | "eng";
 
-  const prompt = `
+function buildCaptionPrompt(language: ImageCaptionLanguage): string {
+  const isVietnamese = language === "vie";
+  const captionLang = isVietnamese ? "Vietnamese" : "English";
+  const itemsExample = isVietnamese
+    ? '"trà sữa", "hamburger", "giày thể thao"'
+    : '"milk tea", "hamburger", "sneakers"';
+
+  return `
 You are helping a user log a personal expense.
 
 Look carefully at the provided image (a photo of items, food, bill, or scene related to spending).
 
 Your task:
 - Identify the main items in the image (max 5 short names).
-- Write ONE very short Vietnamese caption (<= 50 characters) that could be used as a note for this expense.
+- Write ONE very short ${captionLang} caption (<= 50 characters) that could be used as a note for this expense.
 
 Return ONLY a JSON object with this exact shape:
 {
@@ -37,11 +39,22 @@ Return ONLY a JSON object with this exact shape:
 }
 
 Rules:
-- "items" should be short phrases like "trà sữa", "hamburger", "giày thể thao".
-- "caption" must be in Vietnamese, friendly, and concise.
+- "items" should be short phrases in ${captionLang}, e.g. ${itemsExample}.
+- "caption" must be in ${captionLang}, friendly, and concise.
 - Do NOT include currency or amount in the caption.
 - Output must be valid JSON, no comments, no extra text.
 `;
+}
+
+export async function generateCaptionFromImage(
+  filePath: string,
+  mimeType: string,
+  language: ImageCaptionLanguage = "eng",
+): Promise<ImageCaptionResult> {
+  const buffer = await fsPromises.readFile(filePath);
+  const base64 = buffer.toString("base64");
+
+  const prompt = buildCaptionPrompt(language);
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -94,10 +107,13 @@ Rules:
     throw new Error("Failed to parse Gemini image caption response as JSON");
   }
 
-  if (!parsed || typeof parsed.caption !== "string" || !Array.isArray(parsed.items)) {
+  if (
+    !parsed ||
+    typeof parsed.caption !== "string" ||
+    !Array.isArray(parsed.items)
+  ) {
     throw new Error("Gemini image caption JSON is missing required fields");
   }
 
   return parsed;
 }
-

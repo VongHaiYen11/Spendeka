@@ -38,7 +38,7 @@ export default function ScanBillModal({
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const widgetBackgroundColor = useThemeColor({}, "card");
-  const { t } = useI18n();
+  const { t, languageKey } = useI18n();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -173,6 +173,7 @@ export default function ScanBillModal({
         name: `bill_${Date.now()}.${fileType}`,
         type: `image/${fileType}`,
       } as any);
+      formData.append("language", languageKey);
 
       const response = await fetch(`${API_BASE_URL}/scan-bill`, {
         method: "POST",
