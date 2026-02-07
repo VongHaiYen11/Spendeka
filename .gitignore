@@ -49,6 +49,6 @@ app-example
 .env.*
 !.env.example
 
-api/.env
-api/.env.*
-!api/.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
